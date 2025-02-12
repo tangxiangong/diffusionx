@@ -1,0 +1,14 @@
+[package]
+name = "diffusionx"
+authors.workspace = true
+edition.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib", "cdylib"]
+
+[dependencies]
+rand_distr = { workspace = true }
+rand = { workspace = true }
+rayon = { workspace = true }
+thiserror = { workspace = true }
