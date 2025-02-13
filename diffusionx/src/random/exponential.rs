@@ -40,7 +40,8 @@ pub fn standard_rand() -> f64 {
 /// let randoms = standard_rands(10);
 /// ```
 pub fn standard_rands(n: usize) -> Vec<f64> {
-    (0..n).into_par_iter().map(|_| standard_rand()).collect()
+    let dist = Exp1;
+    (0..n).into_par_iter().map_init(rng, |r, _| r.sample(dist)).collect()
 }
 
 /// Generate an exponential random number

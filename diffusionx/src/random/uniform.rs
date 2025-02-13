@@ -51,7 +51,8 @@ pub fn standard_rand() -> f64 {
 /// assert!(randoms.iter().all(|x| (0.0..1.0).contains(x)));
 /// ```
 pub fn standard_rands(n: usize) -> Vec<f64> {
-    (0..n).into_par_iter().map(|_| standard_rand()).collect()
+    let dist = StandardUniform;
+    (0..n).into_par_iter().map_init(rng,|r, _| r.sample(dist)).collect()
 }
 
 /// Generate a random number from a range
