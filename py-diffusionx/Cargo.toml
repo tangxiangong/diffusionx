@@ -1,11 +1,11 @@
 [package]
-name = "py_diffusionx"
+name = "py-diffusionx"
 authors.workspace = true
 edition.workspace = true
 version.workspace = true
 
 [lib]
-name = "core"
+name = "_core"
 # "cdylib" is necessary to produce a shared library for Python to import from.
 crate-type = ["cdylib"]
 

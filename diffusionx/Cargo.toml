@@ -4,11 +4,19 @@ authors.workspace = true
 edition.workspace = true
 version.workspace = true
 
+[[bench]]
+name = "random_generation"
+harness = false
+
 [lib]
-crate-type = ["cdylib", "rlib", "cdylib"]
+name = "diffusionx"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 rand_distr = { workspace = true }
 rand = { workspace = true }
 rayon = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+criterion = "0.5.1"

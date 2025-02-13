@@ -5,3 +5,5 @@ uv.lock
 **/*.py[cod]
 
 **/__pycache__
+
+.ipynb*
