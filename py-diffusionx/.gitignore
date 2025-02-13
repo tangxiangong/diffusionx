@@ -2,5 +2,6 @@
 uv.lock
 .python-version
 **/*.so
+**/*.py[cod]
 
 **/__pycache__
