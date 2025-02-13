@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["diffusionx", "py-diffusionx"]
+default-members = ["diffusionx"]
 
 [workspace.package]
 authors = ["xiangong tang <tangxiangong@gmail.com>"]
