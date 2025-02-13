@@ -37,7 +37,7 @@ pub fn float_eq(a: f64, b: f64) -> bool {
 /// # Example
 ///
 /// ```
-/// use special_functions::utils::eval_poly;
+/// use diffusionx::special_function::eval_poly;
 /// let y = eval_poly(0.5, &[16., 0., 20., 0., 5., 0.]); // 6th first-kind Chebyshev polynomial
 /// ```
 pub fn eval_poly(x: f64, arr: &[f64]) -> f64 {

@@ -18,7 +18,7 @@ use rayon::prelude::*;
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::poisson::rand;
+/// use diffusionx::random::poisson::rand;
 /// let random = rand(1.0);
 /// ```
 pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
@@ -38,7 +38,7 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::poisson::rands;
+/// use diffusionx::random::poisson::rands;
 /// let randoms = rands(1.0, 10);
 /// ```
 pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<u64>> {

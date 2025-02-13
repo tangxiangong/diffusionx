@@ -18,7 +18,7 @@ use rayon::prelude::*;
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::normal::standard_rand;
+/// use diffusionx::random::normal::standard_rand;
 /// let random = standard_rand();
 /// ```
 pub fn standard_rand() -> f64 {
@@ -36,7 +36,7 @@ pub fn standard_rand() -> f64 {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::normal::standard_rands;
+/// use diffusionx::random::normal::standard_rands;
 /// let randoms = standard_rands(10);
 /// ```
 pub fn standard_rands(n: usize) -> Vec<f64> {
@@ -55,7 +55,7 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::normal::rand;
+/// use diffusionx::random::normal::rand;
 /// let random = rand(0.0, 1.0);
 /// ```
 pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
@@ -76,7 +76,7 @@ pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::normal::rands;
+/// use diffusionx::random::normal::rands;
 /// let randoms = rands(0.0, 1.0, 10);
 /// ```
 pub fn rands(mean: impl Into<f64>, std_dev: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {

@@ -266,7 +266,7 @@ impl Distribution<f64> for SymmetricStandardStable {
 ///
 /// ```rust
 /// use rand::rng;
-/// use diffusionx_core::random::levy::standard_rand;
+/// use diffusionx::random::stable::standard_rand;
 ///
 /// let alpha = 0.7;
 /// let beta = 1.0;
@@ -293,7 +293,7 @@ pub fn standard_rand(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<f64
 ///
 /// ```rust
 /// use rand::rng;
-/// use diffusionx_core::random::levy::standard_rands;
+/// use diffusionx::random::stable::standard_rands;
 ///
 /// let alpha = 0.7;
 /// let beta = 1.0;
@@ -325,7 +325,7 @@ pub fn standard_rands(alpha: impl Into<f64>, beta: impl Into<f64>, n: usize) -> 
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::levy::rand;
+/// use diffusionx::random::stable::rand;
 ///
 /// let alpha = 0.7;
 /// let beta = 1.0;
@@ -360,14 +360,15 @@ pub fn rand(
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::levy::rands;
+/// use diffusionx::random::stable::rands;
 ///
 /// let alpha = 0.7;
 /// let beta = 1.0;
 /// let sigma = 1.0;
 /// let mu = 0.0;
-/// let r = rands(alpha, beta, sigma, mu).unwrap();
-/// println!("r: {:?}", r);
+/// let n = 10;
+/// let r = rands(alpha, beta, sigma, mu, n).unwrap();
+/// assert_eq!(r.len(), n);
 /// ```
 pub fn rands(
     alpha: impl Into<f64>,
@@ -396,7 +397,7 @@ pub fn rands(
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::levy::skew_rand;
+/// use diffusionx::random::stable::skew_rand;
 ///
 /// let alpha = 0.7;
 /// let r = skew_rand(alpha).unwrap();
@@ -420,7 +421,7 @@ pub fn skew_rand(alpha: impl Into<f64>) -> XResult<f64> {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::levy::skew_rands;
+/// use diffusionx::random::stable::skew_rands;
 ///
 /// let alpha = 0.7;
 /// let n = 10;
@@ -448,7 +449,7 @@ pub fn skew_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::levy::sym_standard_rand;
+/// use diffusionx::random::stable::sym_standard_rand;
 ///
 /// let alpha = 0.7;
 /// let r = sym_standard_rand(alpha).unwrap();
@@ -473,7 +474,7 @@ pub fn sym_standard_rand(alpha: impl Into<f64>) -> XResult<f64> {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::levy::sym_standard_rands;
+/// use diffusionx::random::stable::sym_standard_rands;
 ///
 /// let alpha = 0.7;
 /// let n = 10;

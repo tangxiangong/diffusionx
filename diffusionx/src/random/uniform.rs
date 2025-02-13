@@ -26,7 +26,7 @@ use std::ops::{Range, RangeInclusive};
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::uniform::standard_rand;
+/// use diffusionx::random::uniform::standard_rand;
 /// let random = standard_rand();
 /// assert!((0.0..1.0).contains(&random));
 /// ```
@@ -45,7 +45,7 @@ pub fn standard_rand() -> f64 {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::uniform::standard_rands;
+/// use diffusionx::random::uniform::standard_rands;
 /// let randoms = standard_rands(10);
 /// assert_eq!(randoms.len(), 10);
 /// assert!(randoms.iter().all(|x| (0.0..1.0).contains(x)));
@@ -66,7 +66,7 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::uniform::range_rand;
+/// use diffusionx::random::uniform::range_rand;
 /// let random = range_rand(0..10).unwrap();
 /// assert!((0..10).contains(&random));
 /// ```
@@ -89,8 +89,8 @@ where
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::uniform::range_rands;
-/// let randoms = range_rands(0..10, 10);
+/// use diffusionx::random::uniform::range_rands;
+/// let randoms = range_rands(0..10, 10).unwrap();
 /// assert_eq!(randoms.len(), 10);
 /// assert!(randoms.iter().all(|x| (0..10).contains(x)));
 /// ```
@@ -119,7 +119,7 @@ where
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::uniform::inclusive_range_rand;
+/// use diffusionx::random::uniform::inclusive_range_rand;
 /// let random = inclusive_range_rand(0..=10).unwrap();
 /// assert!((0..=10).contains(&random));
 /// ```
@@ -142,8 +142,8 @@ where
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::random::uniform::inclusive_range_rands;
-/// let randoms = inclusive_range_rands(0..=10, 10);
+/// use diffusionx::random::uniform::inclusive_range_rands;
+/// let randoms = inclusive_range_rands(0..=10, 10).unwrap();
 /// assert_eq!(randoms.len(), 10);
 /// assert!(randoms.iter().all(|x| (0..=10).contains(x)));
 /// ```

@@ -23,7 +23,7 @@ unsafe extern "C" {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::cfunction::gamma;
+/// use diffusionx::cfunction::gamma;
 /// let x = 1.0;
 /// let result = gamma(x);
 /// assert_eq!(result, 1.0);
@@ -50,7 +50,7 @@ pub fn gamma(x: f64) -> f64 {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx_core::cfunction::gammaf;
+/// use diffusionx::cfunction::gammaf;
 /// let x = 1.0;
 /// let result = gammaf(x);
 /// assert_eq!(result, 1.0);
