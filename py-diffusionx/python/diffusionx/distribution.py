@@ -1,5 +1,5 @@
 from . import random
-from .dtype import DType
+from .types import DType
 from typing import Union
 import numpy as np
 
@@ -12,7 +12,7 @@ class Uniform:
         low: real = 0.0,
         high: real = 1.0,
         end: bool = False,
-        dtype: DType = DType.FLOAT,
+        dtype: DType = DType.Float,
     ):
         """均匀分布
 

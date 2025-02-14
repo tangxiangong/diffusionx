@@ -1,6 +1,7 @@
-import numpy as np
-from . import _core, DType
+from . import _core
+from .types import DType
 from typing import Union
+import numpy as np
 
 real = Union[float, int]
 
@@ -30,7 +31,7 @@ def uniform_rand(
     low: real = 0.0,
     high: real = 1.0,
     end: bool = False,
-    dtype: DType = DType.FLOAT,
+    dtype: DType = DType.Float,
 ) -> real | np.ndarray:
     """均匀分布随机数
 
@@ -45,12 +46,12 @@ def uniform_rand(
         real | np.ndarray: 均匀分布随机数
     """
     if n == 1:
-        if dtype == DType.FLOAT:
+        if dtype == DType.Float:
             return _core.uniform_rand_float(float(low), float(high), end)
         else:
             return _core.uniform_rand_int(int(low), int(high), end)
     else:
-        if dtype == DType.FLOAT:
+        if dtype == DType.Float:
             return _core.uniform_rands_float(n, float(low), float(high), end)
         else:
             return _core.uniform_rands_int(n, int(low), int(high), end)

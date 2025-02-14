@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class DType(Enum):
-    INT = "int"
-    FLOAT = "float"
+    Float = "float"
+    Int = "int" 
