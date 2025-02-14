@@ -9,3 +9,4 @@
 | [NumPy](https://numpy.org/) | 3.28 s | 1.15 s |
 | [Random.jl (Julia)](https://github.com/JuliaRandom/Random.jl) | 581.61 ms | 371.37 ms |
 | [Octave](https://www.gnu.org/software/octave/) | 1.31 s | 1.09 s |
+|[Baltamatica](https://www.baltamatica.com/)| 5.47 s | 1.09 s |
