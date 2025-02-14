@@ -6,7 +6,7 @@ import numpy as np
 real = Union[float, int]
 
 
-def exp_rand(n: int = 1, scale: real = 1.0) -> Union[float, np.ndarray]:
+def randexp(n: int = 1, scale: real = 1.0) -> Union[float, np.ndarray]:
     """
     指数分布随机数
 
@@ -26,7 +26,7 @@ def exp_rand(n: int = 1, scale: real = 1.0) -> Union[float, np.ndarray]:
         return _core.exp_rands(n, scale=scale)
 
 
-def uniform_rand(
+def uniform(
     n: int = 1,
     low: real = 0.0,
     high: real = 1.0,
@@ -57,7 +57,7 @@ def uniform_rand(
             return _core.uniform_rands_int(n, int(low), int(high), end)
 
 
-def normal_rand(n: int = 1, mu: real = 0.0, sigma: real = 1.0) -> float | np.ndarray:
+def randn(n: int = 1, mu: real = 0.0, sigma: real = 1.0) -> float | np.ndarray:
     """正态分布随机数
 
     Args:

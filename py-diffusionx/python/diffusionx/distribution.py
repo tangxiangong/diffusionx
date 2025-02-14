@@ -36,7 +36,7 @@ class Uniform:
         Returns:
             real | np.ndarray: 均匀分布随机数
         """
-        return random.uniform_rand(n, self.low, self.high, self.end, self.dtype)
+        return random.uniform(n, self.low, self.high, self.end, self.dtype)
 
 
 class Normal:
@@ -59,7 +59,7 @@ class Normal:
         Returns:
             real | np.ndarray: 正态分布随机数
         """
-        return random.normal_rand(n, self.mu, self.sigma)
+        return random.randn(n, self.mu, self.sigma)
 
 
 class Exponential:
@@ -80,4 +80,4 @@ class Exponential:
         Returns:
             real | np.ndarray: 指数分布随机数
         """
-        return random.exp_rand(n, self.scale)
+        return random.randexp(n, self.scale)
