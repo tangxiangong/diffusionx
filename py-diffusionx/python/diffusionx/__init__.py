@@ -1,3 +1,3 @@
-from .hello import hello
+from . import random
 
-__all__ = ["hello"]
+__all__ = ["random"]
