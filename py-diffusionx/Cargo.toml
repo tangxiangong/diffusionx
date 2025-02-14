@@ -18,3 +18,4 @@ thiserror = { workspace = true }
 numpy = { workspace = true }
 rayon = { workspace = true }
 num_cpus = "1.16.0"
+rand = { workspace = true }
