@@ -15,8 +15,10 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
         .unwrap();
     m.add_function(wrap_pyfunction!(random::exp_rand, m)?)?;
     m.add_function(wrap_pyfunction!(random::exp_rands, m)?)?;
-    m.add_function(wrap_pyfunction!(random::uniform_rand, m)?)?;
-    m.add_function(wrap_pyfunction!(random::uniform_rands, m)?)?;
+    m.add_function(wrap_pyfunction!(random::uniform_rand_float, m)?)?;
+    m.add_function(wrap_pyfunction!(random::uniform_rand_int, m)?)?;
+    m.add_function(wrap_pyfunction!(random::uniform_rands_float, m)?)?;
+    m.add_function(wrap_pyfunction!(random::uniform_rands_int, m)?)?;
     m.add_function(wrap_pyfunction!(random::normal_rand, m)?)?;
     m.add_function(wrap_pyfunction!(random::normal_rands, m)?)?;
     Ok(())

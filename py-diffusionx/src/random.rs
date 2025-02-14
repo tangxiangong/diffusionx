@@ -1,7 +1,9 @@
 use pyo3::prelude::*;
-use diffusionx::random::{exponential, uniform, normal};
+use diffusionx::{random::{exponential, uniform, normal}, XResult};
 use crate::XPyResult;
 use numpy::{PyArray, IntoPyArray, Ix1};
+use rand::distr::uniform::{SampleUniform, Uniform};
+
 
 #[pyfunction]
 #[pyo3(signature = (scale = 1.0))]
@@ -27,26 +29,68 @@ pub fn exp_rands(py: Python, n: usize, scale: f64) -> XPyResult<Bound<'_, PyArra
 }
 
 #[pyfunction]
-#[pyo3(signature = (low = 0.0, high = 1.0))]
-pub fn uniform_rand(low: f64, high: f64) -> XPyResult<f64> {
+#[pyo3(signature = (low = 0.0, high = 1.0, /, end = false))]
+pub fn uniform_rand_float(low: f64, high: f64, end: bool) -> XPyResult<f64> {
     let result =  if low == 0.0 && high == 1.0 {
-        uniform::standard_rand()
+        _uniform_rand_with_end(0.0, 1.0, end)?
     } else {
-        uniform::range_rand(low..high)?
+        _uniform_rand_with_end(low, high, end)?
     };
     Ok(result)
 }
 
 #[pyfunction]
-#[pyo3(signature = (n, /, low = 0.0, high = 1.0))]
-pub fn uniform_rands(py: Python, n: usize, low: f64, high: f64) -> XPyResult<Bound<'_, PyArray<f64, Ix1>>> {
-    let result =  if low == 0.0 && high == 1.0 {
-        uniform::standard_rands(n)
+#[pyo3(signature = (low, high, /, end = false))]
+pub fn uniform_rand_int(low: i64, high: i64, end: bool) -> XPyResult<i64> {
+    let result =  _uniform_rand_with_end(low, high, end)?;
+    Ok(result)
+}
+
+fn _uniform_rand_with_end<T>(low: T, high: T, end: bool) -> XResult<T>
+where 
+    T: SampleUniform + Send + Sync,
+    Uniform<T>: Copy,
+    <T as SampleUniform>::Sampler: Send + Sync,
+{
+    if end {
+        Ok(uniform::inclusive_range_rand(low..=high)?)
     } else {
-        uniform::range_rands(low..high, n)?
+        Ok(uniform::range_rand(low..high)?)
+    }
+}
+
+
+#[pyfunction]
+#[pyo3(signature = (n, /, low = 0.0, high = 1.0, end = false))]
+pub fn uniform_rands_float(py: Python, n: usize, low: f64, high: f64, end: bool) -> XPyResult<Bound<'_, PyArray<f64, Ix1>>> {
+    let result =  if low == 0.0 && high == 1.0 {
+        _uniform_rands_with_end(n, 0.0, 1.0, end)?
+    } else {
+        _uniform_rands_with_end(n, low, high, end)?
     };
     let result = result.into_pyarray(py);
     Ok(result)
+}
+
+#[pyfunction]
+#[pyo3(signature = (n, low, high, /, end = false))]
+pub fn uniform_rands_int(py: Python, n: usize, low: i64, high: i64, end: bool) -> XPyResult<Bound<'_, PyArray<i64, Ix1>>> {
+    let result = _uniform_rands_with_end(n, low, high, end)?;
+    let result = result.into_pyarray(py);
+    Ok(result)
+}
+
+fn _uniform_rands_with_end<T>(n: usize, low: T, high: T, end: bool) -> XResult<Vec<T>>
+where 
+    T: SampleUniform + Send + Sync,
+    Uniform<T>: Copy,
+    <T as SampleUniform>::Sampler: Send + Sync,
+{
+    if end {
+        Ok(uniform::inclusive_range_rands(low..=high, n)?)
+    } else {
+        Ok(uniform::range_rands(low..high, n)?)
+    }
 }
 
 #[pyfunction]
