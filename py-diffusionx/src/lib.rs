@@ -4,6 +4,28 @@ pub mod random;
 mod error;
 pub use error::*;
 
+/// 用于简化 PyModule 函数注册的宏
+macro_rules! register_functions {
+    // 匹配 a::b::c 形式
+    ($m:ident, $($p1:ident::$p2:ident::$func:ident),* $(,)?) => {
+        $(
+            $m.add_function(wrap_pyfunction!($p1::$p2::$func, $m)?)?;
+        )*
+    };
+    // 匹配 a::b 形式
+    ($m:ident, $($p1:ident::$func:ident),* $(,)?) => {
+        $(
+            $m.add_function(wrap_pyfunction!($p1::$func, $m)?)?;
+        )*
+    };
+    // 匹配单独的 a 形式
+    ($m:ident, $($func:ident),* $(,)?) => {
+        $(
+            $m.add_function(wrap_pyfunction!($func, $m)?)?;
+        )*
+    };
+}
+
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
@@ -12,20 +34,26 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_cpus::get())
         .build_global()
-        .unwrap();
-    m.add_function(wrap_pyfunction!(random::exp_rand, m)?)?;
-    m.add_function(wrap_pyfunction!(random::exp_rands, m)?)?;
-    m.add_function(wrap_pyfunction!(random::uniform_rand_float, m)?)?;
-    m.add_function(wrap_pyfunction!(random::uniform_rand_int, m)?)?;
-    m.add_function(wrap_pyfunction!(random::uniform_rands_float, m)?)?;
-    m.add_function(wrap_pyfunction!(random::uniform_rands_int, m)?)?;
-    m.add_function(wrap_pyfunction!(random::normal_rand, m)?)?;
-    m.add_function(wrap_pyfunction!(random::normal_rands, m)?)?;
-    m.add_function(wrap_pyfunction!(random::poisson_rand, m)?)?;
-    m.add_function(wrap_pyfunction!(random::poisson_rands, m)?)?;
-    m.add_function(wrap_pyfunction!(random::stable_rand, m)?)?;
-    m.add_function(wrap_pyfunction!(random::stable_rands, m)?)?;
-    m.add_function(wrap_pyfunction!(random::skew_stable_rand, m)?)?;
-    m.add_function(wrap_pyfunction!(random::skew_stable_rands, m)?)?;
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+
+    register_functions!(m,
+        random::exp_rand,
+        random::exp_rands,
+        random::uniform_rand_float,
+        random::uniform_rand_int,
+        random::uniform_rands_float,
+        random::uniform_rands_int,
+        random::normal_rand,
+        random::normal_rands,
+        random::poisson_rand,
+        random::poisson_rands,
+        random::stable_rand,
+        random::stable_rands,
+        random::skew_stable_rand,
+        random::skew_stable_rands,
+        random::bool_rand,
+        random::bool_rands
+    );
+
     Ok(())
 }

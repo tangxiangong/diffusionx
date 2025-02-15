@@ -164,3 +164,18 @@ pub fn skew_stable_rands(py: Python, n: usize, alpha: f64) -> XPyResult<Bound<'_
     let result = result.into_pyarray(py);
     Ok(result)
 }
+
+#[pyfunction]
+#[pyo3(signature = (p = 0.5))]
+pub fn bool_rand(p: f64) -> XPyResult<bool> {
+    let result = uniform::bool_rand(p)?;
+    Ok(result)
+}
+
+#[pyfunction]
+#[pyo3(signature = (n, /, p = 0.5))]
+pub fn bool_rands(py: Python, n: usize,  p: f64) -> XPyResult<Bound<'_,   PyArray<bool, Ix1>>> {
+    let result = uniform::bool_rands(p, n)?;
+    let result = result.into_pyarray(py);
+    Ok(result)
+}
