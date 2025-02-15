@@ -22,6 +22,10 @@ class Uniform:
             end (bool, optional): whether to include the upper bound. Defaults to False.
             dtype (DType, optional): data type. Defaults to DType.FLOAT.
         """
+        if low >= high:
+            raise ValueError("Invalid bounds, low must be less than high")
+        if dtype not in [DType.Float, DType.Int]:
+            raise ValueError("Invalid dtype, must be DType.Float or DType.Int")
         self.low = low
         self.high = high
         self.end = end
@@ -47,6 +51,8 @@ class Normal:
             mu (real, optional): mean. Defaults to 0.0.
             sigma (real, optional): standard deviation. Defaults to 1.0. Positive real number.
         """
+        if sigma <= 0:
+            raise ValueError("Invalid sigma, must be positive real number")
         self.mu = mu
         self.sigma = sigma
 
@@ -96,6 +102,8 @@ class Exponential:
         Args:
             scale (real, optional): scale parameter. Defaults to 1.0. Positive real number.
         """
+        if scale <= 0:
+            raise ValueError("Invalid scale, must be positive real number")
         self.scale = scale
 
     def sample(self, size: int | tuple[int, ...] = 1) -> real | np.ndarray:
@@ -117,6 +125,8 @@ class Poisson:
         Args:
             lambda_ (real, optional): Poisson distribution parameter, mean of the distribution. Defaults to 1.0. Positive real number.
         """
+        if lambda_ <= 0:
+            raise ValueError("Invalid lambda, must be positive real number")
         self.lambda_ = lambda_
 
     def sample(self, size: int | tuple[int, ...] = 1) -> real | np.ndarray:
@@ -141,6 +151,15 @@ class Stable:
             sigma (real): scale parameter. Positive real number.
             mu (real): location parameter. Real number.
         """
+        if alpha <= 0 or alpha > 2:
+            raise ValueError(
+                "Invalid alpha, must be positive real number between 0 and 2"
+            )
+        if beta < -1 or beta > 1:
+            raise ValueError("Invalid beta, must be real number between -1 and 1")
+        if sigma <= 0:
+            raise ValueError("Invalid sigma, must be positive real number")
+
         self.alpha = alpha
         self.beta = beta
         self.sigma = sigma
@@ -167,6 +186,10 @@ class Stable:
         Args:
             alpha (real): stability index. Positive real number, between 0 and 1.
         """
+        if alpha <= 0 or alpha > 1:
+            raise ValueError(
+                "Invalid alpha, must be positive real number between 0 and 1"
+            )
         result = cls(alpha, 1.0, 1.0, 0.0)
         result.skewed = True
         return result

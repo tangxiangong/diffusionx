@@ -6,6 +6,14 @@ import numpy as np
 real = Union[float, int]
 
 
+def _check_all_uint(size: tuple[int, ...]) -> bool:
+    return all(isinstance(i, int) and i > 0 for i in size)
+
+
+def _check_uint(size: int) -> bool:
+    return size > 0
+
+
 def randexp(
     size: int | tuple[int, ...] = 1, scale: real = 1.0
 ) -> Union[float, np.ndarray]:
@@ -19,48 +27,78 @@ def randexp(
     Returns:
         float | np.ndarray: exponential random numbers
     """
+    if scale <= 0:
+        raise ValueError(f"Invalid scale {scale}, expected positive real number")
+
     if isinstance(scale, int):
         scale = float(scale)
 
     if isinstance(size, int):
         if size == 1:
             return _core.exp_rand(scale)
-        else:
+        elif size > 1:
             return _core.exp_rands(size, scale=scale)
+        else:
+            raise ValueError(f"Invalid size {size}, expected positive integer")
     elif isinstance(size, tuple):
-        length = int(np.prod(size))
-        arr = _core.exp_rands(length, scale=scale)
-        return arr.reshape(size)
+        if _check_all_uint(size):
+            length = int(np.prod(size))
+            arr = _core.exp_rands(length, scale=scale)
+            return arr.reshape(size)
+        else:
+            raise ValueError(
+                f"Invalid size {size}, expected tuple of positive integers"
+            )
     else:
-        raise ValueError(f"Invalid size {size}")
+        raise ValueError(
+            f"Invalid size {size}, expected positive integer or tuple of positive integers"
+        )
 
 
 def _uniform_float_helper(size, low, high, end):
     if isinstance(size, int):
         if size == 1:
             return _core.uniform_rand_float(float(low), float(high), end)
-        else:
+        elif size > 1:
             return _core.uniform_rands_float(size, float(low), float(high), end)
+        else:
+            raise ValueError(f"Invalid size {size}, expected positive integer")
     elif isinstance(size, tuple):
-        length = int(np.prod(size))
-        arr = _core.uniform_rands_float(length, float(low), float(high), end)
-        return arr.reshape(size)
+        if _check_all_uint(size):
+            length = int(np.prod(size))
+            arr = _core.uniform_rands_float(length, float(low), float(high), end)
+            return arr.reshape(size)
+        else:
+            raise ValueError(
+                f"Invalid size {size}, expected tuple of positive integers"
+            )
     else:
-        raise ValueError(f"Invalid size {size}")
+        raise ValueError(
+            f"Invalid size {size}, expected positive integer or tuple of positive integers"
+        )
 
 
 def _uniform_int_helper(size, low, high, end):
     if isinstance(size, int):
         if size == 1:
             return _core.uniform_rand_int(int(low), int(high), end)
-        else:
+        elif size > 1:
             return _core.uniform_rands_int(size, int(low), int(high), end)
+        else:
+            raise ValueError(f"Invalid size {size}, expected positive integer")
     elif isinstance(size, tuple):
-        length = int(np.prod(size))
-        arr = _core.uniform_rands_int(length, int(low), int(high), end)
-        return arr.reshape(size)
+        if _check_all_uint(size):
+            length = int(np.prod(size))
+            arr = _core.uniform_rands_int(length, int(low), int(high), end)
+            return arr.reshape(size)
+        else:
+            raise ValueError(
+                f"Invalid size {size}, expected tuple of positive integers"
+            )
     else:
-        raise ValueError(f"Invalid size {size}")
+        raise ValueError(
+            f"Invalid size {size}, expected positive integer or tuple of positive integers"
+        )
 
 
 def uniform(
@@ -84,8 +122,10 @@ def uniform(
     """
     if dtype == DType.Float:
         return _uniform_float_helper(size, low, high, end)
-    else:
+    elif dtype == DType.Int:
         return _uniform_int_helper(size, low, high, end)
+    else:
+        raise ValueError(f"Invalid dtype {dtype}, expected DType.Float or DType.Int")
 
 
 def randn(
@@ -101,6 +141,9 @@ def randn(
     Returns:
         float | np.ndarray: normal random numbers
     """
+    if sigma <= 0:
+        raise ValueError(f"Invalid sigma {sigma}, expected positive real number")
+
     if isinstance(mu, int):
         mu = float(mu)
     if isinstance(sigma, int):
@@ -109,14 +152,23 @@ def randn(
     if isinstance(size, int):
         if size == 1:
             return _core.normal_rand(mu, sigma)
-        else:
+        elif size > 1:
             return _core.normal_rands(size, mu, sigma)
+        else:
+            raise ValueError(f"Invalid size {size}, expected positive integer")
     elif isinstance(size, tuple):
-        length = int(np.prod(size))
-        arr = _core.normal_rands(length, mu=mu, sigma=sigma)
-        return arr.reshape(size)
+        if _check_all_uint(size):
+            length = int(np.prod(size))
+            arr = _core.normal_rands(length, mu=mu, sigma=sigma)
+            return arr.reshape(size)
+        else:
+            raise ValueError(
+                f"Invalid size {size}, expected tuple of positive integers"
+            )
     else:
-        raise ValueError(f"Invalid size {size}")
+        raise ValueError(
+            f"Invalid size {size}, expected positive integer or tuple of positive integers"
+        )
 
 
 def poisson(size: int | tuple[int, ...] = 1, lambda_: real = 1.0) -> real | np.ndarray:
@@ -129,20 +181,32 @@ def poisson(size: int | tuple[int, ...] = 1, lambda_: real = 1.0) -> real | np.n
     Returns:
         real | np.ndarray: Poisson random numbers
     """
+    if lambda_ <= 0:
+        raise ValueError(f"Invalid lambda {lambda_}, expected positive real number")
+
     if isinstance(lambda_, int):
         lambda_ = float(lambda_)
 
     if isinstance(size, int):
         if size == 1:
             return _core.poisson_rand(lambda_)
-        else:
+        elif size > 1:
             return _core.poisson_rands(size, lambda_=lambda_)
+        else:
+            raise ValueError(f"Invalid size {size}, expected positive integer")
     elif isinstance(size, tuple):
-        length = int(np.prod(size))
-        arr = _core.poisson_rands(length, lambda_=lambda_)
-        return arr.reshape(size)
+        if _check_all_uint(size):
+            length = int(np.prod(size))
+            arr = _core.poisson_rands(length, lambda_=lambda_)
+            return arr.reshape(size)
+        else:
+            raise ValueError(
+                f"Invalid size {size}, expected tuple of positive integers"
+            )
     else:
-        raise ValueError(f"Invalid size {size}")
+        raise ValueError(
+            f"Invalid size {size}, expected positive integer or tuple of positive integers"
+        )
 
 
 def stable_rand(
@@ -163,6 +227,15 @@ def stable_rand(
     Returns:
         real | np.ndarray: stable random numbers
     """
+    if alpha <= 0 or alpha > 2:
+        raise ValueError(
+            f"Invalid alpha {alpha}, expected positive real number between 0 and 2"
+        )
+    if beta < -1 or beta > 1:
+        raise ValueError(f"Invalid beta {beta}, expected real number between -1 and 1")
+    if sigma <= 0:
+        raise ValueError(f"Invalid sigma {sigma}, expected positive real number")
+
     if isinstance(alpha, int):
         alpha = float(alpha)
     if isinstance(beta, int):
@@ -175,14 +248,23 @@ def stable_rand(
     if isinstance(size, int):
         if size == 1:
             return _core.stable_rand(alpha, beta, sigma, mu)
-        else:
+        elif size > 1:
             return _core.stable_rands(size, alpha, beta, sigma, mu)
+        else:
+            raise ValueError(f"Invalid size {size}, expected positive integer")
     elif isinstance(size, tuple):
-        length = int(np.prod(size))
-        arr = _core.stable_rands(length, alpha, beta, sigma, mu)
-        return arr.reshape(size)
+        if _check_all_uint(size):
+            length = int(np.prod(size))
+            arr = _core.stable_rands(length, alpha, beta, sigma, mu)
+            return arr.reshape(size)
+        else:
+            raise ValueError(
+                f"Invalid size {size}, expected tuple of positive integers"
+            )
     else:
-        raise ValueError(f"Invalid size {size}")
+        raise ValueError(
+            f"Invalid size {size}, expected positive integer or tuple of positive integers"
+        )
 
 
 def skew_stable_rand(alpha: real, size: int | tuple[int, ...] = 1) -> real | np.ndarray:
@@ -195,20 +277,34 @@ def skew_stable_rand(alpha: real, size: int | tuple[int, ...] = 1) -> real | np.
     Returns:
         real | np.ndarray: skew stable random numbers
     """
+    if alpha <= 0 or alpha > 1:
+        raise ValueError(
+            f"Invalid alpha {alpha}, expected positive real number between 0 and 1"
+        )
+
     if isinstance(alpha, int):
         alpha = float(alpha)
 
     if isinstance(size, int):
         if size == 1:
             return _core.skew_stable_rand(alpha)
-        else:
+        elif size > 1:
             return _core.skew_stable_rands(size, alpha)
+        else:
+            raise ValueError(f"Invalid size {size}, expected positive integer")
     elif isinstance(size, tuple):
-        length = int(np.prod(size))
-        arr = _core.skew_stable_rands(length, alpha)
-        return arr.reshape(size)
+        if _check_all_uint(size):
+            length = int(np.prod(size))
+            arr = _core.skew_stable_rands(length, alpha)
+            return arr.reshape(size)
+        else:
+            raise ValueError(
+                f"Invalid size {size}, expected tuple of positive integers"
+            )
     else:
-        raise ValueError(f"Invalid size {size}")
+        raise ValueError(
+            f"Invalid size {size}, expected positive integer or tuple of positive integers"
+        )
 
 
 def bool_rand(size: tuple[int, ...] | int = 1, p: real = 0.5) -> bool | np.ndarray:
@@ -224,11 +320,20 @@ def bool_rand(size: tuple[int, ...] | int = 1, p: real = 0.5) -> bool | np.ndarr
     if isinstance(size, int):
         if size == 1:
             return _core.bool_rand(p)
-        else:
+        elif size > 1:
             return _core.bool_rands(size, p=p)
+        else:
+            raise ValueError(f"Invalid size {size}, expected positive integer")
     elif isinstance(size, tuple):
-        length = int(np.prod(size))
-        arr = _core.bool_rands(length, p=p)
-        return arr.reshape(size)
+        if _check_all_uint(size):
+            length = int(np.prod(size))
+            arr = _core.bool_rands(length, p=p)
+            return arr.reshape(size)
+        else:
+            raise ValueError(
+                f"Invalid size {size}, expected tuple of positive integers"
+            )
     else:
-        raise ValueError(f"Invalid size: {size}")
+        raise ValueError(
+            f"Invalid size {size}, expected positive integer or tuple of positive integers"
+        )
