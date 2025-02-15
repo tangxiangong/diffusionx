@@ -317,6 +317,9 @@ def bool_rand(size: tuple[int, ...] | int = 1, p: real = 0.5) -> bool | np.ndarr
     Returns:
         bool | np.ndarray: boolean random numbers
     """
+    if p < 0 or p > 1:
+        raise ValueError(f"Invalid p {p}, expected real number between 0 and 1")
+
     if isinstance(size, int):
         if size == 1:
             return _core.bool_rand(p)
