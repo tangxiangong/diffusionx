@@ -14,13 +14,13 @@ class Uniform:
         end: bool = False,
         dtype: DType = DType.Float,
     ):
-        """均匀分布
+        """Uniform distribution
 
         Args:
-            low (real, optional): 下限. Defaults to 0.0.
-            high (real, optional): 上限. Defaults to 1.0.
-            end (bool, optional): 是否包含上限. Defaults to False.
-            dtype (DType, optional): 数据类型. Defaults to DType.FLOAT.
+            low (real, optional): lower bound. Defaults to 0.0.
+            high (real, optional): upper bound. Defaults to 1.0.
+            end (bool, optional): whether to include the upper bound. Defaults to False.
+            dtype (DType, optional): data type. Defaults to DType.FLOAT.
         """
         self.low = low
         self.high = high
@@ -28,77 +28,144 @@ class Uniform:
         self.dtype = dtype
 
     def sample(self, n: int = 1) -> real | np.ndarray:
-        """均匀分布随机数
+        """Uniform distribution random numbers
 
         Args:
-            n (int, optional): 随机数个数. Defaults to 1.
+            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
 
         Returns:
-            real | np.ndarray: 均匀分布随机数
+            real | np.ndarray: uniform random numbers
         """
         return random.uniform(n, self.low, self.high, self.end, self.dtype)
 
 
 class Normal:
     def __init__(self, mu: real = 0.0, sigma: real = 1.0):
-        """正态分布
+        """Normal distribution
 
         Args:
-            mu (real, optional): 均值. Defaults to 0.0.
-            sigma (real, optional): 标准差. Defaults to 1.0.
+            mu (real, optional): mean. Defaults to 0.0.
+            sigma (real, optional): standard deviation. Defaults to 1.0. Positive real number.
         """
         self.mu = mu
         self.sigma = sigma
 
     def sample(self, n: int = 1) -> real | np.ndarray:
-        """正态分布随机数
+        """Normal distribution random numbers
 
         Args:
-            n (int, optional): 随机数个数. Defaults to 1.
+            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
 
         Returns:
-            real | np.ndarray: 正态分布随机数
+            real | np.ndarray: normal random numbers
         """
         return random.randn(n, self.mu, self.sigma)
 
 
 class Exponential:
     def __init__(self, scale: real = 1.0):
-        """指数分布
+        """Exponential distribution
 
         Args:
-            scale (real, optional): 尺度参数. Defaults to 1.0.
+            scale (real, optional): scale parameter. Defaults to 1.0. Positive real number.
         """
         self.scale = scale
 
     def sample(self, n: int = 1) -> real | np.ndarray:
-        """指数分布随机数
+        """Exponential distribution random numbers
 
         Args:
-            n (int, optional): 随机数个数. Defaults to 1.
+            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
 
         Returns:
-            real | np.ndarray: 指数分布随机数
+            real | np.ndarray: exponential random numbers
         """
         return random.randexp(n, self.scale)
 
 
 class Poisson:
     def __init__(self, lambda_: real = 1.0):
-        """泊松分布
+        """Poisson distribution
 
         Args:
-            lambda_ (real, optional): 泊松分布参数. Defaults to 1.0.
+            lambda_ (real, optional): Poisson distribution parameter, mean of the distribution. Defaults to 1.0. Positive real number.
         """
         self.lambda_ = lambda_
 
     def sample(self, n: int = 1) -> real | np.ndarray:
-        """泊松分布随机数
+        """Poisson distribution random numbers
 
         Args:
-            n (int, optional): 随机数个数. Defaults to 1.
+            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
 
         Returns:
-            real | np.ndarray: 泊松分布随机数
+            real | np.ndarray: Poisson distribution random numbers
         """
         return random.poisson(n, self.lambda_)
+
+
+class Stable:
+    def __init__(self, alpha: real, beta: real, sigma: real, mu: real):
+        """Stable distribution
+
+        Args:
+            alpha (real): stability index. Positive real number, between 0 and 2.
+            beta (real): skewness parameter. Real number, between -1 and 1.
+            sigma (real): scale parameter. Positive real number.
+            mu (real): location parameter. Real number.
+        """
+        self.alpha = alpha
+        self.beta = beta
+        self.sigma = sigma
+        self.mu = mu
+        self.symm: bool = False
+        self.skewed: bool = False
+        self.std: bool = False
+
+    @classmethod
+    def symmetric(cls, alpha: real):
+        """Symmetric stable distribution
+
+        Args:
+            alpha (real): stability index. Positive real number, between 0 and 2.
+        """
+        result = cls(alpha, 0.0, 1.0, 0.0)
+        result.symm = True
+        return result
+
+    @classmethod
+    def skew(cls, alpha: real):
+        """Skewed stable distribution
+
+        Args:
+            alpha (real): stability index. Positive real number, between 0 and 1.
+        """
+        result = cls(alpha, 1.0, 1.0, 0.0)
+        result.skewed = True
+        return result
+
+    @classmethod
+    def standard(cls, alpha: real, beta: real):
+        """Standard stable distribution
+
+        Args:
+            alpha (real): stability index. Positive real number, between 0 and 2.
+            beta (real): skewness parameter. Real number, between -1 and 1.
+        """
+        result = cls(alpha, beta, 1.0, 0.0)
+        result.std = True
+        return result
+
+    def sample(self, n: int = 1) -> real | np.ndarray:
+        """Stable distribution random numbers
+
+        Args:
+            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+
+        Returns:
+            real | np.ndarray: stable random numbers
+        """
+        if self.skewed:
+            return random.skew_stable_rand(self.alpha, n)
+        else:
+            return random.stable_rand(self.alpha, self.beta, self.sigma, self.mu, n)

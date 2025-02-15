@@ -23,5 +23,9 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(random::normal_rands, m)?)?;
     m.add_function(wrap_pyfunction!(random::poisson_rand, m)?)?;
     m.add_function(wrap_pyfunction!(random::poisson_rands, m)?)?;
+    m.add_function(wrap_pyfunction!(random::stable_rand, m)?)?;
+    m.add_function(wrap_pyfunction!(random::stable_rands, m)?)?;
+    m.add_function(wrap_pyfunction!(random::skew_stable_rand, m)?)?;
+    m.add_function(wrap_pyfunction!(random::skew_stable_rands, m)?)?;
     Ok(())
 }

@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use diffusionx::{random::{exponential, normal, poisson, uniform}, XResult};
+use diffusionx::{random::{exponential, normal, poisson, stable, uniform}, XResult};
 use crate::XPyResult;
 use numpy::{PyArray, IntoPyArray, Ix1};
 use rand::distr::uniform::{SampleUniform, Uniform};
@@ -127,6 +127,40 @@ pub fn poisson_rand(lambda_: f64) -> XPyResult<u64> {
 #[pyo3(signature = (n, /, lambda_ = 1.0))]
 pub fn poisson_rands(py: Python, n: usize, lambda_: f64) -> XPyResult<Bound<'_, PyArray<u64, Ix1>>> {
     let result = poisson::rands(lambda_, n)?;
+    let result = result.into_pyarray(py);
+    Ok(result)
+}
+
+#[pyfunction]
+#[pyo3(signature = (alpha, beta, /, sigma = 1.0, mu = 0.0))]
+pub fn stable_rand(alpha: f64, beta: f64, sigma: f64, mu: f64) -> XPyResult<f64> {
+    let result = if sigma == 1.0 && mu == 0.0 {
+        stable::standard_rand(alpha, beta)?
+    } else {
+        stable::rand(alpha, beta, sigma, mu)?
+    };
+    Ok(result)
+}
+
+#[pyfunction]
+#[pyo3(signature = (n, /, alpha, beta, sigma = 1.0, mu = 0.0))]
+pub fn stable_rands(py: Python, n: usize, alpha: f64, beta: f64, sigma: f64, mu: f64) -> XPyResult<Bound<'_, PyArray<f64, Ix1>>> {
+    let result = stable::rands(alpha, beta, sigma, mu, n)?;
+    let result = result.into_pyarray(py);
+    Ok(result)
+}
+
+#[pyfunction]
+#[pyo3(signature = (alpha))]
+pub fn skew_stable_rand(alpha: f64) -> XPyResult<f64> {
+    let result = stable::skew_rand(alpha)?;
+    Ok(result)
+}
+
+#[pyfunction]
+#[pyo3(signature = (n, alpha))]
+pub fn skew_stable_rands(py: Python, n: usize, alpha: f64) -> XPyResult<Bound<'_, PyArray<f64, Ix1>>> {
+    let result = stable::skew_rands(alpha, n)?;
     let result = result.into_pyarray(py);
     Ok(result)
 }

@@ -8,14 +8,14 @@ real = Union[float, int]
 
 def randexp(n: int = 1, scale: real = 1.0) -> Union[float, np.ndarray]:
     """
-    指数分布随机数
+    Exponential distribution random numbers
 
     Args:
-        n (int, optional): 随机数个数. Defaults to 1.
-        scale (real, optional): 指数分布参数. Defaults to 1.0.
+        n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+        scale (real, optional): exponential distribution parameter, mean of the distribution. Defaults to 1.0. Positive real number.
 
     Returns:
-        float | np.ndarray: 指数分布随机数
+        float | np.ndarray: exponential random numbers
     """
     if isinstance(scale, int):
         scale = float(scale)
@@ -33,17 +33,17 @@ def uniform(
     end: bool = False,
     dtype: DType = DType.Float,
 ) -> real | np.ndarray:
-    """均匀分布随机数
+    """Uniform distribution random numbers
 
     Args:
-        n (int, optional): 随机数个数. Defaults to 1.
-        low (real, optional): 均匀分布下限. Defaults to 0.0.
-        high (real, optional): 均匀分布上限. Defaults to 1.0.
-        end (bool, optional): 是否包含上限. Defaults to False.
-        dtype (DType, optional): 数据类型. Defaults to DType.FLOAT.
+        n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+        low (real, optional): lower bound. Defaults to 0.0.
+        high (real, optional): upper bound. Defaults to 1.0.
+        end (bool, optional): whether to include the upper bound. Defaults to False.
+        dtype (DType, optional): data type. Defaults to DType.FLOAT.
 
     Returns:
-        real | np.ndarray: 均匀分布随机数
+        real | np.ndarray: uniform random numbers
     """
     if n == 1:
         if dtype == DType.Float:
@@ -58,15 +58,15 @@ def uniform(
 
 
 def randn(n: int = 1, mu: real = 0.0, sigma: real = 1.0) -> float | np.ndarray:
-    """正态分布随机数
+    """Normal distribution random numbers
 
     Args:
-        n (int, optional): 随机数个数. Defaults to 1.
-        mu (real, optional): 正态分布均值. Defaults to 0.0.
-        sigma (real, optional): 正态分布标准差. Defaults to 1.0.
+        n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+        mu (real, optional): mean. Defaults to 0.0.
+        sigma (real, optional): standard deviation. Defaults to 1.0. Positive real number.
 
     Returns:
-        float | np.ndarray: 正态分布随机数
+        float | np.ndarray: normal random numbers
     """
     if isinstance(mu, int):
         mu = float(mu)
@@ -80,14 +80,14 @@ def randn(n: int = 1, mu: real = 0.0, sigma: real = 1.0) -> float | np.ndarray:
 
 
 def poisson(n: int = 1, lambda_: real = 1.0) -> real | np.ndarray:
-    """泊松分布随机数
+    """Poisson distribution random numbers
 
     Args:
-        n (int, optional): 随机数个数. Defaults to 1.
-        lambda_ (real, optional): 泊松分布参数. Defaults to 1.0.
+        n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+        lambda_ (real, optional): Poisson distribution parameter. Defaults to 1.0. Positive real number.
 
     Returns:
-        real | np.ndarray: 泊松分布随机数
+        real | np.ndarray: Poisson random numbers
     """
     if isinstance(lambda_, int):
         lambda_ = float(lambda_)
@@ -96,3 +96,51 @@ def poisson(n: int = 1, lambda_: real = 1.0) -> real | np.ndarray:
         return _core.poisson_rand(lambda_)
     else:
         return _core.poisson_rands(n, lambda_=lambda_)
+
+
+def stable_rand(
+    alpha: real, beta: real, sigma: real = 1.0, mu: real = 0.0, n: int = 1
+) -> real | np.ndarray:
+    """Stable distribution random numbers
+
+    Args:
+        alpha (real): stability index. Positive real number, between 0 and 2.
+        beta (real): skewness parameter. Real number, between -1 and 1.
+        sigma (real, optional): scale parameter. Defaults to 1.0. Positive real number.
+        mu (real, optional): location parameter. Defaults to 0.0.
+        n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+    Returns:
+        real | np.ndarray: stable random numbers
+    """
+    if isinstance(alpha, int):
+        alpha = float(alpha)
+    if isinstance(beta, int):
+        beta = float(beta)
+    if isinstance(sigma, int):
+        sigma = float(sigma)
+    if isinstance(mu, int):
+        mu = float(mu)
+
+    if n == 1:
+        return _core.stable_rand(alpha, beta, sigma, mu)
+    else:
+        return _core.stable_rands(n, alpha, beta, sigma, mu)
+
+
+def skew_stable_rand(alpha: real, n: int = 1) -> real | np.ndarray:
+    """Skew stable distribution random numbers
+
+    Args:
+        alpha (real): skew stable distribution parameter, stability index. Positive real number, between 0 and 1.
+        n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+
+    Returns:
+        real | np.ndarray: skew stable random numbers
+    """
+    if isinstance(alpha, int):
+        alpha = float(alpha)
+
+    if n == 1:
+        return _core.skew_stable_rand(alpha)
+    else:
+        return _core.skew_stable_rands(n, alpha)
