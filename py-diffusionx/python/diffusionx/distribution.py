@@ -61,6 +61,33 @@ class Normal:
         """
         return random.randn(n, self.mu, self.sigma)
 
+    def __neg__(self):
+        return Normal(self.mu, self.sigma)
+
+    def __add__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Normal(self.mu + other, self.sigma)
+        else:
+            raise ValueError("Invalid operand type")
+
+    def __radd__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Normal(other + self.mu, self.sigma)
+        else:
+            raise ValueError("Invalid operand type")
+
+    def __mul__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Normal(self.mu * other, self.sigma * other)
+        else:
+            raise ValueError("Invalid operand type")
+
+    def __rmul__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Normal(other * self.mu, other * self.sigma)
+        else:
+            raise ValueError("Invalid operand type")
+
 
 class Exponential:
     def __init__(self, scale: real = 1.0):
@@ -169,3 +196,39 @@ class Stable:
             return random.skew_stable_rand(self.alpha, n)
         else:
             return random.stable_rand(self.alpha, self.beta, self.sigma, self.mu, n)
+
+    def __neg__(self):
+        return Stable(self.alpha, -self.beta, self.sigma, -self.mu)
+
+    def __add__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Stable(self.alpha, self.beta, self.sigma, self.mu + other)
+        else:
+            raise ValueError("Invalid operand type")
+
+    def __radd__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Stable(self.alpha, self.beta, self.sigma, other + self.mu)
+        else:
+            raise ValueError("Invalid operand type")
+
+    def __mul__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Stable(self.alpha, self.beta, self.sigma * other, self.mu)
+        else:
+            raise ValueError("Invalid operand type")
+
+    def __rmul__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Stable(self.alpha, self.beta, other * self.sigma, self.mu)
+        else:
+            raise ValueError("Invalid operand type")
+
+
+class SkewStable(Stable):
+    def __init__(self, alpha: real):
+        super().__init__(alpha, 1.0, 1.0, 0.0)
+        self.skewed = True
+
+    def sample(self, n: int = 1) -> real | np.ndarray:
+        return random.skew_stable_rand(self.alpha, n)
