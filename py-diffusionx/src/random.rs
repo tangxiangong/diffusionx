@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use diffusionx::{random::{exponential, uniform, normal}, XResult};
+use diffusionx::{random::{exponential, normal, poisson, uniform}, XResult};
 use crate::XPyResult;
 use numpy::{PyArray, IntoPyArray, Ix1};
 use rand::distr::uniform::{SampleUniform, Uniform};
@@ -116,4 +116,17 @@ pub fn normal_rands(py: Python, n: usize, mu: f64, sigma: f64) -> XPyResult<Boun
     Ok(result)
 }
 
+#[pyfunction]
+#[pyo3(signature = (lambda_ = 1.0))]
+pub fn poisson_rand(lambda_: f64) -> XPyResult<u64> {
+    let result = poisson::rand(lambda_)?;
+    Ok(result)
+}
 
+#[pyfunction]
+#[pyo3(signature = (n, /, lambda_ = 1.0))]
+pub fn poisson_rands(py: Python, n: usize, lambda_: f64) -> XPyResult<Bound<'_, PyArray<u64, Ix1>>> {
+    let result = poisson::rands(lambda_, n)?;
+    let result = result.into_pyarray(py);
+    Ok(result)
+}

@@ -77,3 +77,22 @@ def randn(n: int = 1, mu: real = 0.0, sigma: real = 1.0) -> float | np.ndarray:
         return _core.normal_rand(mu, sigma)
     else:
         return _core.normal_rands(n, mu=mu, sigma=sigma)
+
+
+def poisson(n: int = 1, lambda_: real = 1.0) -> real | np.ndarray:
+    """泊松分布随机数
+
+    Args:
+        n (int, optional): 随机数个数. Defaults to 1.
+        lambda_ (real, optional): 泊松分布参数. Defaults to 1.0.
+
+    Returns:
+        real | np.ndarray: 泊松分布随机数
+    """
+    if isinstance(lambda_, int):
+        lambda_ = float(lambda_)
+
+    if n == 1:
+        return _core.poisson_rand(lambda_)
+    else:
+        return _core.poisson_rands(n, lambda_=lambda_)

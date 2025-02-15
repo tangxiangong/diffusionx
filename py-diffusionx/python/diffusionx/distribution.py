@@ -81,3 +81,24 @@ class Exponential:
             real | np.ndarray: 指数分布随机数
         """
         return random.randexp(n, self.scale)
+
+
+class Poisson:
+    def __init__(self, lambda_: real = 1.0):
+        """泊松分布
+
+        Args:
+            lambda_ (real, optional): 泊松分布参数. Defaults to 1.0.
+        """
+        self.lambda_ = lambda_
+
+    def sample(self, n: int = 1) -> real | np.ndarray:
+        """泊松分布随机数
+
+        Args:
+            n (int, optional): 随机数个数. Defaults to 1.
+
+        Returns:
+            real | np.ndarray: 泊松分布随机数
+        """
+        return random.poisson(n, self.lambda_)
