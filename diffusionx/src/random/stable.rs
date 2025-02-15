@@ -36,7 +36,7 @@ use crate::{StableError, XResult};
 use rand::{Rng, prelude::*, rng};
 use rand_distr::Exp1;
 use rayon::prelude::*;
-use std::f64::consts::PI;
+use std::{f64::consts::PI, ops::{Add, Mul}};
 
 /// Standard Lévy stable distribution with scale parameter 1 and location parameter 0
 #[derive(Debug, Clone, Copy)]
@@ -69,6 +69,30 @@ impl StandardStable {
     /// Get the skewness parameter
     pub fn skewness(&self) -> f64 {
         self.beta
+    }
+
+    /// Sample from the standard Levy stable distribution
+    /// 
+    /// # Arguments
+    ///
+    /// * `n` - The number of samples to generate
+    ///
+    /// # Returns
+    ///
+    /// A vector of samples from the standard Levy stable distribution.
+    ///
+    /// # Example
+    ///  
+    /// ```rust
+    /// use diffusionx::random::stable::StandardStable;
+    /// use rand::rng;
+    /// 
+    /// let stable = StandardStable::new(0.7, 1.0).unwrap();
+    /// let samples = stable.samples(10).unwrap();
+    /// println!("samples: {:?}", samples);
+    /// ```
+    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+        standard_rands(self.alpha, self.beta, n)
     }
 }
 
@@ -104,6 +128,26 @@ fn sample_standard_alpha_one<R: Rng + ?Sized>(_alpha: f64, beta: f64, rng: &mut 
 }
 
 /// Sample from the standard Levy stable distribution
+/// 
+/// # Arguments
+///
+/// * `rng` - A random number generator
+///
+/// # Returns
+///
+/// A sample from the standard Levy stable distribution.
+///
+/// # Example
+///
+/// ```rust
+/// use rand::rng;
+/// use diffusionx::random::stable::standard_rand;
+///
+/// let alpha = 0.7;
+/// let beta = 1.0;
+/// let r = standard_rand(alpha, beta).unwrap();
+/// r.sample(&mut rng());
+/// ```
 impl Distribution<f64> for StandardStable {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> f64 {
         if self.alpha != 1.0 {
@@ -184,6 +228,30 @@ impl Stable {
     pub fn location(&self) -> f64 {
         self.mu
     }
+
+    /// Sample from the Levy stable distribution
+    /// 
+    /// # Arguments
+    ///
+    /// * `n` - The number of samples to generate
+    ///
+    /// # Returns
+    ///
+    /// A vector of samples from the Levy stable distribution.
+    ///
+    /// # Example
+    /// 
+    /// ```rust
+    /// use diffusionx::random::stable::Stable;
+    /// use rand::rng;
+    /// 
+    /// let stable = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
+    /// let samples = stable.samples(10).unwrap();
+    /// println!("samples: {:?}", samples);
+    /// ```
+    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+        rands(self.alpha, self.beta, self.sigma, self.mu, n)
+    }
 }
 
 /// Sample from the Levy stable distribution
@@ -215,6 +283,30 @@ impl StandardSkewStable {
     pub fn index(&self) -> f64 {
         self.0
     }
+
+    /// Sample from the standard skew Levy stable distribution
+    /// 
+    /// # Arguments
+    ///
+    /// * `n` - The number of samples to generate
+    ///
+    /// # Returns   
+    ///
+    /// A vector of samples from the standard skew Levy stable distribution.
+    ///
+    /// # Example
+    /// 
+    /// ```rust
+    /// use diffusionx::random::stable::StandardSkewStable;
+    /// use rand::rng;
+    /// 
+    /// let stable = StandardSkewStable::new(0.7).unwrap();
+    /// let samples = stable.samples(10).unwrap();
+    /// println!("samples: {:?}", samples);
+    /// ```
+    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+        skew_rands(self.0, n)
+    }
 }
 
 /// # Panic
@@ -245,6 +337,30 @@ impl SymmetricStandardStable {
 
     pub fn index(&self) -> f64 {
         self.0
+    }
+
+    /// Sample from the symmetric standard Levy stable distribution
+    /// 
+    /// # Arguments
+    ///
+    /// * `n` - The number of samples to generate
+    ///
+    /// # Returns
+    /// 
+    /// A vector of samples from the symmetric standard Levy stable distribution.
+    ///
+    /// # Example
+    /// 
+    /// ```rust
+    /// use diffusionx::random::stable::SymmetricStandardStable;
+    /// use rand::rng;
+    /// 
+    /// let stable = SymmetricStandardStable::new(0.7).unwrap();
+    /// let samples = stable.samples(10).unwrap();
+    /// println!("samples: {:?}", samples);
+    /// ```
+    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+        sym_standard_rands(self.0, n)
     }
 }
 
@@ -541,6 +657,112 @@ pub fn sym_standard_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> 
         .into_par_iter()
         .map_init(rng, |r, _| generator(alpha, 0.0, r))
         .collect())
+}
+
+impl<T> Add<T> for Stable where T: Into<f64> {
+    type Output = Stable;
+
+    fn add(self, other: T) -> Self::Output {
+        Stable::new(self.alpha, self.beta, self.sigma, self.mu + other.into()).unwrap()
+    }
+}
+
+impl Add<Stable> for f64 {
+    type Output = Stable;
+
+    fn add(self, other: Stable) -> Self::Output {
+        Stable::new(other.alpha, other.beta, other.sigma, other.mu + self).unwrap()
+    }
+}
+
+impl Add<Stable> for i32 {
+    type Output = Stable;
+
+    fn add(self, other: Stable) -> Self::Output {
+        let self_f64: f64 = self.into();
+        Stable::new(other.alpha, other.beta, other.sigma, other.mu + self_f64).unwrap()
+    }
+}
+
+impl<T> Add<T> for StandardStable where T: Into<f64> {
+    type Output = Stable;
+
+    fn add(self, other: T) -> Self::Output {
+        let other_f64: f64 = other.into();
+        Stable::new(self.alpha, self.beta, 0.0, other_f64).unwrap()
+    }
+}
+
+impl Add<StandardStable> for f64 {
+    type Output = Stable;
+
+    fn add(self, other: StandardStable) -> Self::Output {
+        Stable::new(other.alpha, other.beta, 0.0, self).unwrap()
+    }
+}
+
+impl Add<StandardStable> for i32 {
+    type Output = Stable;
+
+    fn add(self, other: StandardStable) -> Self::Output {
+        let self_f64: f64 = self.into();
+        Stable::new(other.alpha, other.beta, 0.0, self_f64).unwrap()
+    }
+}
+
+impl<T> Mul<T> for Stable where T: Into<f64> {
+    type Output = Stable;
+
+    fn mul(self, other: T) -> Self::Output {
+        let other_f64: f64 = other.into();
+        let sigma: f64 = self.sigma * other_f64.abs();
+        Stable::new(self.alpha, self.beta, sigma, self.mu).unwrap()
+    }
+}
+
+impl Mul<Stable> for f64 {
+    type Output = Stable;
+
+    fn mul(self, other: Stable) -> Self::Output {
+        let sigma: f64 = self * other.sigma.abs();
+        Stable::new(other.alpha, other.beta, sigma, other.mu).unwrap()
+    }
+}
+
+impl Mul<Stable> for i32 {  
+    type Output = Stable;
+
+    fn mul(self, other: Stable) -> Self::Output {
+        let self_f64: f64 = self.into();
+        let sigma: f64 = self_f64 * other.sigma.abs();
+        Stable::new(other.alpha, other.beta, sigma, other.mu).unwrap()
+    }
+}
+
+impl<T> Mul<T> for StandardStable where T: Into<f64> {
+    type Output = Stable;
+
+    fn mul(self, other: T) -> Self::Output {
+        let other_f64: f64 = other.into();
+        Stable::new(self.alpha, self.beta, other_f64, 0.0).unwrap()
+    }
+}
+
+impl Mul<StandardStable> for f64 {
+    type Output = Stable;
+
+    fn mul(self, other: StandardStable) -> Self::Output {
+        Stable::new(other.alpha, other.beta, self, 0.0).unwrap()
+    }
+}
+
+impl Mul<StandardStable> for i32 {  
+    type Output = Stable;
+
+    fn mul(self, other: StandardStable) -> Self::Output {
+        let self_f64: f64 = self.into();
+        Stable::new(other.alpha, other.beta, self_f64, 0.0).unwrap()
+    }
 }
 
 /// Zolotariev's (M)-parameterization from mu to mu0
