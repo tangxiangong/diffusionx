@@ -22,11 +22,8 @@
 
 |  | 标准正态分布 | `[0, 1]` 均匀分布 | 稳定分布 |
 | :---: | :---: | :---: | :---: |
-| DiffusionX (Rust)<sup>1</sup> | 23.811 ms | 20.450 ms | 273.68 ms |
-| DiffusionX (Python) | 24.1 ms | 21.687 ms | 277.6 ms |
-| Julia | 28.748 ms | 9.748 ms | 12.27 ms<sup>2</sup> |
+| DiffusionX (Rust 版本) | 23.811 ms | 20.450 ms | 273.68 ms |
+| DiffusionX (Python 版本) | 24.1 ms | 21.687 ms | 277.6 ms |
+| Julia | 28.748 ms | 9.748 ms | 713.955 ms |
 | NumPy / SciPy | 295 ms | 81.2 ms | 3.39 s |
 | Numba | - | - | 1.52 s |
-
-1. 使用 [rayon](https://github.com/rayon-rs/rayon) 多线程
-2. 代码见 [stable.jl](./py-diffusionx/benches/stable.jl). 使用 [LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl) 多线程，取消边界检查 `@inbounds`，打开 `@fastmath` 优化
