@@ -144,3 +144,19 @@ def skew_stable_rand(alpha: real, n: int = 1) -> real | np.ndarray:
         return _core.skew_stable_rand(alpha)
     else:
         return _core.skew_stable_rands(n, alpha)
+
+
+def bool_rand(n: int = 1, p: real = 0.5) -> bool | np.ndarray:
+    """Boolean random numbers
+
+    Args:
+        n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+        p (real, optional): probability of True. Defaults to 0.5.
+
+    Returns:
+        bool | np.ndarray: boolean random numbers
+    """
+    if n == 1:
+        return _core.bool_rand(p)
+    else:
+        return _core.bool_rands(n, p=p)
