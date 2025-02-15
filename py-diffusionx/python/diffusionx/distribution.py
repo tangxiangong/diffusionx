@@ -27,16 +27,16 @@ class Uniform:
         self.end = end
         self.dtype = dtype
 
-    def sample(self, n: int = 1) -> real | np.ndarray:
+    def sample(self, size: int | tuple[int, ...] = 1) -> real | np.ndarray:
         """Uniform distribution random numbers
 
         Args:
-            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+            size (int | tuple[int, ...], optional): shape of the output array. Defaults to 1. Positive integer or tuple of integers.
 
         Returns:
             real | np.ndarray: uniform random numbers
         """
-        return random.uniform(n, self.low, self.high, self.end, self.dtype)
+        return random.uniform(size, self.low, self.high, self.end, self.dtype)
 
 
 class Normal:
@@ -50,16 +50,16 @@ class Normal:
         self.mu = mu
         self.sigma = sigma
 
-    def sample(self, n: int = 1) -> real | np.ndarray:
+    def sample(self, size: int | tuple[int, ...] = 1) -> real | np.ndarray:
         """Normal distribution random numbers
 
         Args:
-            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+            size (int | tuple[int, ...], optional): shape of the output array. Defaults to 1. Positive integer or tuple of integers.
 
         Returns:
             real | np.ndarray: normal random numbers
         """
-        return random.randn(n, self.mu, self.sigma)
+        return random.randn(size, self.mu, self.sigma)
 
     def __neg__(self):
         return Normal(self.mu, self.sigma)
@@ -98,16 +98,16 @@ class Exponential:
         """
         self.scale = scale
 
-    def sample(self, n: int = 1) -> real | np.ndarray:
+    def sample(self, size: int | tuple[int, ...] = 1) -> real | np.ndarray:
         """Exponential distribution random numbers
 
         Args:
-            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+            size (int | tuple[int, ...], optional): shape of the output array. Defaults to 1. Positive integer or tuple of integers.
 
         Returns:
             real | np.ndarray: exponential random numbers
         """
-        return random.randexp(n, self.scale)
+        return random.randexp(size, self.scale)
 
 
 class Poisson:
@@ -119,16 +119,16 @@ class Poisson:
         """
         self.lambda_ = lambda_
 
-    def sample(self, n: int = 1) -> real | np.ndarray:
+    def sample(self, size: int | tuple[int, ...] = 1) -> real | np.ndarray:
         """Poisson distribution random numbers
 
         Args:
-            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+            size (int | tuple[int, ...], optional): shape of the output array. Defaults to 1. Positive integer or tuple of integers.
 
         Returns:
             real | np.ndarray: Poisson distribution random numbers
         """
-        return random.poisson(n, self.lambda_)
+        return random.poisson(size, self.lambda_)
 
 
 class Stable:
@@ -183,19 +183,19 @@ class Stable:
         result.std = True
         return result
 
-    def sample(self, n: int = 1) -> real | np.ndarray:
+    def sample(self, size: int | tuple[int, ...] = 1) -> real | np.ndarray:
         """Stable distribution random numbers
 
         Args:
-            n (int, optional): number of random numbers. Defaults to 1. Positive integer.
+            size (int | tuple[int, ...], optional): shape of the output array. Defaults to 1. Positive integer or tuple of integers.
 
         Returns:
             real | np.ndarray: stable random numbers
         """
         if self.skewed:
-            return random.skew_stable_rand(self.alpha, n)
+            return random.skew_stable_rand(self.alpha, size)
         else:
-            return random.stable_rand(self.alpha, self.beta, self.sigma, self.mu, n)
+            return random.stable_rand(self.alpha, self.beta, self.sigma, self.mu, size)
 
     def __neg__(self):
         return Stable(self.alpha, -self.beta, self.sigma, -self.mu)
@@ -204,25 +204,25 @@ class Stable:
         if isinstance(other, int) or isinstance(other, float):
             return Stable(self.alpha, self.beta, self.sigma, self.mu + other)
         else:
-            raise ValueError("Invalid operand type")
+            raise ValueError(f"Invalid operand type {type(other)}")
 
     def __radd__(self, other):
         if isinstance(other, int) or isinstance(other, float):
             return Stable(self.alpha, self.beta, self.sigma, other + self.mu)
         else:
-            raise ValueError("Invalid operand type")
+            raise ValueError(f"Invalid operand type {type(other)}")
 
     def __mul__(self, other):
         if isinstance(other, int) or isinstance(other, float):
             return Stable(self.alpha, self.beta, self.sigma * other, self.mu)
         else:
-            raise ValueError("Invalid operand type")
+            raise ValueError(f"Invalid operand type {type(other)}")
 
     def __rmul__(self, other):
         if isinstance(other, int) or isinstance(other, float):
             return Stable(self.alpha, self.beta, other * self.sigma, self.mu)
         else:
-            raise ValueError("Invalid operand type")
+            raise ValueError(f"Invalid operand type {type(other)}")
 
 
 class SkewStable(Stable):
@@ -230,5 +230,5 @@ class SkewStable(Stable):
         super().__init__(alpha, 1.0, 1.0, 0.0)
         self.skewed = True
 
-    def sample(self, n: int = 1) -> real | np.ndarray:
-        return random.skew_stable_rand(self.alpha, n)
+    def sample(self, size: int | tuple[int, ...] = 1) -> real | np.ndarray:
+        return random.skew_stable_rand(self.alpha, size)
