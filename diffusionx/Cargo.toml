@@ -10,7 +10,7 @@ harness = false
 
 [lib]
 name = "diffusionx"
-crate-type = ["cdylib", "rlib"]
+crate-type = ["cdylib", "lib"]
 
 [dependencies]
 rand_distr = { workspace = true }
