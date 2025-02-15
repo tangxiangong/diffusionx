@@ -39,8 +39,21 @@ function stable_rands(α, β, σ, μ, n)
     else
         gen = _sample_stable_alpha
     end
-    @tturbo for i in 1:n
-        @fastmath @inbounds res[i] = gen(α, β, σ, μ)
+
+    # 使用多线程分块计算
+    chunk_size = div(n, Threads.nthreads())
+    Threads.@threads for tid in 1:Threads.nthreads()
+        start_idx = (tid - 1) * chunk_size + 1
+        end_idx = tid == Threads.nthreads() ? n : tid * chunk_size
+
+        # 每个线程使用自己的随机数生成器
+        rng = Random.default_rng()
+        Random.seed!(rng, tid * time_ns())
+
+        # 在每个块内使用 SIMD
+        @simd for i in start_idx:end_idx
+            @fastmath @inbounds res[i] = gen(α, β, σ, μ)
+        end
     end
     res
 end
