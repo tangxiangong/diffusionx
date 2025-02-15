@@ -84,7 +84,17 @@ fn sample_standard_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, rng: &mut R) ->
     s * c1 * c2
 }
 
-fn sample_standard_alpha_one<R: Rng + ?Sized>(beta: f64, rng: &mut R) -> f64 {
+fn sample_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, sigma: f64, mu: f64, rng: &mut R) -> f64 {
+    let r = sample_standard_alpha(alpha, beta, rng);
+    sigma * r + mu
+}
+
+fn sample_alpha_one<R: Rng + ?Sized>(alpha: f64, beta: f64, sigma: f64, mu: f64, rng: &mut R) -> f64 {
+    let r = sample_standard_alpha_one(alpha, beta, rng);
+    sigma * r + mu + 2.0 * beta * sigma * sigma * sigma.ln() / PI
+}
+
+fn sample_standard_alpha_one<R: Rng + ?Sized>(_alpha: f64, beta: f64, rng: &mut R) -> f64 {
     let half_pi = PI / 2.0;
     let v = rng.random_range(-half_pi..half_pi);
     let w = rng.sample::<f64, _>(Exp1);
@@ -99,7 +109,7 @@ impl Distribution<f64> for StandardStable {
         if self.alpha != 1.0 {
             sample_standard_alpha(self.alpha, self.beta, rng)
         } else {
-            sample_standard_alpha_one(self.beta, rng)
+            sample_standard_alpha_one(self.alpha, self.beta, rng)
         }
     }
 }
@@ -302,10 +312,22 @@ pub fn standard_rand(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<f64
 /// println!("r: {:?}", r);
 /// ```
 pub fn standard_rands(alpha: impl Into<f64>, beta: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
-    let standard = StandardStable::new(alpha, beta)?;
+    let alpha: f64 = alpha.into();
+    let beta: f64 = beta.into();
+    if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
+        return Err(StableError::InvalidIndex.into());
+    }
+    if !(-1.0..=1.0).contains(&beta) {
+        return Err(StableError::InvalidSkewness.into());
+    }
+    let generator = if alpha == 1.0 {
+        sample_standard_alpha_one
+    } else {
+        sample_standard_alpha
+    };
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(standard))
+        .map_init(rng, |r, _| generator(alpha, beta, r))
         .collect())
 }
 
@@ -377,10 +399,30 @@ pub fn rands(
     mu: impl Into<f64>,
     n: usize,
 ) -> XResult<Vec<f64>> {
-    let levy = Stable::new(alpha, beta, sigma, mu)?;
+    let alpha: f64 = alpha.into();
+    let beta: f64 = beta.into();
+    let sigma: f64 = sigma.into();
+    let mu: f64 = mu.into();
+    if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
+        return Err(StableError::InvalidIndex.into());
+    }
+    if !(-1.0..=1.0).contains(&beta) {
+        return Err(StableError::InvalidSkewness.into());
+    }
+    if sigma <= 0.0 || sigma.is_nan() {
+        return Err(StableError::InvalidScale.into());
+    }
+    if mu.is_nan() {
+        return Err(StableError::InvalidLocation.into());
+    }
+    let generator = if alpha == 1.0 {
+        sample_alpha_one
+    } else {
+        sample_alpha
+    };
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(levy))
+        .map_init(rng, |r, _| generator(alpha, beta, sigma, mu, r))
         .collect())
 }
 
@@ -429,10 +471,14 @@ pub fn skew_rand(alpha: impl Into<f64>) -> XResult<f64> {
 /// println!("r: {:?}", r);
 /// ```
 pub fn skew_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
-    let skew = StandardSkewStable::new(alpha)?;
+    let alpha: f64 = alpha.into();
+    if alpha <= 0.0 || alpha >= 1.0 || alpha.is_nan() {
+        return Err(StableError::InvalidSkewIndex.into());
+    }
+    let generator = sample_standard_alpha;
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(skew))
+        .map_init(rng, |r, _| generator(alpha, 1.0, r))
         .collect())
 }
 
@@ -482,10 +528,18 @@ pub fn sym_standard_rand(alpha: impl Into<f64>) -> XResult<f64> {
 /// println!("r: {:?}", r);
 /// ```
 pub fn sym_standard_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
-    let sym = SymmetricStandardStable::new(alpha)?;
+    let alpha: f64 = alpha.into();
+    if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
+        return Err(StableError::InvalidIndex.into());
+    }
+    let generator = if alpha == 1.0 {
+        sample_standard_alpha_one
+    } else {
+        sample_standard_alpha
+    };
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(sym))
+        .map_init(rng, |r, _| generator(alpha, 0.0, r))
         .collect())
 }
 
