@@ -25,6 +25,8 @@ pub enum XError {
     ExpSampleError(#[from] ExpError),
     #[error("Sample Stable Distribution Error: {0}")]
     StableSampleError(#[from] StableError),
+    #[error("Probability must be between 0 and 1")]
+    BoolSampleError,
 }
 
 #[derive(Error, Debug, PartialEq, Eq, Clone, Copy)]

@@ -3,7 +3,7 @@
 //! This module provides functions for generating uniform random numbers.
 //!
 
-use crate::XResult;
+use crate::{XError, XResult};
 use rand::{
     distr::{
         StandardUniform,
@@ -158,6 +158,52 @@ where
         .into_par_iter()
         .map_init(rng, |r, _| r.sample(uniform))
         .collect();
+    Ok(result)
+}
+
+/// Generate a boolean random number
+///
+/// This function generates a boolean random number with a given probability.
+///
+/// # Returns
+///
+/// A `bool` value representing the generated random number.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::random::uniform::bool_rand;
+/// let random = bool_rand(0.5).unwrap();
+/// println!("random: {}", random);
+/// ```
+pub fn bool_rand(p: f64) -> XResult<bool> {
+    if !(0.0..=1.0).contains(&p) {
+        return Err(XError::BoolSampleError);
+    }
+    let result = rng().random_bool(p);
+    Ok(result)
+}
+
+/// Generate a vector of boolean random numbers
+///
+/// This function generates a vector of boolean random numbers with a given probability.
+///
+/// # Returns
+///
+/// A vector of `bool` values representing the generated random numbers.    
+/// 
+/// # Example
+///
+/// ```rust
+/// use diffusionx::random::uniform::bool_rands;
+/// let randoms = bool_rands(0.5, 10).unwrap();
+/// println!("randoms: {:?}", randoms);
+/// ```
+pub fn bool_rands(p: f64, n: usize) -> XResult<Vec<bool>> {
+    if !(0.0..=1.0).contains(&p) {
+        return Err(XError::BoolSampleError);
+    }
+    let result = (0..n).into_par_iter().map_init(rng, |r, _| r.random_bool(p)).collect();
     Ok(result)
 }
 
