@@ -1,11 +1,9 @@
 # Benchmark
 
-生成长度为 `100_000_000` 的随机数组
-|  | 标准正态分布 | `[0, 1]` 均匀分布 |
-| :---: | :---: | :---: |
-| [DiffusionX (Rust)](./diffusionx/)  | 273.85 ms | 245.78 ms |
-| [DiffusionX (Python)](./py-diffusionx/) | 310 ms | 252 ms |
-| [Julia](https://julialang.org/) | 581.61 ms | 371.37 ms |
-| [NumPy](https://numpy.org/) | 3.28 s | 1.15 s |
-| [Octave](https://octave.org/) | 1.31 s | 1.01 s |
-| [Baltamatica](https://www.baltamatica.com/) | 5.47 s | 1.09 s |
+生成长度为 `10_000_000` 的随机数组
+|  | 标准正态分布 | `[0, 1]` 均匀分布 | 稳定分布 |
+| :---: | :---: | :---: | :---: |
+| [DiffusionX (Rust)](./diffusionx/)  | 23.811 ms | 20.450 ms | 273.68 ms |
+| [DiffusionX (Python)](./py-diffusionx/) | 24.1 ms | 21.687 ms | 277.6 ms |
+| [Julia](https://julialang.org/) / [StableDistributions](https://github.com/jaksle/StableDistributions.jl) | 28.748 ms | 9.748 ms | 1.661 s |
+| [NumPy](https://numpy.org/) / [SciPy](https://scipy.org/) | 295 ms | 81.2 ms | 3.39 s |

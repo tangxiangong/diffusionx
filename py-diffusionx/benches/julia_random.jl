@@ -1,7 +1,9 @@
-using Random, BenchmarkTools
+using Random, BenchmarkTools, StableDistributions
 
-N = 100_000_000;
+N = 10_000_000;
 println("标准正态分布")
-@benchmark randn($N);
+@btime randn($N);
 println("[0, 1] 均匀分布")
-@benchmark rand($N);
+@btime rand($N);
+println("稳定分布")
+@btime rand(Stable(0.7, 1.0), $N);
