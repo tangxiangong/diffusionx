@@ -1,3 +1,4 @@
+use num_traits::Num;
 use std::f64::consts::PI;
 
 /// 计算向量元素的累积和
@@ -17,25 +18,25 @@ use std::f64::consts::PI;
 ///
 /// ```rust
 /// use diffusionx::utils::cumsum;
-/// let mut v = vec![1, 2, 3, 4, 5];
-/// let result = cumsum(0, &mut v);
-/// assert_eq!(result, &vec![0, 1, 3, 6, 10, 15]);
+/// let v = vec![1, 2, 3, 4, 5];
+/// let result = cumsum(0, &v);
+/// assert_eq!(result, vec![0, 1, 3, 6, 10, 15]);
 /// ```
-pub fn cumsum<T>(start: T, v: &mut Vec<T>) -> &Vec<T>
+pub fn cumsum<T>(start: T, v: &[T]) -> Vec<T>
 where
-    T: std::ops::Add<Output = T> + Copy + std::ops::AddAssign,
+    T: Num + Copy,
 {
     if v.is_empty() {
-        return v;
+        return Vec::<T>::new();
     }
 
-    let mut sum = start;
-    for x in v.iter_mut() {
-        sum += *x;
-        *x = sum;
+    let mut result = vec![T::zero(); v.len() + 1];
+    result[0] = start;
+
+    for (i, x) in v.iter().enumerate() {
+        result[i + 1] = result[i] + *x;
     }
-    v.insert(0, start);
-    v
+    result
 }
 
 #[link(name = "m")]
@@ -320,44 +321,44 @@ mod tests {
 
     #[test]
     fn test_cumsum() {
-        let mut v = vec![1, 2, 3, 4, 5];
-        let result = cumsum(0, &mut v);
-        assert_eq!(result, &vec![0, 1, 3, 6, 10, 15]);
+        let v = vec![1, 2, 3, 4, 5];
+        let result = cumsum(0, &v);
+        assert_eq!(result, vec![0, 1, 3, 6, 10, 15]);
     }
 
     #[test]
     fn test_cumsum_start() {
-        let mut v = vec![1, 2, 3, 4, 5];
-        let result = cumsum(10, &mut v);
-        assert_eq!(result, &vec![10, 11, 13, 16, 20, 25]);
+        let v = vec![1, 2, 3, 4, 5];
+        let result = cumsum(10, &v);
+        assert_eq!(result, vec![10, 11, 13, 16, 20, 25]);
     }
 
     #[test]
     fn test_cumsum_empty() {
-        let mut v = vec![];
-        let result = cumsum(0, &mut v);
+        let v = vec![];
+        let result = cumsum(0, &v);
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_cumsum_negative() {
-        let mut v = vec![1, -2, 3, -4, 5];
-        let result = cumsum(0, &mut v);
-        assert_eq!(result, &vec![0, 1, -1, 2, -2, 3]);
+        let v = vec![1, -2, 3, -4, 5];
+        let result = cumsum(0, &v);
+        assert_eq!(result, vec![0, 1, -1, 2, -2, 3]);
     }
 
     #[test]
     fn test_cumsum_float() {
-        let mut v = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-        let result = cumsum(0.0, &mut v);
-        assert_eq!(result, &vec![0.0, 1.0, 3.0, 6.0, 10.0, 15.0]);
+        let v = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        let result = cumsum(0.0, &v);
+        assert_eq!(result, vec![0.0, 1.0, 3.0, 6.0, 10.0, 15.0]);
     }
 
     #[test]
     fn test_cumsum_negative_float() {
-        let mut v = vec![1.0, -2.0, 3.0, -4.0, 5.0];
-        let result = cumsum(0.0, &mut v);
-        assert_eq!(result, &vec![0.0, 1.0, -1.0, 2.0, -2.0, 3.0]);
+        let v = vec![1.0, -2.0, 3.0, -4.0, 5.0];
+        let result = cumsum(0.0, &v);
+        assert_eq!(result, vec![0.0, 1.0, -1.0, 2.0, -2.0, 3.0]);
     }
 
     #[test]
