@@ -4,7 +4,6 @@
 
 mod error;
 pub use error::*;
-pub mod cfunction;
 pub mod random;
 pub mod simulation;
-pub mod special_function;
+pub mod utils;

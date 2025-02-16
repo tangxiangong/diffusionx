@@ -1,0 +1,400 @@
+use std::f64::consts::PI;
+
+/// 计算向量元素的累积和
+///
+/// 返回一个包含累积和的向量
+///
+/// # Arguments
+///
+/// * `start`: 累积和的初始值
+/// * `v`: 需要计算累积和的向量
+///
+/// # Returns
+///
+/// 返回一个包含累积和的向量
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::utils::cumsum;
+/// let mut v = vec![1, 2, 3, 4, 5];
+/// let result = cumsum(0, &mut v);
+/// assert_eq!(result, &vec![0, 1, 3, 6, 10, 15]);
+/// ```
+pub fn cumsum<T>(start: T, v: &mut Vec<T>) -> &Vec<T>
+where
+    T: std::ops::Add<Output = T> + Copy + std::ops::AddAssign,
+{
+    if v.is_empty() {
+        return v;
+    }
+
+    let mut sum = start;
+    for x in v.iter_mut() {
+        sum += *x;
+        *x = sum;
+    }
+    v.insert(0, start);
+    v
+}
+
+#[link(name = "m")]
+unsafe extern "C" {
+    pub unsafe fn tgamma(x: f64) -> f64;
+    pub unsafe fn tgammaf(x: f32) -> f32;
+}
+
+/// Gamma function
+///
+/// This function calculates the gamma function of a given number.
+///
+/// # Arguments
+///
+/// * `x` - The number to calculate the gamma function of.  
+///
+/// # Returns
+///
+/// The gamma function of the given number.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::cfunction::gamma;
+/// let x = 1.0;
+/// let result = gamma(x);
+/// assert_eq!(result, 1.0);
+/// ```
+pub fn gamma(x: f64) -> f64 {
+    if x <= 0.0 {
+        panic!("gamma function is not defined for non-positive numbers");
+    }
+    unsafe { tgamma(x) }
+}
+
+/// Gamma function for f32
+///
+/// This function calculates the gamma function of a given number.
+///
+/// # Arguments
+///
+/// * `x` - The number to calculate the gamma function of.
+///
+/// # Returns
+///
+/// The gamma function of the given number.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::cfunction::gammaf;
+/// let x = 1.0;
+/// let result = gammaf(x);
+/// assert_eq!(result, 1.0);
+/// ```
+pub fn gammaf(x: f32) -> f32 {
+    if x <= 0.0 {
+        panic!("gamma function is not defined for non-positive numbers");
+    }
+    unsafe { tgammaf(x) }
+}
+
+/// 判断两个浮点数在容许误差 `tol` 内是否相等
+#[inline]
+pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
+    let result = if a.is_infinite() || b.is_infinite() {
+        false
+    } else {
+        (a - b).abs() <= tol
+    };
+    if !result {
+        println!("The left is {}", a);
+        println!("The right is {}", b);
+        println!(
+            "These two numbers are not approximately equal with tol {}",
+            tol
+        );
+    }
+    result
+}
+
+/// 判断两个浮点数在表示精度下是否相等
+#[inline]
+pub fn float_eq(a: f64, b: f64) -> bool {
+    approx_eq(a, b, f64::EPSILON)
+}
+
+/// 秦九韶算法求多项式的值
+///
+/// # Arguments
+///
+/// - `x`:  自变量的值
+/// - `arr`:  多项式的系数数组, 按次数降序
+///
+/// # Example
+///
+/// ```
+/// use diffusionx::special_function::eval_poly;
+/// let y = eval_poly(0.5, &[16., 0., 20., 0., 5., 0.]); // 6th first-kind Chebyshev polynomial
+/// ```
+pub fn eval_poly(x: f64, arr: &[f64]) -> f64 {
+    arr.iter().fold(0.0, |acc, &a| acc * x + a)
+}
+
+/// 使用最佳一致逼近多项式计算 sin(pi * x), pi * x in [0, 1/4]
+pub(crate) fn sinpi_kernel(x: f64) -> f64 {
+    let x_square = x * x;
+    let x_forth = x_square * x_square;
+    let r = eval_poly(
+        x,
+        &[
+            -2.1717412523382308e-5,
+            4.662827319453555e-4,
+            -7.370429884921779e-3,
+            0.08214588658006512,
+            -0.5992645293202981,
+            2.5501640398773415,
+        ],
+    );
+    let tmp = (-5.16771278004997f64).mul_add(x_square, x_forth.mul_add(r, 1.2245907532225998e-16));
+    PI.mul_add(x, x * tmp)
+}
+
+/// 使用最佳一致逼近多项式计算 cos(pi * x), pi * x in [0, 1/4]
+pub(crate) fn cospi_kernel(x: f64) -> f64 {
+    let x_square = x * x;
+    let r = x_square
+        * eval_poly(
+            x_square,
+            &[
+                -1.0368935675474665e-4,
+                1.9294917136379183e-3,
+                -0.025806887811869204,
+                0.23533063027900392,
+                -1.3352627688537357,
+                4.058712126416765,
+            ],
+        );
+    let a_x_square = 4.934802200544679 * x_square;
+    let a_x_square_lo = 3.109686485461973e-16f64.mul_add(
+        x_square,
+        4.934802200544679f64.mul_add(x_square, -a_x_square),
+    );
+    let w = 1.0 - a_x_square;
+    w + x_square.mul_add(r, ((1.0 - w) - a_x_square) - a_x_square_lo)
+}
+
+/// 计算 `sin(pi x)`
+///
+/// 比计算 `sin(pi * x)` 更加精确, 特别是当 `x` 比较大时
+///
+/// /// 若同时需要正弦值和余弦值, 请见 [sincospi]
+///
+/// # Panic
+///
+/// 当 `x` 为 `f64::INFINITY` 或者 `f64::NEG_INFINITY` 时 panic
+pub fn sinpi(_x: f64) -> f64 {
+    if _x.is_nan() {
+        return f64::NAN;
+    }
+    if _x.is_infinite() {
+        panic!("函数 `sinpi` 只接受有限值的参数");
+    }
+    let x = _x.abs();
+    // 对于特别大的 x, 返回 0
+    if x >= f64::MAX.floor() {
+        return 0.0f64.copysign(_x);
+    }
+
+    // 根据正弦函数的周期性，将 x 转化为 [0, 1/2]
+    let n = (2. * x).round();
+    let rx = (-0.5f64).mul_add(n, x);
+    let n = n as i64 & 3i64;
+    let res = match n {
+        0 => sinpi_kernel(rx),
+        1 => cospi_kernel(rx),
+        2 => 0.0f64 - sinpi_kernel(rx),
+        _ => 0.0f64 - cospi_kernel(rx),
+    };
+    res.copysign(_x)
+}
+
+/// 计算 `cos(pi x)`
+///
+/// 比计算 `cos(pi * x)` 更加精确, 特别是当 `x` 比较大时
+///
+/// 若同时需要正弦值和余弦值, 请见 [sincospi]
+///
+/// # Panic
+///
+/// 当 `x` 为 `f64::INFINITY` 或者 `f64::NEG_INFINITY` 时 panic
+pub fn cospi(_x: f64) -> f64 {
+    if _x.is_nan() {
+        return f64::NAN;
+    }
+    if _x.is_infinite() {
+        panic!("函数 `cospi` 只接受有限值的参数");
+    }
+    let x = _x.abs();
+    // 对于特别大的 x, 返回 1
+    if x >= f64::MAX.floor() {
+        return 1.0f64.copysign(_x);
+    }
+
+    let n = (2. * x).round();
+    let rx = (-0.5f64).mul_add(n, x);
+    let n = n as i64 & 3i64;
+    match n {
+        0 => cospi_kernel(rx),
+        1 => 0.0f64 - sinpi_kernel(rx),
+        2 => 0.0f64 - cospi_kernel(rx),
+        _ => sinpi_kernel(rx),
+    }
+}
+
+/// 计算 `sin(pi x)` 和 `cos(pi x)`
+///
+/// 返回一个元组
+///
+/// 若只需要正弦值或者余弦值, 请见 [sinpi] 和 [cospi]
+///
+/// # Panic
+///
+/// 当 `x` 为 `f64::INFINITY` 或者 `f64::NEG_INFINITY` 时 panic
+pub fn sincospi(_x: f64) -> (f64, f64) {
+    if _x.is_nan() {
+        return (f64::NAN, f64::NAN);
+    }
+    if _x.is_infinite() {
+        panic!("函数 `sincospi` 只接受有限值的参数");
+    }
+    let x = _x.abs();
+
+    if x >= f64::MAX.floor() {
+        return (0.0f64.copysign(_x), 1.0f64.copysign(_x));
+    }
+
+    let n = (2. * x).round();
+    let rx = (-0.5f64).mul_add(n, x);
+    let n = n as i64 & 3i64;
+    let si = sinpi_kernel(rx);
+    let co = cospi_kernel(rx);
+    match n {
+        0 => (si.copysign(_x), co),
+        1 => (co.copysign(_x), 0.0f64 - si),
+        2 => ((0.0f64 - si).copysign(_x), 0.0f64 - co),
+        _ => ((0.0f64 - co).copysign(_x), si),
+    }
+}
+
+/// 计算 `tan(pi x)`
+///
+/// 比计算 `tan(pi * x)` 更加精确, 特别是当 `x` 比较大时
+///
+/// 类似的函数有 [sinpi], [cospi], [sincospi]
+///
+/// # Panic
+///
+/// 当 `x` 为 `f64::INFINITY` 或者 `f64::NEG_INFINITY` 时 panic
+pub fn tanpi(_x: f64) -> f64 {
+    let (si, co) = sincospi(_x);
+    si / co
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gamma() {
+        let x = 1.0;
+        let result = gamma(x);
+        assert_eq!(result, 1.0);
+    }
+
+    #[test]
+    fn test_gammaf() {
+        let x = 1.0;
+        let result = gammaf(x);
+        assert_eq!(result, 1.0);
+    }
+
+    #[test]
+    fn test_cumsum() {
+        let mut v = vec![1, 2, 3, 4, 5];
+        let result = cumsum(0, &mut v);
+        assert_eq!(result, &vec![0, 1, 3, 6, 10, 15]);
+    }
+
+    #[test]
+    fn test_cumsum_start() {
+        let mut v = vec![1, 2, 3, 4, 5];
+        let result = cumsum(10, &mut v);
+        assert_eq!(result, &vec![10, 11, 13, 16, 20, 25]);
+    }
+
+    #[test]
+    fn test_cumsum_empty() {
+        let mut v = vec![];
+        let result = cumsum(0, &mut v);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_cumsum_negative() {
+        let mut v = vec![1, -2, 3, -4, 5];
+        let result = cumsum(0, &mut v);
+        assert_eq!(result, &vec![0, 1, -1, 2, -2, 3]);
+    }
+
+    #[test]
+    fn test_cumsum_float() {
+        let mut v = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        let result = cumsum(0.0, &mut v);
+        assert_eq!(result, &vec![0.0, 1.0, 3.0, 6.0, 10.0, 15.0]);
+    }
+
+    #[test]
+    fn test_cumsum_negative_float() {
+        let mut v = vec![1.0, -2.0, 3.0, -4.0, 5.0];
+        let result = cumsum(0.0, &mut v);
+        assert_eq!(result, &vec![0.0, 1.0, -1.0, 2.0, -2.0, 3.0]);
+    }
+
+    #[test]
+    fn test_sinpi() {
+        let tol = 1.0e-3;
+        assert!(approx_eq(sinpi(1.0), 0.0, tol));
+        assert!(approx_eq(sinpi(1.0 / 6.0), 0.5, tol));
+    }
+
+    #[test]
+    fn test_cospi() {
+        let tol = 1.0e-3;
+        assert!(approx_eq(cospi(1.0), -1.0, tol));
+        assert!(approx_eq(cospi(1.0 / 3.0), 0.5, tol));
+    }
+
+    #[test]
+    fn test_approx_eq() {
+        assert_ne!(0.1 + 0.2, 0.3);
+        assert!(float_eq(0.1 + 0.2, 0.3));
+    }
+    #[test]
+    fn test_eval_poly() {
+        let arr = [
+            0.3198453915289723,
+            0.9076227501539942,
+            0.40138509410337553,
+            0.9088787482769067,
+            0.7563007138750291,
+        ];
+        let x = 0.35625260496659283;
+        let result = eval_poly(x, &arr);
+        assert!(approx_eq(result, 1.1772226211231838, 1.0e-5));
+        assert!(approx_eq(
+            eval_poly(2.7172900350129723, &[4., 2., 9., 8.]),
+            127.47717934998103,
+            1.0e-5,
+        ));
+    }
+}
