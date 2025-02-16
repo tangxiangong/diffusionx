@@ -1,90 +1,35 @@
 # DiffusionX
 
-DiffusionX 是一个高性能的 Rust 随机数/随机过程模拟库，并提供 Python 接口。
-
-## Benchmark
-
-### 测试结果
-
-生成长度为 `10_000_000` 的随机数组
-
-|  | 标准正态分布 | `[0, 1]` 均匀分布 | 稳定分布 |
-| :---: | :---: | :---: | :---: |
-| DiffusionX (Rust 版本) | 23.811 ms | 20.450 ms | 273.68 ms |
-| DiffusionX (Python 版本) | 24.1 ms | 21.687 ms | 277.6 ms |
-| Julia | 28.748 ms | 9.748 ms | 713.955 ms |
-| NumPy / SciPy | 295 ms | 81.2 ms | 3.39 s |
-| Numba | - | - | 1.52 s |
-
-### 测试环境
-
-#### 硬件配置
-- 设备型号：MacBook Pro 13-inch (2020)
-- 处理器：Intel Core i5-1038NG7 @ 2.0GHz (4核8线程)
-- 内存：16GB LPDDR4X 3733MHz
-
-#### 软件环境
-- 操作系统：macOS Sequoia 15.3
-- Rust：1.85.0-beta.7
-- Python：3.12
-- Julia：1.11
-- NumPy：2.2.2
-- SciPy：1.15.1
-
-
-## 技术栈
-
-- 🦀 Rust 2024 Edition
-- 🔄 PyO3：Rust/Python 绑定
-- 🔢 NumPy：零开销数组转换
-
-## 特性
-
-- 🚀 高性能 
-- 🔄 零开销 NumPy 兼容：所有随机数生成函数直接返回 NumPy 数组，无需额外转换
-- 🎯 类型安全：支持浮点数和整数类型的随机数生成
-- 🛡️ 内存安全：基于 Rust 实现，保证内存安全和线程安全
+DiffusionX 是一个多线程高性能的 Rust 随机数/随机过程模拟库，并利用 [PyO3](https://github.com/PyO3/pyo3) 提供 Python 封装。
 
 ## 使用示例
-
-### Rust
-
-```rust
-use diffusionx::random;
-
-// 生成标准正态分布随机数
-let value = random::normal::standard_rand();
-let values = random::normal::standard_rands(1000);
-
-// 生成均匀分布随机数
-let value = random::uniform::standard_rand();
-let values = random::uniform::standard_rands(1000);
-let values = random::uniform::range_rands(0..10, 1000);
-let values = random::uniform::inclusive_range_rands(0..=10, 1000);
-
-// 生成指数分布随机数
-let value = random::exponential::rand(1.0);
-let values = random::exponential::rands(1.0, 1000);
-```
 
 ### Python
 
 ```python
 from diffusionx import random
 from diffusionx.types import DType
+from diffusionx.simulation import Bm
 
 # 生成正态分布随机数
 value = random.randn()  # 生成一个标准正态分布随机数
 values = random.randn(1000, mu=0.0, sigma=1.0)  # 生成1000个正态分布随机数
 
-# 生成均匀分布随机数
-value = random.uniform()  # 生成一个[0,1)均匀分布随机数
-values = random.uniform(1000, low=0.0, high=1.0, dtype=DType.Float)  # 生成1000个浮点型均匀分布随机数
-values_int = random.uniform(1000, low=0, high=100, dtype=DType.Int)  # 生成1000个整型均匀分布随机数
+# 生成稳定分布随机数
+value = random.stable_rand(alpha=1.5, beta=0.0)  # 生成一个标准稳定分布随机数
+values = random.stable_rand(1000, alpha=1.5, beta=0.0, sigma=1.0, mu=0.0)  # 生成1000个稳定分布随机数
 
-# 生成指数分布随机数
-value = random.randexp()  # 生成一个参数为1的指数分布随机数
-values = random.randexp(1000, scale=2.0)  # 生成1000个参数为2的指数分布随机数
+# 生成偏稳定分布随机数
+value = random.skew_stable_rand(alpha=1.5)  # 生成一个偏稳定分布随机数
+values = random.skew_stable_rand(1000, alpha=1.5)  # 生成1000个偏稳定分布随机数
+
+# 布朗运动模拟
+bm = Bm(10)  # 创建布朗运动对象
+times, positions = bm.simulate(step_size=0.01)  # 模拟布朗运动轨迹
+
+# 计算布朗运动的统计量
+raw_moment = bm.raw_moment(order=1, particles=1000)  # 计算一阶原点矩
+central_moment = bm.central_moment(order=2, particles=1000)  # 计算二阶中心矩
 ```
 
 所有返回多个随机数的函数都直接返回 NumPy 数组，可以无缝集成到现有的 NumPy 代码中：
@@ -103,6 +48,111 @@ array1 = random.uniform(1000)
 array2 = np.array([1, 2, 3, 4, 5])
 result = array1[:5] + array2  # 数组相加
 ```
+
+
+### Rust
+
+```rust
+use diffusionx::random;
+use diffusionx::simulation::Bm;
+use diffusionx::simulation::Simulation;
+
+// 生成标准正态分布随机数
+let value = random::normal::standard_rand();
+let values = random::normal::standard_rands(1000);
+let values = random::normal::rands(0.0, 1.0, 1000).unwrap();
+
+// 生成均匀分布随机数
+let value = random::uniform::standard_rand();
+let values = random::uniform::standard_rands(1000);
+let values = random::uniform::range_rands(0..10, 1000).unwrap();
+let values = random::uniform::inclusive_range_rands(0..=10, 1000).unwrap();
+
+// 生成指数分布随机数
+let value = random::exponential::rand(1.0).unwrap();
+let values = random::exponential::rands(1.0, 1000).unwrap();
+
+// 生成泊松分布随机数
+let value = random::poisson::rand(1.0).unwrap();
+let values = random::poisson::rands(1.0, 1000).unwrap();
+
+// 生成稳定分布随机数
+let value = random::stable::rand(1.5, 0.0, 1.0, 0.0).unwrap();
+let values = random::stable::rands(1.5, 0.0, 1.0, 0.0, 1000).unwrap();
+
+// 生成偏稳定分布随机数
+let value = random::stable::skew_rand(1.5).unwrap();
+let values = random::stable::skew_rands(1.5, 1000).unwrap();
+
+// 生成伯努利分布随机数
+let value = random::uniform::bool_rand(0.5).unwrap();
+let values = random::uniform::bool_rands(0.5, 1000).unwrap();
+
+// 布朗运动模拟
+let bm = Bm::new(0.0, 1.0, 1.0).unwrap();  // 创建布朗运动对象：起始位置为0，扩散系数为1，持续时间为1
+let time_step = 0.01;  // 时间步长
+let (times, positions) = bm.simulate(time_step).unwrap();  // 模拟布朗运动轨迹
+
+// 计算布朗运动的统计量
+let mean = bm.mean(time_step, 1000).unwrap();  // 计算均值
+let msd = bm.msd(time_step, 1000).unwrap();  // 计算均方位移
+```
+
+## 进展
+### 随机数生成
+
+- [x] 正态分布
+- [x] 均匀分布
+- [x] 指数分布
+- [x] 泊松分布
+- [x] alpha 稳定分布
+
+### 随机过程
+
+- [x] 布朗运动
+- [ ] alpha 稳定 Levy 过程
+- [ ] 分数布朗运动
+- [ ] 泊松过程
+- [ ] 复合泊松过程
+- [ ] Langevin 方程
+
+
+## Benchmark
+
+### 测试结果
+
+生成长度为 `10_000_000` 的随机数组
+
+|                          | 标准正态分布 | `[0, 1]` 均匀分布 |  稳定分布  |
+| :----------------------: | :----------: | :---------------: | :--------: |
+|  DiffusionX (Rust 版本)  |  23.811 ms   |     20.450 ms     | 273.68 ms  |
+| DiffusionX (Python 版本) |   24.1 ms    |     21.687 ms     |  277.6 ms  |
+|          Julia           |  28.748 ms   |     9.748 ms      | 713.955 ms |
+|      NumPy / SciPy       |    295 ms    |      81.2 ms      |   3.39 s   |
+|          Numba           |      -       |         -         |   1.52 s   |
+
+### 测试环境
+
+#### 硬件配置
+- 设备型号：MacBook Pro 13-inch (2020)
+- 处理器：Intel Core i5-1038NG7 @ 2.0GHz (4核8线程)
+- 内存：16GB LPDDR4X 3733MHz
+
+#### 软件环境
+- 操作系统：macOS Sequoia 15.3
+- Rust：1.85.0-beta.7
+- Python：3.12
+- Julia：1.11
+- NumPy：2.2.2
+- SciPy：1.15.1
+
+## 技术栈 & 特性
+
+- 🦀 Rust 2024 Edition
+- 🔄 PyO3：Rust/Python 绑定
+- 🔢 NumPy：零开销数组转换
+- 🚀 高性能 
+- 🔄 零开销 NumPy 兼容：所有随机数生成函数直接返回 NumPy 数组，无需额外转换
 
 ## 许可证
 
