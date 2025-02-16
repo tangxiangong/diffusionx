@@ -3,10 +3,10 @@
 //! This module provides functions for simulating Brownian motion.
 //!
 
-use crate::{SimulationError, XResult, random::normal, simulation::Simulation, utils::cumsum};
+use crate::{random::normal, simulation::Simulation, utils::cumsum, SimulationError, XResult};
 use rayon::prelude::*;
 
-use super::{Pair, Params};
+use super::{MomentMC, Pair, Params};
 
 /// Brownian motion simulation
 ///
@@ -29,6 +29,8 @@ impl Default for Bm {
         }
     }
 }
+
+
 
 impl Bm {
     /// Create a new Brownian motion simulation
@@ -54,6 +56,23 @@ impl Bm {
             diffusion_coefficient,
         })
     }
+
+    fn get_params(&self, params: &Params) -> XResult<(f64, f64, f64, f64, usize)> {
+        let start_position = self.start_position;
+        let diffusion_coefficient = self.diffusion_coefficient;
+        let tau = params.time_step()?;
+        let duration = params.duration()?;
+        let num_steps = (duration / tau).ceil() as usize;
+        Ok((start_position, diffusion_coefficient, tau, duration, num_steps))
+    }
+
+    pub fn mean(&self, params: Params, particles: usize) -> XResult<f64> {
+        self.raw_moment(params, 1, particles)
+    }
+
+    pub fn msd(&self, params: Params, particles: usize) -> XResult<f64> {
+        self.central_moment(params, 2, particles)
+    }
 }
 
 /// impl `Simulation` trait for Brownian motion
@@ -76,11 +95,10 @@ impl Simulation for Bm {
     /// let (t, x) = bm.simulate(params).unwrap();
     /// ```
     fn simulate(&self, params: Params) -> XResult<Pair<Self::Time, Self::Position>> {
-        let tau = params.time_step()?;
-        let duration = params.duration()?;
+        let (start_position, diffusion_coefficient, tau, duration, _) = self.get_params(&params)?;
         simulate_bm(
-            self.start_position,
-            self.diffusion_coefficient,
+            start_position,
+            diffusion_coefficient,
             tau,
             duration,
         )
@@ -129,9 +147,69 @@ pub fn simulate_bm(
     Ok((t, x))
 }
 
+impl MomentMC for Bm {
+    fn raw_moment(&self, params: Params, order: i32, particles: usize) -> XResult<f64> {
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(
+                "particles must be positive".to_string(),
+            )
+            .into());
+        }
+        if order < 0 {
+            return Err(SimulationError::InvalidParameters(
+                "order must be non-negative".to_string(),
+            )
+            .into());
+        }
+        if order == 0 {
+            return Ok(0.0);
+        }
+
+        let (start_position, diffusion_coefficient, tau, duration, num_steps) = self.get_params(&params)?;
+        let result = (0..particles).into_par_iter()
+        .map(|_| -> XResult<f64> {
+            let (_, x) = simulate_bm(start_position, diffusion_coefficient, tau, duration)?;
+            let end_position = x.get(num_steps);
+            match end_position {
+                Some(position) => Ok(position.powi(order)),
+                None => Err(SimulationError::Unknown.into()),
+            }
+        })
+        .try_fold(
+            || 0.0,
+            |acc, res| {
+                res.map(|v| acc + v)
+            }
+        )
+        .try_reduce(|| 0.0, |a, b| Ok(a + b))? / particles as f64;
+        Ok(result)
+    }
+    fn central_moment(&self, params: Params, order: i32, particles: usize) -> XResult<f64> {
+        let mean = self.raw_moment(params, 1, particles)?;
+        let (start_position, diffusion_coefficient, tau, duration, num_steps) = self.get_params(&params)?;
+        let result = (0..particles).into_par_iter()
+        .map(|_| -> XResult<f64> {
+            let (_, x) = simulate_bm(start_position, diffusion_coefficient, tau, duration)?;
+            let end_position = x.get(num_steps);
+            match end_position {
+                Some(position) => Ok((position-mean).powi(order)),
+                None => Err(SimulationError::Unknown.into()),
+            }
+        })
+        .try_fold(
+            || 0.0,
+            |acc, res| {
+                res.map(|v| acc + v)
+            }
+        )
+        .try_reduce(|| 0.0, |a, b| Ok(a + b))? / particles as f64;
+        Ok(result)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::simulation::ParamsBuilder;
+    use crate::simulation::{ParamsBuilder, MomentMC};
 
     use super::*;
 
@@ -146,5 +224,17 @@ mod tests {
         let (t, x) = bm.simulate(params).unwrap();
         println!("t: {:?}", t);
         println!("x: {:?}", x);
+    }
+
+    #[test]
+    fn test_raw_moment() {
+        let bm = Bm::new(10.0, 1.0).unwrap();
+        let params = ParamsBuilder::default()
+            .time_step(0.1)
+            .duration(10)
+            .build()
+            .unwrap();
+        let moment = bm.raw_moment(params, 1, 1000).unwrap();
+        println!("moment: {:?}", moment);
     }
 }

@@ -53,4 +53,6 @@ pub enum SimulationError {
     InvalidTimeStep(String),
     #[error("Invalid time interval: {0}")]
     InvalidTimeInterval(String),
+    #[error("Unknown error, simulation failed")]
+    Unknown,
 }

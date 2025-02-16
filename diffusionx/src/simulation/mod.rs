@@ -61,5 +61,13 @@ impl Params {
     }
 }
 
+pub trait MomentMC : Simulation {
+    fn raw_moment(&self, params: Params, order: i32, particles: usize) -> XResult<f64>;
+    fn central_moment(&self, params: Params, order: i32, particles: usize) -> XResult<f64>;
+}
+
 mod bm;
 pub use bm::*;
+
+#[cfg(feature = "nightly")]
+pub mod nightly;
