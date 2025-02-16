@@ -1,6 +1,6 @@
-use thiserror::Error;
 use diffusionx::XError;
-use pyo3::{exceptions::PyValueError, PyErr};
+use pyo3::{PyErr, exceptions::PyValueError};
+use thiserror::Error;
 
 pub type XPyResult<T> = Result<T, XPyError>;
 
@@ -21,4 +21,3 @@ impl From<XPyError> for PyErr {
         PyValueError::new_err(error.to_string())
     }
 }
-
