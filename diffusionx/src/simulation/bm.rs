@@ -170,14 +170,13 @@ impl Moment for Bm {
             return Ok(0.0);
         }
 
-        let (start_position, diffusion_coefficient, duration, num_steps) =
-            self.get_params(time_step)?;
+        let (start_position, diffusion_coefficient, duration, _) = self.get_params(time_step)?;
         let result = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> {
                 let (_, x) =
                     simulate_bm(start_position, diffusion_coefficient, time_step, duration)?;
-                let end_position = x.get(num_steps);
+                let end_position = x.last();
                 match end_position {
                     Some(position) => Ok(position.powi(order)),
                     None => Err(SimulationError::Unknown.into()),
@@ -190,14 +189,13 @@ impl Moment for Bm {
     }
     fn central_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64> {
         let mean = self.raw_moment(time_step, 1, particles)?;
-        let (start_position, diffusion_coefficient, duration, num_steps) =
-            self.get_params(time_step)?;
+        let (start_position, diffusion_coefficient, duration, _) = self.get_params(time_step)?;
         let result = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> {
                 let (_, x) =
                     simulate_bm(start_position, diffusion_coefficient, time_step, duration)?;
-                let end_position = x.get(num_steps);
+                let end_position = x.last();
                 match end_position {
                     Some(position) => Ok((position - mean).powi(order)),
                     None => Err(SimulationError::Unknown.into()),
