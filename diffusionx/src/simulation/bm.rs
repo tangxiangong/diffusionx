@@ -6,7 +6,7 @@
 use crate::{SimulationError, XResult, random::normal, simulation::Simulation, utils::cumsum};
 use rayon::prelude::*;
 
-use super::{Moment, Pair};
+use super::{CheckedParams, Moment, Pair};
 
 /// Brownian motion simulation
 ///
@@ -67,12 +67,12 @@ impl Bm {
         })
     }
 
-    fn get_params(&self, time_step: f64) -> XResult<(f64, f64, f64, usize)> {
-        let start_position = self.start_position;
-        let diffusion_coefficient = self.diffusion_coefficient;
-        let duration = self.duration;
-        let num_steps = (duration / time_step).ceil() as usize;
-        Ok((start_position, diffusion_coefficient, duration, num_steps))
+    pub fn get_params(&self) -> (f64, f64, f64) {
+        (
+            self.start_position,
+            self.diffusion_coefficient,
+            self.duration,
+        )
     }
 
     pub fn mean(&self, time_step: f64, particles: usize) -> XResult<f64> {
@@ -87,7 +87,6 @@ impl Bm {
 /// impl `Simulation` trait for Brownian motion
 impl Simulation for Bm {
     type Time = f64;
-    type Position = f64;
     type Params = f64;
     /// Simulate Brownian motion
     ///
@@ -104,9 +103,23 @@ impl Simulation for Bm {
     /// let params = 0.1;
     /// let (t, x) = bm.simulate(params).unwrap();
     /// ```
-    fn simulate(&self, time_step: Self::Params) -> XResult<Pair<Self::Time, Self::Position>> {
-        let (start_position, diffusion_coefficient, duration, _) = self.get_params(time_step)?;
-        simulate_bm(start_position, diffusion_coefficient, time_step, duration)
+    fn simulate(&self, time_step: Self::Params) -> XResult<Pair<Self::Time>> {
+        self.check_params(time_step)?;
+        simulate_bm(
+            self.start_position,
+            self.diffusion_coefficient,
+            time_step,
+            self.duration,
+        )
+    }
+
+    fn simulate_unchecked(&self, time_step: f64) -> XResult<Pair<Self::Time>> {
+        simulate_bm(
+            self.start_position,
+            self.diffusion_coefficient,
+            time_step,
+            self.duration,
+        )
     }
 }
 
@@ -152,59 +165,15 @@ pub fn simulate_bm(
     Ok((t, x))
 }
 
-impl Moment for Bm {
-    fn raw_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64> {
-        if particles == 0 {
+impl CheckedParams for Bm {
+    fn check_params(&self, time_step: f64) -> XResult<()> {
+        if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(
-                "particles must be positive".to_string(),
+                "time_step must be positive".to_string(),
             )
             .into());
         }
-        if order < 0 {
-            return Err(SimulationError::InvalidParameters(
-                "order must be non-negative".to_string(),
-            )
-            .into());
-        }
-        if order == 0 {
-            return Ok(0.0);
-        }
-
-        let (start_position, diffusion_coefficient, duration, _) = self.get_params(time_step)?;
-        let result = (0..particles)
-            .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) =
-                    simulate_bm(start_position, diffusion_coefficient, time_step, duration)?;
-                let end_position = x.last();
-                match end_position {
-                    Some(position) => Ok(position.powi(order)),
-                    None => Err(SimulationError::Unknown.into()),
-                }
-            })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-            / particles as f64;
-        Ok(result)
-    }
-    fn central_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64> {
-        let mean = self.raw_moment(time_step, 1, particles)?;
-        let (start_position, diffusion_coefficient, duration, _) = self.get_params(time_step)?;
-        let result = (0..particles)
-            .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) =
-                    simulate_bm(start_position, diffusion_coefficient, time_step, duration)?;
-                let end_position = x.last();
-                match end_position {
-                    Some(position) => Ok((position - mean).powi(order)),
-                    None => Err(SimulationError::Unknown.into()),
-                }
-            })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-            / particles as f64;
-        Ok(result)
+        Ok(())
     }
 }
 
@@ -229,5 +198,11 @@ mod tests {
         let time_step = 0.1;
         let moment = bm.raw_moment(time_step, 1, 1000).unwrap();
         println!("moment: {:?}", moment);
+    }
+
+    #[test]
+    fn test_send_sync() {
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<Bm>();
     }
 }
