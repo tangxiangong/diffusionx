@@ -27,16 +27,14 @@ where
     T: Num + Copy,
 {
     if v.is_empty() {
-        return Vec::<T>::new();
+        return Vec::new();
     }
-
-    let mut result = vec![T::zero(); v.len() + 1];
-    result[0] = start;
-
-    for (i, x) in v.iter().enumerate() {
-        result[i + 1] = result[i] + *x;
-    }
-    result
+    std::iter::once(start)
+        .chain(v.iter().scan(start, |acc, x| {
+            *acc = *acc + *x;
+            Some(*acc)
+        }))
+        .collect()
 }
 
 #[link(name = "m")]
