@@ -24,3 +24,25 @@ def skew_stable_rand(alpha: float) -> float: ...
 def skew_stable_rands(n: int, alpha: float) -> np.ndarray: ...
 def bool_rand(p: float = 0.5) -> bool: ...
 def bool_rands(n: int, p: float = 0.5) -> np.ndarray: ...
+def bm_simulate(
+    start_position: float,
+    diffusion_coefficient: float,
+    duration: float,
+    step_size: float,
+) -> tuple[np.ndarray, np.ndarray]: ...
+def bm_raw_moment(
+    start_position: float,
+    diffusion_coefficient: float,
+    duration: float,
+    step_size: float,
+    order: int,
+    particles: int,
+) -> float: ...
+def bm_central_moment(
+    start_position: float,
+    diffusion_coefficient: float,
+    duration: float,
+    step_size: float,
+    order: int,
+    particles: int,
+) -> float: ...

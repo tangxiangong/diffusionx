@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 mod error;
 pub mod random;
 pub use error::*;
+pub mod simulation;
 
 /// 用于简化 PyModule 函数注册的宏
 macro_rules! register_functions {
@@ -53,7 +54,10 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
         random::skew_stable_rand,
         random::skew_stable_rands,
         random::bool_rand,
-        random::bool_rands
+        random::bool_rands,
+        simulation::bm_simulate,
+        simulation::bm_raw_moment,
+        simulation::bm_central_moment,
     );
 
     Ok(())

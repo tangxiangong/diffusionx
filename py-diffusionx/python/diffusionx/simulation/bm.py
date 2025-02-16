@@ -1,0 +1,145 @@
+from diffusionx import _core
+from typing import Union
+
+real = Union[float, int]
+
+
+def _check_transform(value: real) -> float:
+    if isinstance(value, int):
+        return float(value)
+    elif isinstance(value, float):
+        return value
+    else:
+        raise ValueError("value must be a number")
+
+
+class Bm(object):
+    def __init__(
+        self,
+        duration: real,
+        start_position: real = 0.0,
+        diffusion_coefficient: real = 1.0,
+    ):
+        """
+        Initialize a Brownian motion object.
+
+        Args:
+            duration (real): Duration of the Brownian motion.
+            start_position (real, optional): Starting position of the Brownian motion. Defaults to 0.0.
+            diffusion_coefficient (real, optional): Diffusion coefficient of the Brownian motion. Defaults to 1.0.
+
+        Raises:
+            ValueError: If duration is not positive.
+            ValueError: If diffusion coefficient is not positive.
+            ValueError: If value is not a number.
+
+        Returns:
+            Bm: A Brownian motion object.
+        """
+        duration = _check_transform(duration)
+        start_position = _check_transform(start_position)
+        diffusion_coefficient = _check_transform(diffusion_coefficient)
+        if duration <= 0:
+            raise ValueError("duration must be positive")
+        if diffusion_coefficient <= 0:
+            raise ValueError("diffusion_coefficient must be positive")
+
+        self.duration = duration
+        self.start_position = start_position
+        self.diffusion_coefficient = diffusion_coefficient
+
+    def simulate(self, step_size: real = 0.01):
+        """
+        Simulate the Brownian motion.
+
+        Args:
+            step_size (real, optional): Step size of the Brownian motion. Defaults to 0.01.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: A tuple containing the times and positions of the Brownian motion.
+        """
+        step_size = _check_transform(step_size)
+        if step_size <= 0:
+            raise ValueError("step_size must be positive")
+        return _core.bm_simulate(
+            self.start_position,
+            self.diffusion_coefficient,
+            self.duration,
+            step_size,
+        )
+
+    def raw_moment(self, order: int, particles: int, step_size: float = 0.01):
+        """
+        Calculate the raw moment of the Brownian motion.
+
+        Args:
+            order (int): Order of the moment.
+            particles (int): Number of particles.
+            step_size (real, optional): Step size of the Brownian motion. Defaults to 0.01.
+
+        Returns:
+            real: The raw moment of the Brownian motion.
+        """
+        if not isinstance(order, int):
+            raise ValueError("order must be an integer")
+        elif order < 0:
+            raise ValueError("order must be non-negative")
+        elif order == 0:
+            return 1
+        if not isinstance(particles, int):
+            raise ValueError("particles must be an integer")
+        elif particles <= 0:
+            raise ValueError("particles must be positive")
+        step_size = _check_transform(step_size)
+        if step_size <= 0:
+            raise ValueError("step_size must be positive")
+        return _core.bm_raw_moment(
+            self.start_position,
+            self.diffusion_coefficient,
+            self.duration,
+            step_size,
+            order,
+            particles,
+        )
+
+    def central_moment(self, order: int, particles: int, step_size: float = 0.01):
+        """
+        Calculate the central moment of the Brownian motion.
+
+        Args:
+            order (int): Order of the moment.
+            particles (int): Number of particles.
+            step_size (float, optional): Step size of the Brownian motion. Defaults to 0.01.
+
+        Raises:
+            ValueError: If order is not an integer.
+            ValueError: If order is negative.
+            ValueError: If order is zero.
+            ValueError: If particles is not an integer.
+            ValueError: If particles is not positive.
+            ValueError: If step_size is not positive.
+
+        Returns:
+            real: The central moment of the Brownian motion.
+        """
+        if not isinstance(order, int):
+            raise ValueError("order must be an integer")
+        elif order < 0:
+            raise ValueError("order must be non-negative")
+        elif order == 0:
+            return 1
+        if not isinstance(particles, int):
+            raise ValueError("particles must be an integer")
+        elif particles <= 0:
+            raise ValueError("particles must be positive")
+        step_size = _check_transform(step_size)
+        if step_size <= 0:
+            raise ValueError("step_size must be positive")
+        return _core.bm_central_moment(
+            self.start_position,
+            self.diffusion_coefficient,
+            self.duration,
+            step_size,
+            order,
+            particles,
+        )
