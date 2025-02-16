@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
-pub mod random;
 mod error;
+pub mod random;
 pub use error::*;
 
 /// 用于简化 PyModule 函数注册的宏
@@ -36,7 +36,8 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
         .build_global()
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
 
-    register_functions!(m,
+    register_functions!(
+        m,
         random::exp_rand,
         random::exp_rands,
         random::uniform_rand_float,

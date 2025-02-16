@@ -41,7 +41,10 @@ pub fn standard_rand() -> f64 {
 /// ```
 pub fn standard_rands(n: usize) -> Vec<f64> {
     let dist = StandardNormal;
-    (0..n).into_par_iter().map_init(rng, |r, _|r.sample(dist)).collect()
+    (0..n)
+        .into_par_iter()
+        .map_init(rng, |r, _| r.sample(dist))
+        .collect()
 }
 
 /// Generate a normal random number

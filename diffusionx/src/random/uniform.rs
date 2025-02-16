@@ -52,7 +52,10 @@ pub fn standard_rand() -> f64 {
 /// ```
 pub fn standard_rands(n: usize) -> Vec<f64> {
     let dist = StandardUniform;
-    (0..n).into_par_iter().map_init(rng,|r, _| r.sample(dist)).collect()
+    (0..n)
+        .into_par_iter()
+        .map_init(rng, |r, _| r.sample(dist))
+        .collect()
 }
 
 /// Generate a random number from a range
@@ -191,7 +194,7 @@ pub fn bool_rand(p: f64) -> XResult<bool> {
 /// # Returns
 ///
 /// A vector of `bool` values representing the generated random numbers.    
-/// 
+///
 /// # Example
 ///
 /// ```rust
@@ -203,7 +206,10 @@ pub fn bool_rands(p: f64, n: usize) -> XResult<Vec<bool>> {
     if !(0.0..=1.0).contains(&p) {
         return Err(XError::BoolSampleError);
     }
-    let result = (0..n).into_par_iter().map_init(rng, |r, _| r.random_bool(p)).collect();
+    let result = (0..n)
+        .into_par_iter()
+        .map_init(rng, |r, _| r.random_bool(p))
+        .collect();
     Ok(result)
 }
 

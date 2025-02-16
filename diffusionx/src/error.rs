@@ -13,7 +13,7 @@ pub type XResult<T> = Result<T, XError>;
 ///
 /// This enum represents the errors that can occur in the crate.
 ///
-#[derive(Error, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Error, Debug, PartialEq, Eq, Clone)]
 pub enum XError {
     #[error("Sample Uniform Distribution Error: {0}")]
     UniformSampleError(#[from] UniformError),
@@ -27,6 +27,8 @@ pub enum XError {
     StableSampleError(#[from] StableError),
     #[error("Probability must be between 0 and 1")]
     BoolSampleError,
+    #[error("Simulate Error: {0}")]
+    SimulateError(#[from] SimulationError),
 }
 
 #[derive(Error, Debug, PartialEq, Eq, Clone, Copy)]
@@ -41,4 +43,14 @@ pub enum StableError {
     InvalidLocation,
     #[error("Index of stability must be in the range (0, 1)")]
     InvalidSkewIndex,
+}
+
+#[derive(Error, Debug, PartialEq, Eq, Clone)]
+pub enum SimulationError {
+    #[error("Invalid parameters: {0}")]
+    InvalidParameters(String),
+    #[error("Invalid time step: {0}")]
+    InvalidTimeStep(String),
+    #[error("Invalid time interval: {0}")]
+    InvalidTimeInterval(String),
 }
