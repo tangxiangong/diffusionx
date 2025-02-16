@@ -3,10 +3,10 @@
 //! This module provides functions for simulating Brownian motion.
 //!
 
-use crate::{random::normal, simulation::Simulation, utils::cumsum, SimulationError, XResult};
+use crate::{SimulationError, XResult, random::normal, simulation::Simulation, utils::cumsum};
 use rayon::prelude::*;
 
-use super::{MomentMC, Pair, Params};
+use super::{Moment, Pair};
 
 /// Brownian motion simulation
 ///
@@ -16,9 +16,11 @@ use super::{MomentMC, Pair, Params};
 ///
 /// * `start_position` - The starting position of the Brownian motion.
 /// * `diffusion_coefficient` - The diffusion coefficient of the Brownian motion.
+/// * `duration` - The duration of the Brownian motion.
 pub struct Bm {
     start_position: f64,
     diffusion_coefficient: f64,
+    duration: f64,
 }
 
 impl Default for Bm {
@@ -26,11 +28,10 @@ impl Default for Bm {
         Self {
             start_position: 0.0,
             diffusion_coefficient: 1.0,
+            duration: 1.0,
         }
     }
 }
-
-
 
 impl Bm {
     /// Create a new Brownian motion simulation
@@ -42,36 +43,44 @@ impl Bm {
     pub fn new(
         start_position: impl Into<f64>,
         diffusion_coefficient: impl Into<f64>,
+        duration: impl Into<f64>,
     ) -> XResult<Self> {
         let start_position = start_position.into();
         let diffusion_coefficient = diffusion_coefficient.into();
+        let duration = duration.into();
         if diffusion_coefficient <= 0.0 {
             return Err(SimulationError::InvalidParameters(
                 "diffusion_coefficient must be positive".to_string(),
             )
             .into());
         }
+        if duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(
+                "duration must be positive".to_string(),
+            )
+            .into());
+        }
         Ok(Self {
             start_position,
             diffusion_coefficient,
+            duration,
         })
     }
 
-    fn get_params(&self, params: &Params) -> XResult<(f64, f64, f64, f64, usize)> {
+    fn get_params(&self, time_step: f64) -> XResult<(f64, f64, f64, usize)> {
         let start_position = self.start_position;
         let diffusion_coefficient = self.diffusion_coefficient;
-        let tau = params.time_step()?;
-        let duration = params.duration()?;
-        let num_steps = (duration / tau).ceil() as usize;
-        Ok((start_position, diffusion_coefficient, tau, duration, num_steps))
+        let duration = self.duration;
+        let num_steps = (duration / time_step).ceil() as usize;
+        Ok((start_position, diffusion_coefficient, duration, num_steps))
     }
 
-    pub fn mean(&self, params: Params, particles: usize) -> XResult<f64> {
-        self.raw_moment(params, 1, particles)
+    pub fn mean(&self, time_step: f64, particles: usize) -> XResult<f64> {
+        self.raw_moment(time_step, 1, particles)
     }
 
-    pub fn msd(&self, params: Params, particles: usize) -> XResult<f64> {
-        self.central_moment(params, 2, particles)
+    pub fn msd(&self, time_step: f64, particles: usize) -> XResult<f64> {
+        self.central_moment(time_step, 2, particles)
     }
 }
 
@@ -79,6 +88,7 @@ impl Bm {
 impl Simulation for Bm {
     type Time = f64;
     type Position = f64;
+    type Params = f64;
     /// Simulate Brownian motion
     ///
     /// This method simulates Brownian motion.
@@ -91,17 +101,12 @@ impl Simulation for Bm {
     ///
     /// ```rust
     /// let bm = Bm::new(10.0, 1.0).unwrap();
-    /// let params = ParamsBuilder::default().time_step(0.1).duration(1).build().unwrap();
+    /// let params = 0.1;
     /// let (t, x) = bm.simulate(params).unwrap();
     /// ```
-    fn simulate(&self, params: Params) -> XResult<Pair<Self::Time, Self::Position>> {
-        let (start_position, diffusion_coefficient, tau, duration, _) = self.get_params(&params)?;
-        simulate_bm(
-            start_position,
-            diffusion_coefficient,
-            tau,
-            duration,
-        )
+    fn simulate(&self, time_step: Self::Params) -> XResult<Pair<Self::Time, Self::Position>> {
+        let (start_position, diffusion_coefficient, duration, _) = self.get_params(time_step)?;
+        simulate_bm(start_position, diffusion_coefficient, time_step, duration)
     }
 }
 
@@ -119,7 +124,7 @@ impl Simulation for Bm {
 /// # Returns
 ///
 /// The result of the Brownian motion simulation.   
-/// 
+///
 /// # Example
 ///
 /// ```rust
@@ -130,25 +135,25 @@ impl Simulation for Bm {
 pub fn simulate_bm(
     start_position: impl Into<f64>,
     diffusion_coefficient: impl Into<f64>,
-    tau: impl Into<f64>,
+    time_step: impl Into<f64>,
     duration: impl Into<f64>,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     let start_position = start_position.into();
     let diffusion_coefficient = diffusion_coefficient.into();
-    let tau = tau.into();
+    let time_step = time_step.into();
     let duration = duration.into();
-    let num_steps = (duration / tau).ceil() as usize;
+    let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
-        .map(|i| tau * i as f64)
+        .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let noise = normal::rands(0.0, 2.0 * diffusion_coefficient * tau, num_steps)?;
+    let noise = normal::rands(0.0, 2.0 * diffusion_coefficient * time_step, num_steps)?;
     let x = cumsum(start_position, &noise);
     Ok((t, x))
 }
 
-impl MomentMC for Bm {
-    fn raw_moment(&self, params: Params, order: i32, particles: usize) -> XResult<f64> {
+impl Moment for Bm {
+    fn raw_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(
                 "particles must be positive".to_string(),
@@ -165,76 +170,66 @@ impl MomentMC for Bm {
             return Ok(0.0);
         }
 
-        let (start_position, diffusion_coefficient, tau, duration, num_steps) = self.get_params(&params)?;
-        let result = (0..particles).into_par_iter()
-        .map(|_| -> XResult<f64> {
-            let (_, x) = simulate_bm(start_position, diffusion_coefficient, tau, duration)?;
-            let end_position = x.get(num_steps);
-            match end_position {
-                Some(position) => Ok(position.powi(order)),
-                None => Err(SimulationError::Unknown.into()),
-            }
-        })
-        .try_fold(
-            || 0.0,
-            |acc, res| {
-                res.map(|v| acc + v)
-            }
-        )
-        .try_reduce(|| 0.0, |a, b| Ok(a + b))? / particles as f64;
+        let (start_position, diffusion_coefficient, duration, num_steps) =
+            self.get_params(time_step)?;
+        let result = (0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let (_, x) =
+                    simulate_bm(start_position, diffusion_coefficient, time_step, duration)?;
+                let end_position = x.get(num_steps);
+                match end_position {
+                    Some(position) => Ok(position.powi(order)),
+                    None => Err(SimulationError::Unknown.into()),
+                }
+            })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64;
         Ok(result)
     }
-    fn central_moment(&self, params: Params, order: i32, particles: usize) -> XResult<f64> {
-        let mean = self.raw_moment(params, 1, particles)?;
-        let (start_position, diffusion_coefficient, tau, duration, num_steps) = self.get_params(&params)?;
-        let result = (0..particles).into_par_iter()
-        .map(|_| -> XResult<f64> {
-            let (_, x) = simulate_bm(start_position, diffusion_coefficient, tau, duration)?;
-            let end_position = x.get(num_steps);
-            match end_position {
-                Some(position) => Ok((position-mean).powi(order)),
-                None => Err(SimulationError::Unknown.into()),
-            }
-        })
-        .try_fold(
-            || 0.0,
-            |acc, res| {
-                res.map(|v| acc + v)
-            }
-        )
-        .try_reduce(|| 0.0, |a, b| Ok(a + b))? / particles as f64;
+    fn central_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64> {
+        let mean = self.raw_moment(time_step, 1, particles)?;
+        let (start_position, diffusion_coefficient, duration, num_steps) =
+            self.get_params(time_step)?;
+        let result = (0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let (_, x) =
+                    simulate_bm(start_position, diffusion_coefficient, time_step, duration)?;
+                let end_position = x.get(num_steps);
+                match end_position {
+                    Some(position) => Ok((position - mean).powi(order)),
+                    None => Err(SimulationError::Unknown.into()),
+                }
+            })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64;
         Ok(result)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::simulation::{ParamsBuilder, MomentMC};
+    use crate::simulation::Moment;
 
     use super::*;
 
     #[test]
     fn test_simulate_bm() {
-        let bm = Bm::new(10.0, 1.0).unwrap();
-        let params = ParamsBuilder::default()
-            .time_step(0.1)
-            .duration(1)
-            .build()
-            .unwrap();
-        let (t, x) = bm.simulate(params).unwrap();
+        let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+        let time_step = 0.1;
+        let (t, x) = bm.simulate(time_step).unwrap();
         println!("t: {:?}", t);
         println!("x: {:?}", x);
     }
 
     #[test]
     fn test_raw_moment() {
-        let bm = Bm::new(10.0, 1.0).unwrap();
-        let params = ParamsBuilder::default()
-            .time_step(0.1)
-            .duration(10)
-            .build()
-            .unwrap();
-        let moment = bm.raw_moment(params, 1, 1000).unwrap();
+        let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+        let time_step = 0.1;
+        let moment = bm.raw_moment(time_step, 1, 1000).unwrap();
         println!("moment: {:?}", moment);
     }
 }
