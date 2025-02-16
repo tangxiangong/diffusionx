@@ -4,6 +4,9 @@ authors.workspace = true
 edition.workspace = true
 version.workspace = true
 
+[features]
+nightly = []
+
 [[bench]]
 name = "random_generation"
 harness = false
