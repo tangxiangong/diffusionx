@@ -5,10 +5,10 @@
 ## 使用示例
 |                                                      |                  Python                   |                               Rust                               |
 | :--------------------------------------------------: | :---------------------------------------: | :--------------------------------------------------------------: |
-|     长度为 `n` 的标准对称 `alpha` 稳定分布随机数     |    `stable_rand(alpha=alpha, size=n)`     |              `stable::sys_standard_rands(alpha, n)`              |
+|     长度为 `n` 的标准对称 `alpha` 稳定分布随机数     |    `stable_rand(alpha=alpha, size=n)`     |              `stable::sys_standard_rands(alpha, n)?`              |
 | 起始位置为0，扩散系数为1，持续时间为10的布朗运动模拟 |            `bm = Bm(0, 1, 10)`            |                  `bm = Bm::new(0.0, 1.0, 10)?`                   |
-|            粒子数为 `N` 的 M-C 一阶原点矩            |   `bm.raw_moment(order=1, particles=N)`   |  `bm.mean(time_step, N)?`  or  `bm.raw_moment(time_step, 1, N)`  |
-|            粒子数为 `N` 的 M-C 二阶中心矩            | `bm.central_moment(order=2, particles=N)` | `bm.msd(time_step, N)?`  or `bm.central_moment(time_step, 2, N)` |
+|            粒子数为 `N` 的 M-C 一阶原点矩            |   `bm.raw_moment(order=1, particles=N)`   |  `bm.mean(time_step, N)?`  or  `bm.raw_moment(time_step, 1, N)?`  |
+|            粒子数为 `N` 的 M-C 二阶中心矩            | `bm.central_moment(order=2, particles=N)` | `bm.msd(time_step, N)?`  or `bm.central_moment(time_step, 2, N)?` |
 
 ### Python
 
