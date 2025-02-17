@@ -80,9 +80,9 @@ def test_randexp_invalid_params() -> None:
 @pytest.mark.parametrize(
     "size,low,high",
     [
-        (1000, 0.0, 1.0),
-        (1000, -1.0, 1.0),
-        (1000, 10.0, 20.0),
+        (10000, 0.0, 1.0),
+        (10000, -1.0, 1.0),
+        (10000, 10.0, 20.0),
     ],
 )
 def test_uniform_range(size: int, low: float, high: float) -> None:
@@ -158,3 +158,30 @@ def test_skew_stable_rand_basic() -> None:
     result = skew_stable_rand(alpha=0.7, size=1000)
     assert isinstance(result, np.ndarray)
     assert result.shape == (1000,)
+
+
+@pytest.mark.parametrize(
+    "size,alpha,beta,sigma,mu",
+    [
+        (1000, 0.7, 0.3, 1.0, 0.0),
+        (1000, 1.7, 0.7, 1.0, 0.0),
+    ],
+)
+def test_characteristic_function(
+    size: int, alpha: float, beta: float, sigma: float, mu: float
+) -> None:
+    """
+    验证经验特征函数与理论特征函数是否匹配
+    """
+    samples = stable_rand(alpha=alpha, beta=beta, sigma=sigma, mu=mu, size=size)
+    t_values = np.linspace(-5, 5, 100)
+    empirical_cf = np.mean(np.exp(1j * t_values[:, None] * samples), axis=1)
+
+    # 理论特征函数公式
+    theoretical_cf = np.exp(
+        1j * mu * t_values
+        - (sigma * np.abs(t_values)) ** alpha
+        * (1 - 1j * beta * np.sign(t_values) * np.tan(np.pi * alpha / 2))
+    )
+    # 允许5%的误差
+    assert np.allclose(empirical_cf, theoretical_cf, atol=0.1), "特征函数不匹配"
