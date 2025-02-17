@@ -3,7 +3,7 @@
 [English](README.md) | 简体中文
 
 > [!NOTE]
-> 开发进行中。DiffusionX 是一个多线程高性能的 Rust 随机数/随机过程模拟库，并利用 [PyO3](https://github.com/PyO3/pyo3) 提供 Python 封装。
+> 开发进行中。DiffusionX 是一个多线程高性能的 Rust 随机数/随机过程模拟库，并利用 [PyO3](https://github.com/PyO3/pyo3) 提供 Python 封装。 Julia 版本正在同步开发中，可见 [DiffusionX.jl](https://github.com/tangxiangong/DiffusionX.jl)。
 
 [![文档](https://img.shields.io/badge/文档-最新-blue.svg)](https://tangxiangong.github.io/diffusionx/rust/diffusionx/index.html)
 
@@ -21,7 +21,7 @@ times, positions = bm.simulate(step_size=0.01)  # 模拟布朗运动轨迹，返
 raw_moment = bm.raw_moment(order=1, particles=1000)  # 一阶原点矩
 central_moment = bm.central_moment(order=2, particles=1000)  # 二阶中心矩
 
-# 布朗运动首次穿越时间
+# 布朗运动首次通过时间
 fpt = bm.fpt((-1, 1))
 ```
 
