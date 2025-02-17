@@ -5,6 +5,8 @@ English | [简体中文](README-zh.md)
 > [!NOTE]
 > Development is in progress. DiffusionX is a multi-threaded high-performance Rust library for random number/stochastic process simulation, with Python bindings provided via [PyO3](https://github.com/PyO3/pyo3).
 
+[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://tangxiangong.github.io/diffusionx/rust/diffusionx/index.html)
+
 ## Usage
 ### Python
 
