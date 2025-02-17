@@ -95,6 +95,7 @@ pub fn rands(mean: impl Into<f64>, std_dev: impl Into<f64>, n: usize) -> XResult
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::calculate_stats;
 
     #[test]
     fn test_standard_rand() {
@@ -120,5 +121,47 @@ mod tests {
         let randoms = rands(0.0, 1.0, 10).unwrap();
         assert_eq!(randoms.len(), 10);
         assert!(randoms.iter().all(|r| r.is_finite()));
+    }
+
+    #[test]
+    fn test_standard_normal_stats() {
+        let n = 1_000_000;
+        let samples = standard_rands(n);
+        let (mean, variance) = calculate_stats(&samples);
+        let std_dev = variance.sqrt();
+
+        assert!(
+            mean.abs() < 0.01,
+            "标准正态分布的均值应接近0，实际为{}",
+            mean
+        );
+        assert!(
+            (std_dev - 1.0).abs() < 0.01,
+            "标准正态分布的标准差应接近1，实际为{}",
+            std_dev
+        );
+    }
+
+    #[test]
+    fn test_normal_stats() {
+        let n = 1_000_000;
+        let mu = 2.0;
+        let sigma = 3.0;
+        let samples = rands(mu, sigma, n).unwrap();
+        let (mean, variance) = calculate_stats(&samples);
+        let std_dev = variance.sqrt();
+
+        assert!(
+            (mean - mu).abs() < 0.05,
+            "正态分布的均值应接近{}，实际为{}",
+            mu,
+            mean
+        );
+        assert!(
+            (std_dev - sigma).abs() < 0.05,
+            "正态分布的标准差应接近{}，实际为{}",
+            sigma,
+            std_dev
+        );
     }
 }

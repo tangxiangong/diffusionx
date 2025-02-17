@@ -216,6 +216,7 @@ pub fn bool_rands(p: f64, n: usize) -> XResult<Vec<bool>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::{calculate_bool_mean, calculate_stats};
 
     #[test]
     fn test_unit_random() {
@@ -257,5 +258,66 @@ mod tests {
         let randoms = inclusive_range_rands(0..=10, n).unwrap();
         assert_eq!(randoms.len(), n);
         assert!(randoms.iter().all(|x| (0..=10).contains(x)));
+    }
+
+    #[test]
+    fn test_standard_uniform_stats() {
+        let n = 1_000_000;
+        let samples = standard_rands(n);
+        let (mean, variance) = calculate_stats(&samples);
+
+        assert!(
+            (mean - 0.5).abs() < 0.01,
+            "标准均匀分布的均值应接近0.5，实际为{}",
+            mean
+        );
+
+        let expected_variance = 1.0 / 12.0;
+        assert!(
+            (variance - expected_variance).abs() < 0.01,
+            "标准均匀分布的方差应接近{}，实际为{}",
+            expected_variance,
+            variance
+        );
+    }
+
+    #[test]
+    fn test_range_uniform_stats() {
+        let n = 1_000_000;
+        let a = -2.0;
+        let b = 3.0;
+        let samples = range_rands(a..b, n).unwrap();
+        let (mean, variance) = calculate_stats(&samples);
+
+        let expected_mean = (a + b) / 2.0;
+        let expected_variance = (b - a).powi(2) / 12.0;
+
+        assert!(
+            (mean - expected_mean).abs() < 0.01,
+            "均匀分布的均值应接近{}，实际为{}",
+            expected_mean,
+            mean
+        );
+        assert!(
+            (variance - expected_variance).abs() < 0.01,
+            "均匀分布的方差应接近{}，实际为{}",
+            expected_variance,
+            variance
+        );
+    }
+
+    #[test]
+    fn test_bool_rand_stats() {
+        let n = 1_000_000;
+        let p = 0.7;
+        let samples = bool_rands(p, n).unwrap();
+        let mean = calculate_bool_mean(&samples);
+
+        assert!(
+            (mean - p).abs() < 0.01,
+            "布尔随机数中True的比例应接近{}，实际为{}",
+            p,
+            mean
+        );
     }
 }

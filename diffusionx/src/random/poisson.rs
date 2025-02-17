@@ -53,6 +53,7 @@ pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<u64>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::calculate_int_stats;
 
     #[test]
     fn test_rand() {
@@ -63,5 +64,68 @@ mod tests {
     fn test_rands() {
         let randoms = rands(1.0, 10).unwrap();
         assert_eq!(randoms.len(), 10);
+    }
+
+    #[test]
+    fn test_poisson_stats() {
+        let n = 1_000_000;
+        let lambda = 5.0;
+        let samples = rands(lambda, n).unwrap();
+        let (mean, variance) = calculate_int_stats(&samples);
+
+        assert!(
+            (mean - lambda).abs() < 0.05,
+            "泊松分布的均值应接近{}，实际为{}",
+            lambda,
+            mean
+        );
+        assert!(
+            (variance - lambda).abs() < 0.1,
+            "泊松分布的方差应接近{}，实际为{}",
+            lambda,
+            variance
+        );
+    }
+
+    #[test]
+    fn test_poisson_small_lambda_stats() {
+        let n = 1_000_000;
+        let lambda = 0.5;
+        let samples = rands(lambda, n).unwrap();
+        let (mean, variance) = calculate_int_stats(&samples);
+
+        assert!(
+            (mean - lambda).abs() < 0.02,
+            "小λ值泊松分布的均值应接近{}，实际为{}",
+            lambda,
+            mean
+        );
+        assert!(
+            (variance - lambda).abs() < 0.05,
+            "小λ值泊松分布的方差应接近{}，实际为{}",
+            lambda,
+            variance
+        );
+    }
+
+    #[test]
+    fn test_poisson_large_lambda_stats() {
+        let n = 1_000_000;
+        let lambda = 50.0;
+        let samples = rands(lambda, n).unwrap();
+        let (mean, variance) = calculate_int_stats(&samples);
+
+        assert!(
+            (mean - lambda).abs() / lambda < 0.02,
+            "大λ值泊松分布的均值应接近{}，实际为{}",
+            lambda,
+            mean
+        );
+        assert!(
+            (variance - lambda).abs() / lambda < 0.05,
+            "大λ值泊松分布的方差应接近{}，实际为{}",
+            lambda,
+            variance
+        );
     }
 }

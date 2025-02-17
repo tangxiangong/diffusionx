@@ -93,6 +93,7 @@ pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::calculate_stats;
 
     #[test]
     fn test_standard_rand() {
@@ -118,5 +119,47 @@ mod tests {
         let randoms = rands(1.0, 10).unwrap();
         assert_eq!(randoms.len(), 10);
         assert!(randoms.iter().all(|r| r.is_finite()));
+    }
+
+    #[test]
+    fn test_standard_exponential_stats() {
+        let n = 1_000_000;
+        let samples = standard_rands(n);
+        let (mean, variance) = calculate_stats(&samples);
+
+        assert!(
+            (mean - 1.0).abs() < 0.01,
+            "标准指数分布的均值应接近1，实际为{}",
+            mean
+        );
+        assert!(
+            (variance - 1.0).abs() < 0.05,
+            "标准指数分布的方差应接近1，实际为{}",
+            variance
+        );
+    }
+
+    #[test]
+    fn test_exponential_stats() {
+        let n = 1_000_000;
+        let lambda = 2.0;
+        let samples = rands(lambda, n).unwrap();
+        let (mean, variance) = calculate_stats(&samples);
+
+        let expected_mean = 1.0 / lambda;
+        let expected_variance = 1.0 / (lambda * lambda);
+
+        assert!(
+            (mean - expected_mean).abs() < 0.01,
+            "指数分布的均值应接近{}，实际为{}",
+            expected_mean,
+            mean
+        );
+        assert!(
+            (variance - expected_variance).abs() < 0.05,
+            "指数分布的方差应接近{}，实际为{}",
+            expected_variance,
+            variance
+        );
     }
 }

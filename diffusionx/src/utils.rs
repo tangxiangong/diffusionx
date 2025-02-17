@@ -308,6 +308,58 @@ pub fn minmax(arr: &[f64]) -> (f64, f64) {
         })
 }
 
+/// 计算数组的均值和方差
+///
+/// # Arguments
+///
+/// * `samples` - 需要计算统计量的数组
+///
+/// # Returns
+///
+/// 返回一个元组，包含均值和方差
+#[cfg(test)]
+pub fn calculate_stats(samples: &[f64]) -> (f64, f64) {
+    let n = samples.len() as f64;
+    let mean = samples.iter().sum::<f64>() / n;
+    let variance = samples.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / n;
+    (mean, variance)
+}
+
+/// 计算整数数组的均值和方差
+///
+/// # Arguments
+///
+/// * `samples` - 需要计算统计量的整数数组
+///
+/// # Returns
+///
+/// 返回一个元组，包含均值和方差
+#[cfg(test)]
+pub fn calculate_int_stats(samples: &[u64]) -> (f64, f64) {
+    let n = samples.len() as f64;
+    let mean = samples.iter().sum::<u64>() as f64 / n;
+    let variance = samples
+        .iter()
+        .map(|&x| (x as f64 - mean).powi(2))
+        .sum::<f64>()
+        / n;
+    (mean, variance)
+}
+
+/// 计算布尔数组的均值（即True的比例）
+///
+/// # Arguments
+///
+/// * `samples` - 需要计算统计量的布尔数组
+///
+/// # Returns
+///
+/// 返回True的比例
+#[cfg(test)]
+pub fn calculate_bool_mean(samples: &[bool]) -> f64 {
+    samples.iter().filter(|&&x| x).count() as f64 / samples.len() as f64
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
