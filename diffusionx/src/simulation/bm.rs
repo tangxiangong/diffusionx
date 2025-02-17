@@ -6,7 +6,7 @@
 use crate::{SimulationError, XResult, random::normal, simulation::Simulation, utils::cumsum};
 use rayon::prelude::*;
 
-use super::{CheckedParams, Moment, Pair};
+use super::{CheckedParams, Functional, Moment, Pair};
 
 /// Brownian motion simulation
 ///
@@ -124,12 +124,7 @@ impl Simulation for Bm {
     /// ```
     fn simulate_check(&self, time_step: f64) -> XResult<Pair> {
         self.check_params(time_step)?;
-        simulate_bm(
-            self.start_position,
-            self.diffusion_coefficient,
-            time_step,
-            self.duration,
-        )
+        self.simulate(time_step)
     }
 
     fn simulate(&self, time_step: f64) -> XResult<Pair> {
@@ -181,6 +176,10 @@ pub fn simulate_bm(
     let x = cumsum(start_position, &noise);
     Ok((t, x))
 }
+
+impl Moment for Bm {}
+
+impl Functional for Bm {}
 
 impl CheckedParams for Bm {
     fn check_params(&self, time_step: f64) -> XResult<()> {

@@ -26,15 +26,7 @@ pub trait CheckedParams: Simulation {
     fn check_params(&self, time_step: f64) -> XResult<()>;
 }
 
-pub trait Moment: Simulation {
-    fn raw_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64>;
-    fn central_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64>;
-}
-
-impl<XT> Moment for XT
-where
-    XT: Send + Sync + Simulation + CheckedParams,
-{
+pub trait Moment: Simulation + CheckedParams + Send + Sync {
     fn raw_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64> {
         self.check_params(time_step)?;
         if particles == 0 {
@@ -88,21 +80,6 @@ where
 }
 
 pub trait Functional: Simulation + CheckedParams {
-    fn fpt(
-        &self,
-        time_step: f64,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-    ) -> XResult<Option<f64>>;
-    fn fpt_check(
-        &self,
-        time_step: f64,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-    ) -> XResult<Option<f64>>;
-}
-
-impl<XT: Simulation + CheckedParams> Functional for XT {
     fn fpt_check(
         &self,
         time_step: f64,
