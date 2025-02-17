@@ -301,7 +301,11 @@ pub fn tanpi(_x: f64) -> f64 {
 
 /// find max value and min value in a &\[f64\]
 pub fn minmax(arr: &[f64]) -> (f64, f64) {
-    arr.iter().copied().fold((f64::MAX, f64::MIN),  | (min, max), value |(f64::min(min, value), f64::max(max, value)))
+    arr.iter()
+        .copied()
+        .fold((f64::MAX, f64::MIN), |(min, max), value| {
+            (f64::min(min, value), f64::max(max, value))
+        })
 }
 
 #[cfg(test)]

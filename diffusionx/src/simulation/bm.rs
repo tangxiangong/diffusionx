@@ -17,6 +17,7 @@ use super::{CheckedParams, Moment, Pair};
 /// * `start_position` - The starting position of the Brownian motion.
 /// * `diffusion_coefficient` - The diffusion coefficient of the Brownian motion.
 /// * `duration` - The duration of the Brownian motion.
+#[derive(Debug, Clone)]
 pub struct Bm {
     start_position: f64,
     diffusion_coefficient: f64,
@@ -67,6 +68,19 @@ impl Bm {
         })
     }
 
+    #[allow(dead_code)]
+    pub(crate) fn new_unchecked(
+        start_position: f64,
+        diffusion_coefficient: f64,
+        duration: f64,
+    ) -> Self {
+        Self {
+            start_position,
+            diffusion_coefficient,
+            duration,
+        }
+    }
+
     pub fn get_params(&self) -> (f64, f64, f64) {
         (
             self.start_position,
@@ -86,8 +100,13 @@ impl Bm {
 
 /// impl `Simulation` trait for Brownian motion
 impl Simulation for Bm {
-    type Time = f64;
-    type Params = f64;
+    fn get_duration(&self) -> f64 {
+        self.duration
+    }
+
+    fn mut_duration(&mut self, duration: f64) {
+        self.duration = duration;
+    }
     /// Simulate Brownian motion
     ///
     /// This method simulates Brownian motion.
@@ -103,7 +122,7 @@ impl Simulation for Bm {
     /// let params = 0.1;
     /// let (t, x) = bm.simulate(params).unwrap();
     /// ```
-    fn simulate(&self, time_step: Self::Params) -> XResult<Pair<Self::Time>> {
+    fn simulate_check(&self, time_step: f64) -> XResult<Pair> {
         self.check_params(time_step)?;
         simulate_bm(
             self.start_position,
@@ -113,7 +132,7 @@ impl Simulation for Bm {
         )
     }
 
-    fn simulate_unchecked(&self, time_step: f64) -> XResult<Pair<Self::Time>> {
+    fn simulate(&self, time_step: f64) -> XResult<Pair> {
         simulate_bm(
             self.start_position,
             self.diffusion_coefficient,
@@ -148,13 +167,11 @@ impl Simulation for Bm {
 pub fn simulate_bm(
     start_position: impl Into<f64>,
     diffusion_coefficient: impl Into<f64>,
-    time_step: impl Into<f64>,
-    duration: impl Into<f64>,
+    time_step: f64,
+    duration: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     let start_position = start_position.into();
     let diffusion_coefficient = diffusion_coefficient.into();
-    let time_step = time_step.into();
-    let duration = duration.into();
     let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
@@ -167,6 +184,18 @@ pub fn simulate_bm(
 
 impl CheckedParams for Bm {
     fn check_params(&self, time_step: f64) -> XResult<()> {
+        if self.diffusion_coefficient <= 0.0 {
+            return Err(SimulationError::InvalidParameters(
+                "diffusion_coefficient must be positive".to_string(),
+            )
+            .into());
+        }
+        if self.duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(
+                "duration must be positive".to_string(),
+            )
+            .into());
+        }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(
                 "time_step must be positive".to_string(),
@@ -179,7 +208,7 @@ impl CheckedParams for Bm {
 
 #[cfg(test)]
 mod tests {
-    use crate::simulation::Moment;
+    use crate::simulation::{Functional, Moment};
 
     use super::*;
 
@@ -198,6 +227,14 @@ mod tests {
         let time_step = 0.1;
         let moment = bm.raw_moment(time_step, 1, 1000).unwrap();
         println!("moment: {:?}", moment);
+    }
+
+    #[test]
+    fn test_fpt() {
+        let bm = Bm::new(0.0, 1.0, 1.0).unwrap();
+        let time_step = 0.1;
+        let fpt = bm.fpt(time_step, (-1.0, 1.0)).unwrap();
+        println!("fpt: {:?}", fpt);
     }
 
     #[test]
