@@ -3,28 +3,21 @@
 > Development is in progress. DiffusionX 是一个多线程高性能的 Rust 随机数/随机过程模拟库，并利用 [PyO3](https://github.com/PyO3/pyo3) 提供 Python 封装。
 
 ## 使用示例
-|                                                      |                  Python                   |                               Rust                               |
-| :--------------------------------------------------: | :---------------------------------------: | :--------------------------------------------------------------: |
-|     长度为 `n` 的标准对称 `alpha` 稳定分布随机数     |    `stable_rand(alpha=alpha, size=n)`     |              `stable::sys_standard_rands(alpha, n)?`              |
-| 起始位置为0，扩散系数为1，持续时间为10的布朗运动模拟 |            `bm = Bm(0, 1, 10)`            |                  `bm = Bm::new(0.0, 1.0, 10)?`                   |
-|            粒子数为 `N` 的 M-C 一阶原点矩            |   `bm.raw_moment(order=1, particles=N)`   |  `bm.mean(time_step, N)?`  or  `bm.raw_moment(time_step, 1, N)?`  |
-|            粒子数为 `N` 的 M-C 二阶中心矩            | `bm.central_moment(order=2, particles=N)` | `bm.msd(time_step, N)?`  or `bm.central_moment(time_step, 2, N)?` |
-
 ### Python
 
 ```python
-from diffusionx.random import stable_rand
 from diffusionx.simulation import Bm
 
-values = stable_rand(1000, alpha=1.5)  # 生成1000个稳定分布随机数
-
 # 布朗运动模拟
-bm = Bm(10)  # 创建布朗运动对象
+bm = Bm(10) 
 times, positions = bm.simulate(step_size=0.01)  # 模拟布朗运动轨迹，返回 ndarray 数组
 
 # 蒙特卡罗模拟布朗运动的统计量
 raw_moment = bm.raw_moment(order=1, particles=1000)  # 一阶原点矩
 central_moment = bm.central_moment(order=2, particles=1000)  # 二阶中心矩
+
+# 布朗运动首次穿越时间
+fpt = bm.fpt((0.0, 1.0))  # 布朗运动首次穿越时间
 ```
 
 ### Rust
@@ -44,6 +37,9 @@ let (times, positions) = bm.simulate(time_step)?;  // 模拟布朗运动轨迹
 // 计算布朗运动的统计量
 let mean = bm.mean(time_step, 1000)?;  // 计算均值
 let msd = bm.msd(time_step, 1000)?;  // 计算均方位移
+
+// 布朗运动首次穿越时间
+let fpt = bm.fpt(time_step, (0.0, 1.0))?;  // 布朗运动首次穿越时间
 ```
 
 ## 进展
