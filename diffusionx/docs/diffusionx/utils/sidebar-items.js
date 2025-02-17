@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["approx_eq","cospi","cumsum","eval_poly","float_eq","gamma","gammaf","minmax","sincospi","sinpi","tanpi","tgamma","tgammaf"]};
