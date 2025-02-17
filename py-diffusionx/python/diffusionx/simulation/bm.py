@@ -68,6 +68,28 @@ class Bm(object):
             step_size,
         )
 
+    def fpt(self, domain: tuple[real, real], step_size: real = 0.01):
+        """
+        Calculate the first passage time of the Brownian motion.
+
+        Args:
+            domain (tuple[real, real]): The domain of the Brownian motion.
+            step_size (real, optional): Step size of the Brownian motion. Defaults to 0.01.
+
+        Returns:
+            real: The first passage time of the Brownian motion.
+        """
+        step_size = _check_transform(step_size)
+        a = _check_transform(domain[0])
+        b = _check_transform(domain[1])
+        return _core.bm_fpt(
+            self.start_position,
+            self.diffusion_coefficient,
+            self.duration,
+            step_size,
+            (a, b),
+        )
+
     def raw_moment(self, order: int, particles: int, step_size: float = 0.01):
         """
         Calculate the raw moment of the Brownian motion.

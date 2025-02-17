@@ -46,3 +46,10 @@ def bm_central_moment(
     order: int,
     particles: int,
 ) -> float: ...
+def bm_fpt(
+    start_position: float,
+    diffusion_coefficient: float,
+    duration: float,
+    step_size: float,
+    domain: tuple[float, float],
+) -> float: ...

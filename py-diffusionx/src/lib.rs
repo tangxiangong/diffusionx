@@ -58,6 +58,7 @@ fn _core(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
         simulation::bm_simulate,
         simulation::bm_raw_moment,
         simulation::bm_central_moment,
+        simulation::bm_fpt,
     );
 
     Ok(())

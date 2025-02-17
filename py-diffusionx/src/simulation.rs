@@ -47,3 +47,16 @@ pub fn bm_central_moment(
     let result = bm.central_moment(step_size, order, particles)?;
     Ok(result)
 }
+
+#[pyfunction]
+pub fn bm_fpt(
+    start_position: f64,
+    diffusion_coefficient: f64,
+    duration: f64,
+    step_size: f64,
+    domain: (f64, f64),
+) -> XPyResult<f64> {
+    let bm = Bm::new(start_position, diffusion_coefficient, duration)?;
+    let result = bm.fpt(step_size, domain)?;
+    Ok(result)
+}
