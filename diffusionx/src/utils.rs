@@ -299,6 +299,11 @@ pub fn tanpi(_x: f64) -> f64 {
     si / co
 }
 
+/// find max value and min value in a &\[f64\]
+pub fn minmax(arr: &[f64]) -> (f64, f64) {
+    arr.iter().copied().fold((f64::MAX, f64::MIN),  | (min, max), value |(f64::min(min, value), f64::max(max, value)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,5 +400,26 @@ mod tests {
             127.47717934998103,
             1.0e-5,
         ));
+    }
+
+    #[test]
+    fn test_minmax() {
+        let arr = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        let result = minmax(&arr);
+        assert_eq!(result, (1.0, 5.0));
+    }
+
+    #[test]
+    fn test_minmax_negative() {
+        let arr = vec![1.0, -2.0, 3.0, -4.0, 5.0];
+        let result = minmax(&arr);
+        assert_eq!(result, (-4.0, 5.0));
+    }
+
+    #[test]
+    fn test_minmax_empty() {
+        let arr = vec![];
+        let result = minmax(&arr);
+        assert_eq!(result, (f64::MAX, f64::MIN));
     }
 }
