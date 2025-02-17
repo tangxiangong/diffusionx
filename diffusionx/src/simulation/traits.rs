@@ -6,27 +6,49 @@ pub type Pair = (Vec<f64>, Vec<f64>);
 /// Simulation trait
 ///
 /// This trait represents a simulation.
-///
-/// # Arguments
-///
-/// * `Parameters` - The parameters of the simulation.
-/// * `Results` - The results of the simulation.
-///
-/// # Returns
-///
-/// The results of the simulation.
 pub trait Simulation: Clone {
+    /// Get the duration of the simulation
     fn get_duration(&self) -> f64;
+    /// Set the duration of the simulation
     fn mut_duration(&mut self, duration: f64);
+    /// Simulate the simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the simulation.
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing the time and the position of the simulation.
     fn simulate(&self, time_step: f64) -> XResult<Pair>;
+
+    /// Simulate the simulation with check
     fn simulate_check(&self, time_step: f64) -> XResult<Pair>;
 }
 
+/// CheckedParams trait
+///
+/// This trait represents a simulation that has checked parameters.
 pub trait CheckedParams: Simulation {
+    /// Check the parameters of the simulation
     fn check_params(&self, time_step: f64) -> XResult<()>;
 }
 
+/// Moment trait
+///
+/// This trait represents a simulation that has moments.
 pub trait Moment: Simulation + CheckedParams + Send + Sync {
+    /// Get the raw moment of the simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the simulation.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the raw moment of the simulation.
     fn raw_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64> {
         self.check_params(time_step)?;
         if particles == 0 {
@@ -60,6 +82,18 @@ pub trait Moment: Simulation + CheckedParams + Send + Sync {
             / particles as f64;
         Ok(result)
     }
+
+    /// Get the central moment of the simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the simulation.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the central moment of the simulation.
     fn central_moment(&self, time_step: f64, order: i32, particles: usize) -> XResult<f64> {
         let mean = self.raw_moment(time_step, 1, particles)?;
         let result = (0..particles)
@@ -79,7 +113,21 @@ pub trait Moment: Simulation + CheckedParams + Send + Sync {
     }
 }
 
+/// Functional trait
+///
+/// This trait represents a simulation that has functional properties.
 pub trait Functional: Simulation + CheckedParams {
+    /// Get the first passage time of the simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the simulation.
+    /// * `domain` - The domain of the simulation.
+    /// * `max_duration` - The maximum duration of the simulation.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the first passage time of the simulation.
     fn fpt_check(
         &self,
         time_step: f64,
@@ -106,6 +154,17 @@ pub trait Functional: Simulation + CheckedParams {
         self.fpt(time_step, (a, b), max_duration)
     }
 
+    /// Get the first passage time of the simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the simulation.
+    /// * `domain` - The domain of the simulation.
+    /// * `max_duration` - The maximum duration of the simulation.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the first passage time of the simulation.
     fn fpt(
         &self,
         time_step: f64,

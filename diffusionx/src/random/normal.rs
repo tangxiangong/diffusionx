@@ -1,6 +1,5 @@
 //! Normal random number generation
-//!
-//! This module provides functions for generating normal random numbers.
+//! For other stable distributions, see [crate::random::stable].
 
 use crate::XResult;
 use rand::{prelude::*, rng};

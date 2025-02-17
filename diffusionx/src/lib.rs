@@ -12,7 +12,7 @@
 //! let msd = bm.msd(time_step, 1000)?;  // Mean square displacement  bm.central_moment(time_step, 2, 1000)?;
 //! // First passage time of Brownian motion
 //! let max_duration = 1000; // if over this duration, the simulation will be terminated and return None
-//! let fpt = bm.fpt(time_step, (-1.0, 1.0), max_duration)?; 
+//! let fpt = bm.fpt(time_step, (-1.0, 1.0), max_duration)?;
 //! ```
 //! ## Progress
 //! ### Random Number Generation
@@ -32,8 +32,8 @@
 //! This project is dual-licensed under:
 //! * [MIT License](https://opensource.org/licenses/MIT)
 //! * [Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
-//! 
-//! You can choose to use either license. 
+//!
+//! You can choose to use either license.
 
 mod error;
 pub use error::*;

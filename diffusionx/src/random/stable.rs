@@ -1,30 +1,27 @@
-//! Lévy Stable Distribution
+//! Generate Lévy stable distribution random numbers.
 //!
-//! Stable laws – also called $\alpha$-stable, stable Paretian or Lévy stable – were in-
-//! troduced by Levy (1925) during his investigations of the behavior of sums of
-//! independent random variables. A sum of two independent random variables
-//! having an $\alpha$-stable distribution with index $\alpha$ is again $\alpha$-stable with the same
-//! index $\alpha$. This invariance property, however, does not hold for different $\alpha$'s.
+//! For the Gaussian distribution, see [crate::random::normal].
 //!
-//! The $\alpha$-stable distribution requires four parameters for complete description:
-//! - an index of stability $\alpha \in (0, 2]$,
-//! - a skewness parameter $\beta \in [-1, 1]$,
-//! - a scale parameter $\sigma > 0$ and
-//! - a location parameter $\mu \in \mathbb{R}$.
+//! Stable laws – also called alpha-stable, stable Paretian or Lévy stable – were introduced by Levy (1925) during his investigations of the behavior of sums of independent random variables. A sum of two independent random variables having an alpha-stable distribution with index alpha is again alpha-stable with the same index alpha. This invariance property, however, does not hold for different alpha's.
+//! The alpha-stable distribution requires four parameters for complete description:
+//! - an index of stability alpha in (0, 2],
+//! - a skewness parameter beta in [-1, 1],
+//! - a scale parameter sigma > 0 and
+//! - a location parameter mu in R.
 //!
-//! The tail exponent $\alpha$ determines the rate at which the tails of the distribution taper off.
-//! When $\alpha = 2$, the Gaussian distribution results. When $\alpha < 2$, the variance
+//! The tail exponent alpha determines the rate at which the tails of the distribution taper off.
+//! When alpha = 2, the Gaussian distribution results. When alpha < 2, the variance
 //! is infinite and the tails are asymptotically equivalent to a Pareto law, i.e. they
 //! decay as a power law.
 //!
-//! When the skewness parameter $\beta$ is positive, the distribution is skewed to the right,
+//! When the skewness parameter beta is positive, the distribution is skewed to the right,
 //! i.e. the right tail is thicker. When it is negative, it is skewed to the left.
-//! When $\beta = 0$, the distribution is symmetric about $\mu$. As $\alpha$ approaches 2,
-//! $\beta$ loses its effect and the distribution approaches the Gaussian
-//! distribution regardless of $\beta$. The last two parameters, $\sigma$ and $\mu$, are the usual
-//! scale and location parameters, i.e. $\sigma$ determines the width and $\mu$ the shift of
-//! the mode (the peak) of the density. For $\sigma = 1$ and $\mu = 0$ the distribution is called
-//! the standard $\alpha$-stable distribution.
+//! When beta = 0, the distribution is symmetric about mu. As alpha approaches 2,
+//! beta loses its effect and the distribution approaches the Gaussian
+//! distribution regardless of beta. The last two parameters, sigma and mu, are the usual
+//! scale and location parameters, i.e. sigma determines the width and mu the shift of
+//! the mode (the peak) of the density. For sigma = 1 and mu = 0 the distribution is called
+//! the standard alpha-stable distribution.
 //!
 //! # References
 //!
@@ -99,6 +96,7 @@ impl StandardStable {
     }
 }
 
+/// Sample standard stable random number when alpha is not 1
 fn sample_standard_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, rng: &mut R) -> f64 {
     let half_pi = PI / 2.0;
     let tmp = beta * (alpha * half_pi).tan();
@@ -111,11 +109,13 @@ fn sample_standard_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, rng: &mut R) ->
     s * c1 * c2
 }
 
+/// Sample stable random number from the standard version
 fn sample_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, sigma: f64, mu: f64, rng: &mut R) -> f64 {
     let r = sample_standard_alpha(alpha, beta, rng);
     sigma * r + mu
 }
 
+/// Sample stable random number from the standard version when alpha is 1
 fn sample_alpha_one<R: Rng + ?Sized>(
     alpha: f64,
     beta: f64,
@@ -127,6 +127,7 @@ fn sample_alpha_one<R: Rng + ?Sized>(
     sigma * r + mu + 2.0 * beta * sigma * sigma * sigma.ln() / PI
 }
 
+/// Sample standard stable random number when alpha is 1
 fn sample_standard_alpha_one<R: Rng + ?Sized>(_alpha: f64, beta: f64, rng: &mut R) -> f64 {
     let half_pi = PI / 2.0;
     let v = rng.random_range(-half_pi..half_pi);
@@ -180,6 +181,7 @@ pub struct Stable {
     mu: f64,
 }
 
+/// Convert a Levy stable distribution to a standard Levy stable distribution
 impl From<&Stable> for StandardStable {
     fn from(stable: &Stable) -> Self {
         StandardStable::new(stable.alpha, stable.beta).unwrap()
@@ -281,6 +283,7 @@ impl Distribution<f64> for Stable {
 pub struct StandardSkewStable(pub f64);
 
 impl StandardSkewStable {
+    /// Create a new standard skew Levy stable distribution
     pub fn new(alpha: impl Into<f64>) -> XResult<Self> {
         let alpha: f64 = alpha.into();
         if alpha <= 0.0 || alpha >= 1.0 || alpha.is_nan() {
@@ -289,6 +292,7 @@ impl StandardSkewStable {
         Ok(Self(alpha))
     }
 
+    /// Get the index of stability
     pub fn index(&self) -> f64 {
         self.0
     }
@@ -318,6 +322,8 @@ impl StandardSkewStable {
     }
 }
 
+/// Sample standard skew stable random number
+///
 /// # Panic
 ///
 /// if the skew index is invalid
@@ -373,6 +379,8 @@ impl SymmetricStandardStable {
     }
 }
 
+/// Sample symmetric standard stable random number
+///
 /// # Panic
 ///
 /// if the stability index is invalid
@@ -668,6 +676,26 @@ pub fn sym_standard_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> 
         .collect())
 }
 
+/// Add two independent Levy stable distributions
+///
+/// # Arguments
+///
+/// * `self` - The first Levy stable distribution
+/// * `other` - The second Levy stable distribution
+///
+/// # Returns
+///
+/// A new Levy stable distribution. The location parameter is the sum of the location parameter of the Levy stable distribution and the f64.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::random::stable::Stable;
+///
+/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
+/// let b = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
+/// let c = a + b;
+/// ```
 impl<T> Add<T> for Stable
 where
     T: Into<f64>,
@@ -679,6 +707,26 @@ where
     }
 }
 
+/// Add a Levy stable distribution and a f64
+///
+/// # Arguments
+///
+/// * `self` - The Levy stable distribution
+/// * `other` - The f64
+///
+/// # Returns
+///
+/// A new Levy stable distribution. The scale parameter is the product of the scale parameter of the Levy stable distribution and the absolute value of the f64.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::random::stable::Stable;
+///
+/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
+/// let b = 1.0;
+/// let c = a + b;
+/// ```
 impl Add<Stable> for f64 {
     type Output = Stable;
 
@@ -687,6 +735,26 @@ impl Add<Stable> for f64 {
     }
 }
 
+/// Add a i32 and a Levy stable distribution
+///
+/// # Arguments
+///
+/// * `self` - The i32
+/// * `other` - The Levy stable distribution
+///
+/// # Returns
+///
+/// A new Levy stable distribution. The location parameter is the sum of the location parameter of the Levy stable distribution and the i32.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::random::stable::Stable;
+///
+/// let a = 1.0;
+/// let b = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
+/// let c = a + b;
+/// ```
 impl Add<Stable> for i32 {
     type Output = Stable;
 
@@ -696,6 +764,26 @@ impl Add<Stable> for i32 {
     }
 }
 
+/// Add a standard Levy stable distribution and a number that can be converted to f64
+///
+/// # Arguments
+///
+/// * `self` - The standard Levy stable distribution
+/// * `other` - The number
+///
+/// # Returns
+///
+/// A new Levy stable distribution. The location parameter is the sum of the location parameter of the Levy stable distribution and the number.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::random::stable::Stable;
+///
+/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
+/// let b = 1.0;
+/// let c = a + b;
+/// ```
 impl<T> Add<T> for StandardStable
 where
     T: Into<f64>,

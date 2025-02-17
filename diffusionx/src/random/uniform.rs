@@ -1,7 +1,4 @@
 //! Uniform random number generation
-//!
-//! This module provides functions for generating uniform random numbers.
-//!
 
 use crate::{XError, XResult};
 use rand::{

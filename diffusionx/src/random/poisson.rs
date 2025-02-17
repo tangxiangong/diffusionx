@@ -1,6 +1,4 @@
 //! Poisson distribution random number generation
-//!
-//! This module provides functions for generating random numbers from the Poisson distribution.
 
 use crate::XResult;
 use rand::{prelude::*, rng};

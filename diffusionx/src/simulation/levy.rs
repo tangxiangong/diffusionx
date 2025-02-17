@@ -1,7 +1,5 @@
 //! Levy process simulation
-//!
-//! This module provides functions for simulating Levy process.
-//!
+//! For Brownian motion, see [`crate::simulation::bm`].
 
 use crate::{SimulationError, XResult, random::stable, simulation::Simulation, utils::cumsum};
 use rayon::prelude::*;
@@ -59,11 +57,18 @@ impl Levy {
         })
     }
 
-    pub fn build(&self) -> XResult<Self> {
-        self.check_params(0.01)?;
-        Ok(self.clone())
-    }
-
+    /// Get the parameters of the Levy process simulation
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing the starting position, alpha, and duration of the Levy process simulation.   
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let levy = Levy::new(0.0, 1.5, 1.0).unwrap();
+    /// let params = levy.get_params();
+    /// ```
     pub fn get_params(&self) -> (f64, f64, f64) {
         (self.start_position, self.alpha, self.duration)
     }
@@ -78,9 +83,12 @@ impl Simulation for Levy {
     fn mut_duration(&mut self, duration: f64) {
         self.duration = duration;
     }
-    /// Simulate Levy process
+
+    /// Simulate Levy process with check
     ///
-    /// This method simulates Levy process.
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the Levy process simulation.
     ///
     /// # Returns
     ///
@@ -98,6 +106,23 @@ impl Simulation for Levy {
         self.simulate(time_step)
     }
 
+    /// Simulate Levy process
+    ///
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the Levy process simulation.
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing the time and the position of the Levy process simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let levy = Levy::new(0.0, 1.5, 1.0).unwrap();
+    /// let params = 0.1;
+    /// let (t, x) = levy.simulate(params).unwrap();
+    /// ```
     fn simulate(&self, time_step: f64) -> XResult<Pair> {
         simulate_levy(self.start_position, self.alpha, time_step, self.duration)
     }
@@ -146,10 +171,10 @@ pub fn simulate_levy(
     Ok((t, x))
 }
 
-// impl Moment for Bm {}
-
+/// impl `Functional` trait for Levy process
 impl Functional for Levy {}
 
+/// impl `CheckedParams` trait for Levy process
 impl CheckedParams for Levy {
     fn check_params(&self, time_step: f64) -> XResult<()> {
         if self.alpha <= 0.0 || self.alpha > 2.0 {

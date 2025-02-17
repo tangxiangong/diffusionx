@@ -1,5 +1,7 @@
 //! Simulation module
-//!
+//! Support:
+//! - Brownian motion
+//! - Levy process
 
 mod traits;
 pub use traits::*;

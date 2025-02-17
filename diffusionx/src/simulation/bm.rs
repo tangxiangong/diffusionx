@@ -1,7 +1,5 @@
 //! Brownian motion simulation
-//!
-//! This module provides functions for simulating Brownian motion.
-//!
+//! For Levy process, see [`crate::simulation::levy`].
 
 use crate::{SimulationError, XResult, random::normal, simulation::Simulation, utils::cumsum};
 use rayon::prelude::*;
@@ -68,6 +66,11 @@ impl Bm {
         })
     }
 
+    /// Get the parameters of the Brownian motion simulation
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing the starting position, diffusion coefficient, and duration of the Brownian motion simulation.
     pub fn get_params(&self) -> (f64, f64, f64) {
         (
             self.start_position,
@@ -76,10 +79,34 @@ impl Bm {
         )
     }
 
+    /// Get the mean of the Brownian motion simulation
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the mean of the Brownian motion simulation.  
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+    /// let mean = bm.mean(0.1, 1000).unwrap();
+    /// ```
     pub fn mean(&self, time_step: f64, particles: usize) -> XResult<f64> {
         self.raw_moment(time_step, 1, particles)
     }
 
+    /// Get the mean square displacement of the Brownian motion simulation
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the mean square displacement of the Brownian motion simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+    /// let msd = bm.msd(0.1, 1000).unwrap();
+    /// ```
     pub fn msd(&self, time_step: f64, particles: usize) -> XResult<f64> {
         self.central_moment(time_step, 2, particles)
     }
@@ -87,16 +114,43 @@ impl Bm {
 
 /// impl `Simulation` trait for Brownian motion
 impl Simulation for Bm {
+    /// Get the duration of the Brownian motion simulation
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the duration of the Brownian motion simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+    /// let duration = bm.get_duration();
+    /// ```
     fn get_duration(&self) -> f64 {
         self.duration
     }
 
+    /// Set the duration of the Brownian motion simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the Brownian motion simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+    /// bm.mut_duration(2.0);
+    /// ```
     fn mut_duration(&mut self, duration: f64) {
         self.duration = duration;
     }
-    /// Simulate Brownian motion
+
+    /// Simulate Brownian motion with check
     ///
-    /// This method simulates Brownian motion.
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the Brownian motion simulation.
     ///
     /// # Returns
     ///
@@ -114,6 +168,22 @@ impl Simulation for Bm {
         self.simulate(time_step)
     }
 
+    /// Simulate Brownian motion
+    ///
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the Brownian motion simulation.
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing the time and the position of the Brownian motion simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+    /// let (t, x) = bm.simulate(0.1).unwrap();
+    /// ```
     fn simulate(&self, time_step: f64) -> XResult<Pair> {
         simulate_bm(
             self.start_position,
@@ -164,10 +234,13 @@ pub fn simulate_bm(
     Ok((t, x))
 }
 
+/// impl `Moment` trait for Brownian motion
 impl Moment for Bm {}
 
+/// impl `Functional` trait for Brownian motion
 impl Functional for Bm {}
 
+/// impl `CheckedParams` trait for Brownian motion
 impl CheckedParams for Bm {
     fn check_params(&self, time_step: f64) -> XResult<()> {
         if self.diffusion_coefficient <= 0.0 {

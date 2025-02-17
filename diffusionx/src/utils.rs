@@ -1,18 +1,39 @@
+//! # Utils
+//!
+//! This module provides utility functions.
+//!
+//! ## Functions
+//!
+//! - `cumsum`: Calculate the cumulative sum of a vector.
+//! - `gamma`: Calculate the gamma function of a number.
+//! - `gammaf`: Calculate the gamma function of a number (f32 version).
+//! - `approx_eq`: Check if two numbers are approximately equal.
+//! - `float_eq`: Check if two numbers are equal.
+//! - `eval_poly`: Evaluate a polynomial.
+//! - `sinpi`: Calculate the sine of pi times a number.
+//! - `cospi`: Calculate the cosine of pi times a number.
+//! - `sincospi`: Calculate the sine and cosine of pi times a number.
+//! - `tanpi`: Calculate the tangent of pi times a number.
+//! - `minmax`: Find the minimum and maximum values in a vector.
+//! - `calculate_stats`: Calculate the mean and variance of a vector, using in test.
+//! - `calculate_int_stats`: Calculate the mean and variance of an integer vector, using in test.
+//! - `calculate_bool_mean`: Calculate the mean of a boolean vector, using in test.
+
 use num_traits::Num;
 use std::f64::consts::PI;
 
-/// 计算向量元素的累积和
+/// Calculate the cumulative sum of a vector
 ///
-/// 返回一个包含累积和的向量
+/// Returns a vector of cumulative sums
 ///
 /// # Arguments
 ///
-/// * `start`: 累积和的初始值
-/// * `v`: 需要计算累积和的向量
+/// * `start`: The initial value of the cumulative sum
+/// * `v`: The vector to calculate the cumulative sum of
 ///
 /// # Returns
 ///
-/// 返回一个包含累积和的向量
+/// Returns a vector of cumulative sums
 ///
 /// # Example
 ///
@@ -58,7 +79,7 @@ unsafe extern "C" {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::cfunction::gamma;
+/// use diffusionx::utils::gamma;
 /// let x = 1.0;
 /// let result = gamma(x);
 /// assert_eq!(result, 1.0);
@@ -85,7 +106,7 @@ pub fn gamma(x: f64) -> f64 {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::cfunction::gammaf;
+/// use diffusionx::utils::gammaf;
 /// let x = 1.0;
 /// let result = gammaf(x);
 /// assert_eq!(result, 1.0);
@@ -97,7 +118,27 @@ pub fn gammaf(x: f32) -> f32 {
     unsafe { tgammaf(x) }
 }
 
-/// 判断两个浮点数在容许误差 `tol` 内是否相等
+/// Check if two floating numbers are approximately equal within a tolerance
+///
+/// # Arguments
+///
+/// * `a` - The first number
+/// * `b` - The second number
+/// * `tol` - The tolerance
+///
+/// # Returns
+///
+/// Returns true if the two numbers are approximately equal within the tolerance, otherwise returns false.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::utils::approx_eq;
+/// let a = 1.0;
+/// let b = 1.0;
+/// let result = approx_eq(a, b, 1.0e-6);
+/// assert!(result);
+/// ```
 #[inline]
 pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
     let result = if a.is_infinite() || b.is_infinite() {
@@ -116,30 +157,53 @@ pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
     result
 }
 
-/// 判断两个浮点数在表示精度下是否相等
+/// Check if two floating numbers are equal within the f64 precision
+///
+/// # Arguments
+///
+/// * `a` - The first number
+/// * `b` - The second number
+///
+/// # Returns
+///
+/// Returns true if the two numbers are equal within the f64 precision, otherwise returns false.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::utils::float_eq;
+/// let a = 1.0;
+/// let b = 1.0;
+/// let result = float_eq(a, b);
+/// assert!(result);
+/// ```
 #[inline]
 pub fn float_eq(a: f64, b: f64) -> bool {
     approx_eq(a, b, f64::EPSILON)
 }
 
-/// 秦九韶算法求多项式的值
+/// Evaluate a polynomial using the Horner method
 ///
 /// # Arguments
 ///
-/// - `x`:  自变量的值
-/// - `arr`:  多项式的系数数组, 按次数降序
+/// * `x` - The value of the independent variable
+/// * `arr` - The coefficients of the polynomial
+///
+/// # Returns
+///
+/// The value of the polynomial at `x`.
 ///
 /// # Example
 ///
 /// ```
-/// use diffusionx::special_function::eval_poly;
+/// use diffusionx::utils::eval_poly;
 /// let y = eval_poly(0.5, &[16., 0., 20., 0., 5., 0.]); // 6th first-kind Chebyshev polynomial
 /// ```
 pub fn eval_poly(x: f64, arr: &[f64]) -> f64 {
     arr.iter().fold(0.0, |acc, &a| acc * x + a)
 }
 
-/// 使用最佳一致逼近多项式计算 sin(pi * x), pi * x in [0, 1/4]
+/// Calculate sin(pi * x) using the best uniform approximation polynomial, pi * x in [0, 1/4]
 pub(crate) fn sinpi_kernel(x: f64) -> f64 {
     let x_square = x * x;
     let x_forth = x_square * x_square;
@@ -158,7 +222,7 @@ pub(crate) fn sinpi_kernel(x: f64) -> f64 {
     PI.mul_add(x, x * tmp)
 }
 
-/// 使用最佳一致逼近多项式计算 cos(pi * x), pi * x in [0, 1/4]
+/// Calculate cos(pi * x) using the best uniform approximation polynomial, pi * x in [0, 1/4]
 pub(crate) fn cospi_kernel(x: f64) -> f64 {
     let x_square = x * x;
     let r = x_square
@@ -182,21 +246,25 @@ pub(crate) fn cospi_kernel(x: f64) -> f64 {
     w + x_square.mul_add(r, ((1.0 - w) - a_x_square) - a_x_square_lo)
 }
 
-/// 计算 `sin(pi x)`
+/// Calculate sin(pi * x)
 ///
-/// 比计算 `sin(pi * x)` 更加精确, 特别是当 `x` 比较大时
+/// More accurate than calculating sin(pi * x), especially when x is large
 ///
-/// /// 若同时需要正弦值和余弦值, 请见 [sincospi]
+/// If both sine and cosine values are needed, see [sincospi]
 ///
 /// # Panic
 ///
-/// 当 `x` 为 `f64::INFINITY` 或者 `f64::NEG_INFINITY` 时 panic
+/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
+///
+/// # Panic
+///
+/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
 pub fn sinpi(_x: f64) -> f64 {
     if _x.is_nan() {
         return f64::NAN;
     }
     if _x.is_infinite() {
-        panic!("函数 `sinpi` 只接受有限值的参数");
+        panic!("function `sinpi` only accepts finite values");
     }
     let x = _x.abs();
     // 对于特别大的 x, 返回 0
@@ -217,21 +285,25 @@ pub fn sinpi(_x: f64) -> f64 {
     res.copysign(_x)
 }
 
-/// 计算 `cos(pi x)`
+/// Calculate cos(pi * x)
 ///
-/// 比计算 `cos(pi * x)` 更加精确, 特别是当 `x` 比较大时
+/// More accurate than calculating cos(pi * x), especially when x is large
 ///
-/// 若同时需要正弦值和余弦值, 请见 [sincospi]
+/// If both sine and cosine values are needed, see [sincospi]
 ///
 /// # Panic
 ///
-/// 当 `x` 为 `f64::INFINITY` 或者 `f64::NEG_INFINITY` 时 panic
+/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
+///
+/// # Panic
+///
+/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
 pub fn cospi(_x: f64) -> f64 {
     if _x.is_nan() {
         return f64::NAN;
     }
     if _x.is_infinite() {
-        panic!("函数 `cospi` 只接受有限值的参数");
+        panic!("function `cospi` only accepts finite values");
     }
     let x = _x.abs();
     // 对于特别大的 x, 返回 1
@@ -250,21 +322,21 @@ pub fn cospi(_x: f64) -> f64 {
     }
 }
 
-/// 计算 `sin(pi x)` 和 `cos(pi x)`
+/// Calculate sin(pi * x) and cos(pi * x)
 ///
-/// 返回一个元组
+/// Return a tuple
 ///
-/// 若只需要正弦值或者余弦值, 请见 [sinpi] 和 [cospi]
+/// If only sine or cosine value is needed, see [sinpi] and [cospi]
 ///
 /// # Panic
 ///
-/// 当 `x` 为 `f64::INFINITY` 或者 `f64::NEG_INFINITY` 时 panic
+/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
 pub fn sincospi(_x: f64) -> (f64, f64) {
     if _x.is_nan() {
         return (f64::NAN, f64::NAN);
     }
     if _x.is_infinite() {
-        panic!("函数 `sincospi` 只接受有限值的参数");
+        panic!("function `sincospi` only accepts finite values");
     }
     let x = _x.abs();
 
@@ -285,15 +357,15 @@ pub fn sincospi(_x: f64) -> (f64, f64) {
     }
 }
 
-/// 计算 `tan(pi x)`
+/// Calculate tan(pi * x)
 ///
-/// 比计算 `tan(pi * x)` 更加精确, 特别是当 `x` 比较大时
+/// More accurate than calculating tan(pi * x), especially when x is large
 ///
-/// 类似的函数有 [sinpi], [cospi], [sincospi]
+/// Similar functions: [sinpi], [cospi], [sincospi]
 ///
 /// # Panic
 ///
-/// 当 `x` 为 `f64::INFINITY` 或者 `f64::NEG_INFINITY` 时 panic
+/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
 pub fn tanpi(_x: f64) -> f64 {
     let (si, co) = sincospi(_x);
     si / co
@@ -308,15 +380,15 @@ pub fn minmax(arr: &[f64]) -> (f64, f64) {
         })
 }
 
-/// 计算数组的均值和方差
+/// Calculate the mean and variance of an array
 ///
 /// # Arguments
 ///
-/// * `samples` - 需要计算统计量的数组
+/// * `samples` - The array to calculate the mean and variance of
 ///
 /// # Returns
 ///
-/// 返回一个元组，包含均值和方差
+/// Return a tuple, containing the mean and variance
 #[cfg(test)]
 pub fn calculate_stats(samples: &[f64]) -> (f64, f64) {
     let n = samples.len() as f64;
@@ -325,15 +397,15 @@ pub fn calculate_stats(samples: &[f64]) -> (f64, f64) {
     (mean, variance)
 }
 
-/// 计算整数数组的均值和方差
+/// Calculate the mean and variance of an integer array
 ///
 /// # Arguments
 ///
-/// * `samples` - 需要计算统计量的整数数组
+/// * `samples` - The integer array to calculate the mean and variance of
 ///
 /// # Returns
 ///
-/// 返回一个元组，包含均值和方差
+/// Return a tuple, containing the mean and variance
 #[cfg(test)]
 pub fn calculate_int_stats(samples: &[u64]) -> (f64, f64) {
     let n = samples.len() as f64;
@@ -346,15 +418,15 @@ pub fn calculate_int_stats(samples: &[u64]) -> (f64, f64) {
     (mean, variance)
 }
 
-/// 计算布尔数组的均值（即True的比例）
+/// Calculate the mean of a boolean array
 ///
 /// # Arguments
 ///
-/// * `samples` - 需要计算统计量的布尔数组
+/// * `samples` - The boolean array to calculate the mean of
 ///
 /// # Returns
 ///
-/// 返回True的比例
+/// Return the proportion of True
 #[cfg(test)]
 pub fn calculate_bool_mean(samples: &[bool]) -> f64 {
     samples.iter().filter(|&&x| x).count() as f64 / samples.len() as f64

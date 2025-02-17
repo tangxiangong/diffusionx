@@ -4,7 +4,12 @@
 //!
 //! The functions in this module are designed to be used in parallel environments.
 //!
-//! The functions in this module are designed to be used in parallel environments.
+//! Supported distributions:
+//! - Exponential distribution in [exponential]
+//! - Normal distribution in [normal]
+//! - Poisson distribution in [poisson]
+//! - Stable distribution in [stable]
+//! - Uniform distribution in [uniform]
 
 pub mod exponential;
 pub mod normal;

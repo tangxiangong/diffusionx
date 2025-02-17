@@ -1,6 +1,4 @@
 //! Exponential distribution random number generation
-//!
-//! This module provides functions for generating random numbers from the exponential distribution.
 
 use crate::XResult;
 use rand::{prelude::*, rng};
