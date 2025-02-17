@@ -38,7 +38,8 @@ let mean = bm.mean(time_step, 1000)?;  // Mean  bm.raw_moment(time_step, 1, 1000
 let msd = bm.msd(time_step, 1000)?;  // Mean square displacement  bm.central_moment(time_step, 2, 1000)?;
 
 // First passage time of Brownian motion
-let fpt = bm.fpt(time_step, (-1.0, 1.0))?; 
+let max_duration = 1000; // if over this duration, the simulation will be terminated and return None
+let fpt = bm.fpt(time_step, (-1.0, 1.0), max_duration)?; 
 ```
 
 ## Progress

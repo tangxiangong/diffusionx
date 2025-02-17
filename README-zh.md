@@ -38,7 +38,8 @@ let mean = bm.mean(time_step, 1000)?;  // 均值  bm.raw_moment(time_step, 1, 10
 let msd = bm.msd(time_step, 1000)?;  // 均方位移  bm.central_moment(time_step, 2, 1000)?;
 
 // 布朗运动首次穿越时间
-let fpt = bm.fpt(time_step, (-1.0, 1.0))?; 
+let max_duration = 1000; // 如果超过此时间，模拟将终止并返回 None
+let fpt = bm.fpt(time_step, (-1.0, 1.0), max_duration)?; 
 ```
 
 ## 进展
