@@ -17,7 +17,7 @@ raw_moment = bm.raw_moment(order=1, particles=1000)  # 一阶原点矩
 central_moment = bm.central_moment(order=2, particles=1000)  # 二阶中心矩
 
 # 布朗运动首次穿越时间
-fpt = bm.fpt((-1, 1))  # 布朗运动首次穿越时间
+fpt = bm.fpt((-1, 1))
 ```
 
 ### Rust
@@ -35,7 +35,7 @@ let mean = bm.mean(time_step, 1000)?;  // 均值  bm.raw_moment(time_step, 1, 10
 let msd = bm.msd(time_step, 1000)?;  // 均方位移  bm.central_moment(time_step, 2, 1000)?;
 
 // 布朗运动首次穿越时间
-let fpt = bm.fpt(time_step, (-1.0, 1.0))?;  // 布朗运动首次穿越时间
+let fpt = bm.fpt(time_step, (-1.0, 1.0))?; 
 ```
 
 ## 进展
