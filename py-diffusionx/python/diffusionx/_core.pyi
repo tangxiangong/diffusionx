@@ -52,4 +52,5 @@ def bm_fpt(
     duration: float,
     step_size: float,
     domain: tuple[float, float],
+    max_duration: float,
 ) -> float: ...

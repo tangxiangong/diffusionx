@@ -55,8 +55,9 @@ pub fn bm_fpt(
     duration: f64,
     step_size: f64,
     domain: (f64, f64),
-) -> XPyResult<f64> {
+    max_duration: f64,
+) -> XPyResult<Option<f64>> {
     let bm = Bm::new(start_position, diffusion_coefficient, duration)?;
-    let result = bm.fpt(step_size, domain)?;
+    let result = bm.fpt(step_size, domain, max_duration)?;
     Ok(result)
 }

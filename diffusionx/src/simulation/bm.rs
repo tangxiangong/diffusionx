@@ -233,7 +233,7 @@ mod tests {
     fn test_fpt() {
         let bm = Bm::new(0.0, 1.0, 1.0).unwrap();
         let time_step = 0.1;
-        let fpt = bm.fpt(time_step, (-1.0, 1.0)).unwrap();
+        let fpt = bm.fpt(time_step, (-1.0, 1.0), 1000).unwrap();
         println!("fpt: {:?}", fpt);
     }
 

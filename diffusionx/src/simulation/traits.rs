@@ -1,4 +1,4 @@
-use crate::{SimulationError, XResult, utils::minmax};
+use crate::{SimulationError, XResult};
 use rayon::prelude::*;
 
 pub type Pair = (Vec<f64>, Vec<f64>);
@@ -88,42 +88,75 @@ where
 }
 
 pub trait Functional: Simulation + CheckedParams {
-    fn fpt(&self, time_step: f64, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<f64>;
-    fn fpt_check(&self, time_step: f64, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<f64>;
+    fn fpt(
+        &self,
+        time_step: f64,
+        domain: (impl Into<f64>, impl Into<f64>),
+        max_duration: impl Into<f64>,
+    ) -> XResult<Option<f64>>;
+    fn fpt_check(
+        &self,
+        time_step: f64,
+        domain: (impl Into<f64>, impl Into<f64>),
+        max_duration: impl Into<f64>,
+    ) -> XResult<Option<f64>>;
 }
 
 impl<XT: Simulation + CheckedParams> Functional for XT {
-    fn fpt_check(&self, time_step: f64, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<f64> {
+    fn fpt_check(
+        &self,
+        time_step: f64,
+        domain: (impl Into<f64>, impl Into<f64>),
+        max_duration: impl Into<f64>,
+    ) -> XResult<Option<f64>> {
         let (a, b) = domain;
         let a = a.into();
         let b = b.into();
+        let max_duration = max_duration.into();
         if a >= b {
             return Err(SimulationError::InvalidParameters(
                 "domain must be a valid interval".to_string(),
             )
             .into());
         }
+        if max_duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(
+                "max_duration must be positive".to_string(),
+            )
+            .into());
+        }
         self.check_params(time_step)?;
-        self.fpt(time_step, (a, b))
+        self.fpt(time_step, (a, b), max_duration)
     }
 
-    fn fpt(&self, time_step: f64, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<f64> {
+    fn fpt(
+        &self,
+        time_step: f64,
+        domain: (impl Into<f64>, impl Into<f64>),
+        max_duration: impl Into<f64>,
+    ) -> XResult<Option<f64>> {
         let (a, b) = domain;
         let a = a.into();
         let b = b.into();
+        let max_duration = max_duration.into();
         let mut duration = self.get_duration();
         let mut tmp = self.clone();
-        let (t, x) = loop {
+        loop {
             let (t, x) = tmp.simulate(time_step)?;
-            let (x_min, x_max) = minmax(&x);
-            if x_min <= a || x_max >= b {
-                break (t, x);
+            if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
+                return Ok(Some(t[index]));
             }
             duration *= 2.0;
+            if duration > max_duration {
+                tmp.mut_duration(max_duration);
+                let (t, x) = tmp.simulate(time_step)?;
+                if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
+                    return Ok(Some(t[index]));
+                } else {
+                    return Ok(None);
+                }
+            }
             tmp.mut_duration(duration);
-        };
-        let index = x.iter().position(|&x| x <= a || x >= b).unwrap();
-        let first_passage_time = t[index];
-        Ok(first_passage_time)
+        }
     }
 }
