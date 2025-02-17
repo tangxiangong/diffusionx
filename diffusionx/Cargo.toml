@@ -14,6 +14,7 @@ harness = false
 [lib]
 name = "diffusionx"
 crate-type = ["cdylib", "lib"]
+doctest = false
 
 [dependencies]
 rand_distr = { workspace = true }
