@@ -68,19 +68,6 @@ impl Bm {
         })
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn new_unchecked(
-        start_position: f64,
-        diffusion_coefficient: f64,
-        duration: f64,
-    ) -> Self {
-        Self {
-            start_position,
-            diffusion_coefficient,
-            duration,
-        }
-    }
-
     pub fn get_params(&self) -> (f64, f64, f64) {
         (
             self.start_position,
