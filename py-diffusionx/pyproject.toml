@@ -17,4 +17,8 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [dependency-groups]
-dev = ["ipykernel>=6.29.5", "scipy>=1.15.1"]
+dev = [
+    "ipykernel>=6.29.5",
+    "pytest>=8.3.4",
+ "scipy>=1.15.1",
+]
