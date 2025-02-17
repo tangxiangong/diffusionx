@@ -17,29 +17,25 @@ raw_moment = bm.raw_moment(order=1, particles=1000)  # 一阶原点矩
 central_moment = bm.central_moment(order=2, particles=1000)  # 二阶中心矩
 
 # 布朗运动首次穿越时间
-fpt = bm.fpt((0.0, 1.0))  # 布朗运动首次穿越时间
+fpt = bm.fpt((-1, 1))  # 布朗运动首次穿越时间
 ```
 
 ### Rust
 
 ```rust
-use diffusionx::random;
-use diffusionx::simulation::Bm;
-use diffusionx::simulation::Simulation;
-
-let values = random::stable::standard_rands(1.5, 0.0, 1000)?;
+use diffusionx::simulation::{Bm, Simulation, Functional};
 
 // 布朗运动模拟
 let bm = Bm::new(0.0, 1.0, 1.0)?;  // 创建布朗运动对象：起始位置为0，扩散系数为1，持续时间为1
 let time_step = 0.01;  // 时间步长
 let (times, positions) = bm.simulate(time_step)?;  // 模拟布朗运动轨迹
 
-// 计算布朗运动的统计量
-let mean = bm.mean(time_step, 1000)?;  // 计算均值
-let msd = bm.msd(time_step, 1000)?;  // 计算均方位移
+// 蒙特卡罗模拟布朗运动的统计量
+let mean = bm.mean(time_step, 1000)?;  // 均值  bm.raw_moment(time_step, 1, 1000)?;
+let msd = bm.msd(time_step, 1000)?;  // 均方位移  bm.central_moment(time_step, 2, 1000)?;
 
 // 布朗运动首次穿越时间
-let fpt = bm.fpt(time_step, (0.0, 1.0))?;  // 布朗运动首次穿越时间
+let fpt = bm.fpt(time_step, (-1.0, 1.0))?;  // 布朗运动首次穿越时间
 ```
 
 ## 进展
