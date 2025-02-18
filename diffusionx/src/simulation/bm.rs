@@ -1,10 +1,13 @@
 //! Brownian motion simulation
 //! For Levy process, see [`crate::simulation::levy`].
 
-use crate::{SimulationError, XResult, random::normal, simulation::Simulation, utils::cumsum};
+use crate::{
+    SimulationError, XResult,
+    random::normal,
+    simulation::{Moment, Pair, Simulation, Stochastic, Trajectory, functional::FirstPassageTime},
+    utils::cumsum,
+};
 use rayon::prelude::*;
-
-use super::{CheckedParams, Functional, Moment, Pair};
 
 /// Brownian motion simulation
 ///
@@ -14,20 +17,19 @@ use super::{CheckedParams, Functional, Moment, Pair};
 ///
 /// * `start_position` - The starting position of the Brownian motion.
 /// * `diffusion_coefficient` - The diffusion coefficient of the Brownian motion.
-/// * `duration` - The duration of the Brownian motion.
 #[derive(Debug, Clone)]
 pub struct Bm {
     start_position: f64,
     diffusion_coefficient: f64,
-    duration: f64,
 }
+
+impl Stochastic for Bm {}
 
 impl Default for Bm {
     fn default() -> Self {
         Self {
             start_position: 0.0,
             diffusion_coefficient: 1.0,
-            duration: 1.0,
         }
     }
 }
@@ -42,41 +44,27 @@ impl Bm {
     pub fn new(
         start_position: impl Into<f64>,
         diffusion_coefficient: impl Into<f64>,
-        duration: impl Into<f64>,
     ) -> XResult<Self> {
         let start_position = start_position.into();
         let diffusion_coefficient = diffusion_coefficient.into();
-        let duration = duration.into();
         if diffusion_coefficient <= 0.0 {
             return Err(SimulationError::InvalidParameters(
                 "diffusion_coefficient must be positive".to_string(),
             )
             .into());
         }
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
-            .into());
-        }
         Ok(Self {
             start_position,
             diffusion_coefficient,
-            duration,
         })
     }
 
-    /// Get the parameters of the Brownian motion simulation
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the starting position, diffusion coefficient, and duration of the Brownian motion simulation.
-    pub fn get_params(&self) -> (f64, f64, f64) {
-        (
-            self.start_position,
-            self.diffusion_coefficient,
-            self.duration,
-        )
+    pub fn start_position(&self) -> f64 {
+        self.start_position
+    }
+
+    pub fn diffusion_coefficient(&self) -> f64 {
+        self.diffusion_coefficient
     }
 
     /// Get the mean of the Brownian motion simulation
@@ -88,11 +76,12 @@ impl Bm {
     /// # Example
     ///
     /// ```rust
-    /// let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
-    /// let mean = bm.mean(0.1, 1000).unwrap();
+    /// let bm = Bm::new(10.0, 1.0).unwrap();
+    /// let mean = bm.mean(1.0, 1000, 0.1).unwrap();
     /// ```
-    pub fn mean(&self, time_step: f64, particles: usize) -> XResult<f64> {
-        self.raw_moment(time_step, 1, particles)
+    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
+        let traj = self.duration(duration).unwrap();
+        traj.raw_moment(1, particles, time_step)
     }
 
     /// Get the mean square displacement of the Brownian motion simulation
@@ -104,70 +93,49 @@ impl Bm {
     /// # Example
     ///
     /// ```rust
-    /// let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
-    /// let msd = bm.msd(0.1, 1000).unwrap();
+    /// let bm = Bm::new(10.0, 1.0).unwrap();
+    /// let msd = bm.msd(1.0, 1000, 0.1).unwrap();
     /// ```
-    pub fn msd(&self, time_step: f64, particles: usize) -> XResult<f64> {
-        self.central_moment(time_step, 2, particles)
+    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
+        let traj = self.duration(duration).unwrap();
+        traj.central_moment(2, particles, time_step)
+    }
+
+    pub fn raw_moment(
+        &self,
+        duration: impl Into<f64>,
+        order: i32,
+        particles: usize,
+        time_step: f64,
+    ) -> XResult<f64> {
+        let traj = self.duration(duration).unwrap();
+        traj.raw_moment(order, particles, time_step)
+    }
+
+    pub fn central_moment(
+        &self,
+        duration: impl Into<f64>,
+        order: i32,
+        particles: usize,
+        time_step: f64,
+    ) -> XResult<f64> {
+        let traj = self.duration(duration).unwrap();
+        traj.central_moment(order, particles, time_step)
+    }
+
+    pub fn fpt(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        max_duration: impl Into<f64>,
+        time_step: f64,
+    ) -> XResult<Option<f64>> {
+        let fpt = FirstPassageTime::new(self, domain)?;
+        fpt.simulate(max_duration, time_step)
     }
 }
 
 /// impl `Simulation` trait for Brownian motion
 impl Simulation for Bm {
-    /// Get the duration of the Brownian motion simulation
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the duration of the Brownian motion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
-    /// let duration = bm.get_duration();
-    /// ```
-    fn get_duration(&self) -> f64 {
-        self.duration
-    }
-
-    /// Set the duration of the Brownian motion simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the Brownian motion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let mut bm = Bm::new(10.0, 1.0, 1.0).unwrap();
-    /// bm.mut_duration(2.0);
-    /// ```
-    fn mut_duration(&mut self, duration: f64) {
-        self.duration = duration;
-    }
-
-    /// Simulate Brownian motion with check
-    ///
-    /// # Arguments
-    ///
-    /// * `time_step` - The time step of the Brownian motion simulation.
-    ///
-    /// # Returns
-    ///
-    /// The result of the Brownian motion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bm = Bm::new(10.0, 1.0).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = bm.simulate(params).unwrap();
-    /// ```
-    fn simulate_check(&self, time_step: f64) -> XResult<Pair> {
-        self.check_params(time_step)?;
-        self.simulate(time_step)
-    }
-
     /// Simulate Brownian motion
     ///
     /// # Arguments
@@ -181,15 +149,15 @@ impl Simulation for Bm {
     /// # Example
     ///
     /// ```rust
-    /// let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+    /// let bm = Bm::new(10.0, 1.0).unwrap();
     /// let (t, x) = bm.simulate(0.1).unwrap();
     /// ```
-    fn simulate(&self, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         simulate_bm(
             self.start_position,
             self.diffusion_coefficient,
+            duration.into(),
             time_step,
-            self.duration,
         )
     }
 }
@@ -202,7 +170,7 @@ impl Simulation for Bm {
 ///
 /// * `start_position` - The starting position of the Brownian motion.  
 /// * `diffusion_coefficient` - The diffusion coefficient of the Brownian motion.
-/// * `tau` - The time step of the Brownian motion.
+/// * `time_step` - The time step of the Brownian motion.
 /// * `duration` - The duration of the Brownian motion.
 ///
 /// # Returns
@@ -219,11 +187,12 @@ impl Simulation for Bm {
 pub fn simulate_bm(
     start_position: impl Into<f64>,
     diffusion_coefficient: impl Into<f64>,
+    duration: impl Into<f64>,
     time_step: f64,
-    duration: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     let start_position = start_position.into();
     let diffusion_coefficient = diffusion_coefficient.into();
+    let duration = duration.into();
     let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
@@ -234,65 +203,36 @@ pub fn simulate_bm(
     Ok((t, x))
 }
 
-/// impl `Moment` trait for Brownian motion
-impl Moment for Bm {}
-
-/// impl `Functional` trait for Brownian motion
-impl Functional for Bm {}
-
-/// impl `CheckedParams` trait for Brownian motion
-impl CheckedParams for Bm {
-    fn check_params(&self, time_step: f64) -> XResult<()> {
-        if self.diffusion_coefficient <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "diffusion_coefficient must be positive".to_string(),
-            )
-            .into());
-        }
-        if self.duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
-            .into());
-        }
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "time_step must be positive".to_string(),
-            )
-            .into());
-        }
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::simulation::{Functional, Moment};
-
     use super::*;
+    use crate::simulation::{Moment, Trajectory};
 
     #[test]
     fn test_simulate_bm() {
-        let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+        let bm = Bm::new(10.0, 1.0).unwrap();
+        let duration = 1.0;
         let time_step = 0.1;
-        let (t, x) = bm.simulate(time_step).unwrap();
+        let (t, x) = bm.simulate(duration, time_step).unwrap();
         println!("t: {:?}", t);
         println!("x: {:?}", x);
     }
 
     #[test]
     fn test_raw_moment() {
-        let bm = Bm::new(10.0, 1.0, 1.0).unwrap();
+        let bm = Bm::new(10.0, 1.0).unwrap();
+        let duration = 1.0;
         let time_step = 0.1;
-        let moment = bm.raw_moment(time_step, 1, 1000).unwrap();
+        let traj = bm.duration(duration).unwrap();
+        let moment = traj.raw_moment(1, 1000, time_step).unwrap();
         println!("moment: {:?}", moment);
     }
 
     #[test]
     fn test_fpt() {
-        let bm = Bm::new(0.0, 1.0, 1.0).unwrap();
+        let bm = Bm::new(0.0, 1.0).unwrap();
         let time_step = 0.1;
-        let fpt = bm.fpt(time_step, (-1.0, 1.0), 1000).unwrap();
+        let fpt = bm.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
         println!("fpt: {:?}", fpt);
     }
 

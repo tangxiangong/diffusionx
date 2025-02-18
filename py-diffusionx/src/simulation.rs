@@ -13,8 +13,8 @@ pub fn bm_simulate(
     duration: f64,
     step_size: f64,
 ) -> XPyResult<PyArrayPair<'_>> {
-    let bm = Bm::new(start_position, diffusion_coefficient, duration)?;
-    let (times, positions) = bm.simulate(step_size)?;
+    let bm = Bm::new(start_position, diffusion_coefficient)?;
+    let (times, positions) = bm.simulate(duration, step_size)?;
     let times_array = times.into_pyarray(py);
     let positions_array = positions.into_pyarray(py);
     Ok((times_array, positions_array))
@@ -29,8 +29,8 @@ pub fn bm_raw_moment(
     order: i32,
     particles: usize,
 ) -> XPyResult<f64> {
-    let bm = Bm::new(start_position, diffusion_coefficient, duration)?;
-    let result = bm.raw_moment(step_size, order, particles)?;
+    let bm = Bm::new(start_position, diffusion_coefficient)?;
+    let result = bm.raw_moment(duration, order, particles, step_size)?;
     Ok(result)
 }
 
@@ -43,8 +43,8 @@ pub fn bm_central_moment(
     order: i32,
     particles: usize,
 ) -> XPyResult<f64> {
-    let bm = Bm::new(start_position, diffusion_coefficient, duration)?;
-    let result = bm.central_moment(step_size, order, particles)?;
+    let bm = Bm::new(start_position, diffusion_coefficient)?;
+    let result = bm.central_moment(duration, order, particles, step_size)?;
     Ok(result)
 }
 
@@ -52,12 +52,11 @@ pub fn bm_central_moment(
 pub fn bm_fpt(
     start_position: f64,
     diffusion_coefficient: f64,
-    duration: f64,
     step_size: f64,
     domain: (f64, f64),
     max_duration: f64,
 ) -> XPyResult<Option<f64>> {
-    let bm = Bm::new(start_position, diffusion_coefficient, duration)?;
-    let result = bm.fpt(step_size, domain, max_duration)?;
+    let bm = Bm::new(start_position, diffusion_coefficient)?;
+    let result = bm.fpt(domain, max_duration, step_size)?;
     Ok(result)
 }

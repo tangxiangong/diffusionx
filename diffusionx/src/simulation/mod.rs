@@ -12,5 +12,7 @@ pub use bm::*;
 mod levy;
 pub use levy::*;
 
+pub mod functional;
+
 #[cfg(feature = "nightly")]
 pub mod nightly;
