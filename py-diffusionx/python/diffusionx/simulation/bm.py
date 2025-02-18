@@ -1,5 +1,8 @@
 from diffusionx import _core
 from typing import Union
+from .basic import StochasticProcess, Trajectory
+import numpy as np
+
 
 real = Union[float, int]
 
@@ -13,10 +16,9 @@ def _check_transform(value: real) -> float:
         raise ValueError("value must be a number")
 
 
-class Bm(object):
+class Bm(StochasticProcess):
     def __init__(
         self,
-        duration: real,
         start_position: real = 0.0,
         diffusion_coefficient: real = 1.0,
     ):
@@ -24,7 +26,6 @@ class Bm(object):
         Initialize a Brownian motion object.
 
         Args:
-            duration (real): Duration of the Brownian motion.
             start_position (real, optional): Starting position of the Brownian motion. Defaults to 0.0.
             diffusion_coefficient (real, optional): Diffusion coefficient of the Brownian motion. Defaults to 1.0.
 
@@ -36,19 +37,20 @@ class Bm(object):
         Returns:
             Bm: A Brownian motion object.
         """
-        duration = _check_transform(duration)
         start_position = _check_transform(start_position)
         diffusion_coefficient = _check_transform(diffusion_coefficient)
-        if duration <= 0:
-            raise ValueError("duration must be positive")
         if diffusion_coefficient <= 0:
             raise ValueError("diffusion_coefficient must be positive")
 
-        self.duration = duration
         self.start_position = start_position
         self.diffusion_coefficient = diffusion_coefficient
 
-    def simulate(self, step_size: real = 0.01):
+    def __call__(self, duration: real) -> Trajectory:
+        return Trajectory(self, duration)
+
+    def simulate(
+        self, duration: real, step_size: real = 0.01
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Simulate the Brownian motion.
 
@@ -64,7 +66,7 @@ class Bm(object):
         return _core.bm_simulate(
             self.start_position,
             self.diffusion_coefficient,
-            self.duration,
+            duration,
             step_size,
         )
 
@@ -91,13 +93,14 @@ class Bm(object):
         return _core.bm_fpt(
             self.start_position,
             self.diffusion_coefficient,
-            self.duration,
             step_size,
             (a, b),
             max_duration,
         )
 
-    def raw_moment(self, order: int, particles: int, step_size: float = 0.01):
+    def raw_moment(
+        self, duration: real, order: int, particles: int, step_size: float = 0.01
+    ) -> float:
         """
         Calculate the raw moment of the Brownian motion.
 
@@ -125,13 +128,15 @@ class Bm(object):
         return _core.bm_raw_moment(
             self.start_position,
             self.diffusion_coefficient,
-            self.duration,
+            duration,
             step_size,
             order,
             particles,
         )
 
-    def central_moment(self, order: int, particles: int, step_size: float = 0.01):
+    def central_moment(
+        self, duration: real, order: int, particles: int, step_size: float = 0.01
+    ):
         """
         Calculate the central moment of the Brownian motion.
 
@@ -167,7 +172,7 @@ class Bm(object):
         return _core.bm_central_moment(
             self.start_position,
             self.diffusion_coefficient,
-            self.duration,
+            duration,
             step_size,
             order,
             particles,

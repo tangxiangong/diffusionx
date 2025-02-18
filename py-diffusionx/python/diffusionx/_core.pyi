@@ -49,7 +49,6 @@ def bm_central_moment(
 def bm_fpt(
     start_position: float,
     diffusion_coefficient: float,
-    duration: float,
     step_size: float,
     domain: tuple[float, float],
     max_duration: float,
