@@ -14,12 +14,13 @@
 from diffusionx.simulation import Bm
 
 # 布朗运动模拟
-bm = Bm(10) 
-times, positions = bm.simulate(step_size=0.01)  # 模拟布朗运动轨迹，返回 ndarray 数组
+bm = Bm() 
+traj = bm(10)
+times, positions = traj.simulate(step_size=0.01)  # 模拟布朗运动轨迹，返回 ndarray 数组
 
 # 蒙特卡罗模拟布朗运动的统计量
-raw_moment = bm.raw_moment(order=1, particles=1000)  # 一阶原点矩
-central_moment = bm.central_moment(order=2, particles=1000)  # 二阶中心矩
+raw_moment = traj.raw_moment(order=1, particles=1000)  # 一阶原点矩
+central_moment = traj.central_moment(order=2, particles=1000)  # 二阶中心矩
 
 # 布朗运动首次通过时间
 fpt = bm.fpt((-1, 1))
@@ -31,17 +32,21 @@ fpt = bm.fpt((-1, 1))
 use diffusionx::simulation::{Bm, Simulation, Functional};
 
 // 布朗运动模拟
-let bm = Bm::new(0.0, 1.0, 1.0)?;  // 创建布朗运动对象：起始位置为0，扩散系数为1，持续时间为1
+let bm = Bm::default();  // 标准布朗运动
 let time_step = 0.01;  // 时间步长
-let (times, positions) = bm.simulate(time_step)?;  // 模拟布朗运动轨迹
+let duration = 1.0;  // 模拟时间
+let (times, positions) = bm.simulate(duration, time_step)?;  // 模拟布朗运动轨迹
 
 // 蒙特卡罗模拟布朗运动的统计量
-let mean = bm.mean(time_step, 1000)?;  // 均值  bm.raw_moment(time_step, 1, 1000)?;
-let msd = bm.msd(time_step, 1000)?;  // 均方位移  bm.central_moment(time_step, 2, 1000)?;
+let mean = bm.mean(duration, 1000, time_step)?;  // 均值  bm.raw_moment(duration, 1, 1000, time_step)?;
+let msd = bm.msd(duration, 1000, time_step)?;  // 均方位移  bm.central_moment(duration, 2, 1000, time_step)?;
 
-// 布朗运动首次穿越时间
+// 布朗运动首次通过时间
 let max_duration = 1000; // 如果超过此时间，模拟将终止并返回 None
-let fpt = bm.fpt(time_step, (-1.0, 1.0), max_duration)?; 
+let fpt = bm.fpt((-1.0, 1.0), max_duration, time_step)?;  
+// or
+let fpt = FirstPassageTime::new(&bm, (-1.0, 1.0))?;
+let fpt_result = fpt.simulate(max_duration, time_step)?;
 ```
 
 ## 进展

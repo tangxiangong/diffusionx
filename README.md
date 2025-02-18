@@ -14,12 +14,13 @@ English | [简体中文](README-zh.md)
 from diffusionx.simulation import Bm
 
 # Brownian motion simulation
-bm = Bm(10) 
-times, positions = bm.simulate(step_size=0.01)  # Simulate Brownian motion trajectory, returns ndarray
+bm = Bm()
+traj = bm(10)
+times, positions = traj.simulate(step_size=0.01)  # Simulate Brownian motion trajectory, returns ndarray
 
 # Monte Carlo simulation of Brownian motion statistics
-raw_moment = bm.raw_moment(order=1, particles=1000)  # First-order raw moment
-central_moment = bm.central_moment(order=2, particles=1000)  # Second-order central moment
+raw_moment = traj.raw_moment(order=1, particles=1000)  # First-order raw moment
+central_moment = traj.central_moment(order=2, particles=1000)  # Second-order central moment
 
 # First passage time of Brownian motion
 fpt = bm.fpt((-1, 1))
@@ -42,6 +43,9 @@ let msd = bm.msd(time_step, 1000)?;  // Mean square displacement  bm.central_mom
 // First passage time of Brownian motion
 let max_duration = 1000; // if over this duration, the simulation will be terminated and return None
 let fpt = bm.fpt(time_step, (-1.0, 1.0), max_duration)?; 
+// or
+let fpt = FirstPassageTime::new(&bm, (-1.0, 1.0))?;
+let fpt_result = fpt.simulate(max_duration, time_step)?;
 ```
 
 ## Progress
