@@ -6,6 +6,7 @@ version.workspace = true
 description = "A library for random number/stochastic process simulation with high performance."
 license = "MIT"
 repository = "https://github.com/tangxiangong/diffusionx"
+readme = "README.md"
 
 [[bench]]
 name = "random_generation"

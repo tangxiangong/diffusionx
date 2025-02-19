@@ -1,7 +1,7 @@
 [project]
 name = "diffusionx"
 version = "0.1.0"
-description = "Add your description here"
+description = "A library for random number/stochastic process simulation with high performance."
 readme = "README.md"
 authors = [{ name = "tangxiangong", email = "tangxiangong@gmail.com" }]
 requires-python = ">=3.12"
@@ -17,8 +17,4 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [dependency-groups]
-dev = [
-    "ipykernel>=6.29.5",
-    "pytest>=8.3.4",
- "scipy>=1.15.1",
-]
+dev = ["ipykernel>=6.29.5", "pytest>=8.3.4", "scipy>=1.15.1"]
