@@ -46,7 +46,7 @@ let fpt = bm.fpt(time_step, (-1.0, 1.0), max_duration)?;
 // or
 let fpt = FirstPassageTime::new(&bm, (-1.0, 1.0))?;
 let fpt_result = fpt.simulate(max_duration, time_step)?;
-
+```
 ## Extensibility
 
 DiffusionX is designed with a trait-based system for high extensibility:
@@ -72,6 +72,7 @@ DiffusionX is designed with a trait-based system for high extensibility:
    impl Simulation for MyProcess {
        fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
            // Implement your simulation logic
+           t, x
        }
    }
    ```
