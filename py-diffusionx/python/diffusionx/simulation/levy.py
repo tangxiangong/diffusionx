@@ -54,6 +54,9 @@ class Levy(StochasticProcess):
             tuple[np.ndarray, np.ndarray]: A tuple containing the times and positions of the Lévy process.
         """
         step_size = check_transform(step_size)
+        duration = check_transform(duration)
+        if duration <= 0:
+            raise ValueError("duration must be positive")
         if step_size <= 0:
             raise ValueError("step_size must be positive")
         return _core.levy_simulate(
@@ -80,9 +83,15 @@ class Levy(StochasticProcess):
             real: The first passage time of the Brownian motion.
         """
         step_size = check_transform(step_size)
+        if step_size <= 0:
+            raise ValueError("step_size must be positive")
         a = check_transform(domain[0])
         b = check_transform(domain[1])
+        if a >= b:
+            raise ValueError("domain must be a valid interval")
         max_duration = check_transform(max_duration)
+        if max_duration <= 0:
+            raise ValueError("max_duration must be positive")
         return _core.levy_fpt(
             self.start_position,
             self.alpha,
@@ -109,6 +118,8 @@ class Levy(StochasticProcess):
             real: The occupation time of the Lévy process.
         """
         step_size = check_transform(step_size)
+        if step_size <= 0:
+            raise ValueError("step_size must be positive")
         duration = check_transform(duration)
         if duration <= 0:
             raise ValueError("duration must be positive")
