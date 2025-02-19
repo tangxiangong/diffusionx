@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [Rust-0.1.2] - 2025-02-19
 
 ### 🚀 Features
 
@@ -14,14 +14,26 @@ All notable changes to this project will be documented in this file.
 
 - *(Python)* Add input validation for Brownian motion and Lévy process methods
 
+### 🚜 Refactor
+
+- Enhance simulation traits with continuous and point process abstractions
+- Update Brownian motion and Lévy process simulation traits
+- Optimize occupation time calculation using iterator methods
+- Improve code formatting and import organization
+- Introduce simulation prelude module for simplified imports
+- Expose simulation module traits and functional components
+
 ### 📚 Documentation
 
 - Update README with new features and progress
 - Update project roadmap and feature tracking
+- Update README files with comprehensive random number generation and simulation examples
 
 ### ⚙️ Miscellaneous Tasks
 
 - Add changelog and git-cliff configuration
+- Update CHANGELOG.md with recent project developments
+- Bump project version to 0.1.2
 
 ## [0.1.1-remove-test] - 2025-02-19
 
