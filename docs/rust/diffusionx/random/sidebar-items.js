@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["exponential","normal","poisson","stable","uniform"]};

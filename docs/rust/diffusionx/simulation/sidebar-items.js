@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["simulate_bm","simulate_levy"],"mod":["functional"],"struct":["Bm","Levy","StochasticTrajectory"],"trait":["Moment","Simulation","Stochastic","Trajectory"],"type":["Pair"]};

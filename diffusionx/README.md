@@ -1,33 +1,9 @@
 # DiffusionX
 
-English | [简体中文](README-zh.md)
-
 > [!NOTE]
-> Development is in progress. DiffusionX is a multi-threaded high-performance Rust library for random number/stochastic process simulation, with Python bindings provided via [PyO3](https://github.com/PyO3/pyo3). Julia version is also being developed, see [DiffusionX.jl](https://github.com/tangxiangong/DiffusionX.jl).
-
-[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/diffusionx/0.1.0/diffusionx/)
+> Development is in progress. DiffusionX is a multi-threaded high-performance Rust library for random number/stochastic process simulation.
 
 ## Usage
-### Python
-
-```python
-from diffusionx.simulation import Bm
-
-# Brownian motion simulation
-bm = Bm()
-traj = bm(10)
-times, positions = traj.simulate(step_size=0.01)  # Simulate Brownian motion trajectory, returns ndarray
-
-# Monte Carlo simulation of Brownian motion statistics
-raw_moment = traj.raw_moment(order=1, particles=1000)  # First-order raw moment
-central_moment = traj.central_moment(order=2, particles=1000)  # Second-order central moment
-
-# First passage time of Brownian motion
-fpt = bm.fpt((-1, 1))
-```
-
-### Rust
-
 ```rust
 use diffusionx::simulation::{Bm, Simulation, Functional};
 
@@ -120,13 +96,12 @@ let fpt_mean = fpt.raw_moment(1, 1000, time_step)?;
 
 Generating random array of length `10_000_000`
 
-|                          | Standard Normal | Uniform [0, 1] |   Stable   |
-| :----------------------: | :-------------: | :------------: | :--------: |
-|  DiffusionX (Rust ver.)  |    23.811 ms    |   20.450 ms    | 273.68 ms  |
-| DiffusionX (Python ver.) |     24.1 ms     |   21.687 ms    |  277.6 ms  |
-|          Julia           |    28.748 ms    |    9.748 ms    | 713.955 ms |
-|      NumPy / SciPy       |     295 ms      |    81.2 ms     |   3.39 s   |
-|          Numba           |        -        |       -        |   1.52 s   |
+|               | Standard Normal | Uniform [0, 1] |   Stable   |
+| :-----------: | :-------------: | :------------: | :--------: |
+|  DiffusionX   |    23.811 ms    |   20.450 ms    | 273.68 ms  |
+|     Julia     |    28.748 ms    |    9.748 ms    | 713.955 ms |
+| NumPy / SciPy |     295 ms      |    81.2 ms     |   3.39 s   |
+|     Numba     |        -        |       -        |   1.52 s   |
 
 ### Test Environment
 
@@ -142,14 +117,6 @@ Generating random array of length `10_000_000`
 - Julia: 1.11
 - NumPy: 2.2.2
 - SciPy: 1.15.1
-
-## Tech Stack & Features
-
-- 🦀 Rust 2024 Edition
-- 🔄 PyO3: Rust/Python bindings
-- 🔢 NumPy: Zero-cost array conversion
-- 🚀 High performance
-- 🔄 Zero-cost NumPy compatibility: All random number generation functions return NumPy arrays directly
 
 ## License
 

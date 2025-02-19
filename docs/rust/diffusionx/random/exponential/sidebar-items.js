@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["rand","rands","standard_rand","standard_rands"]};
