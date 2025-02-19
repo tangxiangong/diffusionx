@@ -5,7 +5,7 @@ English | [简体中文](README-zh.md)
 > [!NOTE]
 > Development is in progress. DiffusionX is a multi-threaded high-performance Rust library for random number/stochastic process simulation, with Python bindings provided via [PyO3](https://github.com/PyO3/pyo3). Julia version is also being developed, see [DiffusionX.jl](https://github.com/tangxiangong/DiffusionX.jl).
 
-[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/diffusionx/0.1.0/diffusionx/)
+[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
 
 ## Usage
 ### Python
@@ -108,11 +108,16 @@ let fpt_mean = fpt.raw_moment(1, 1000, time_step)?;
 ### Stochastic Processes
 
 - [x] Brownian motion
-- [ ] Alpha-stable Lévy process
+- [x] Alpha-stable Lévy process
 - [ ] Fractional Brownian motion
 - [ ] Poisson process
 - [ ] Compound Poisson process
-- [ ] Langevin equation
+- [ ] Langevin process
+  
+### Functional
+
+- [x] First passage time
+- [x] Occupation time
 
 ## Benchmark
 

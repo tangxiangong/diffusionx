@@ -110,12 +110,16 @@ let fpt_mean = fpt.raw_moment(1, 1000, time_step)?;
 ### 随机过程
 
 - [x] 布朗运动
-- [ ] alpha 稳定 Levy 过程
+- [x] alpha 稳定 Levy 过程
 - [ ] 分数布朗运动
 - [ ] 泊松过程
 - [ ] 复合泊松过程
 - [ ] Langevin 方程
 
+### 泛函分布
+
+- [x] 首次通过时间
+- [x] 停留时间
 
 ## Benchmark
 

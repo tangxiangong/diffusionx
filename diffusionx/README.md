@@ -5,7 +5,10 @@
 
 ## Usage
 ```rust
-use diffusionx::simulation::{Bm, Simulation, Functional};
+use diffusionx::{simulation::{Bm, Simulation, Functional}, random};
+
+// Generate random numbers from stable distribution with alpha = 1.7, return a vector of length 100
+let rnd = random::stable::standard_rands(1.7, 0.0, 100);
 
 // Brownian motion simulation
 let bm = Bm::new(0.0, 1.0, 1.0)?;  // Create Brownian motion object: initial position 0, diffusion coefficient 1, duration 1
