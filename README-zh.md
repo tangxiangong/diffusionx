@@ -5,7 +5,7 @@
 > [!NOTE]
 > 开发进行中。DiffusionX 是一个多线程高性能的 Rust 随机数/随机过程模拟库，并利用 [PyO3](https://github.com/PyO3/pyo3) 提供 Python 封装。 Julia 版本正在同步开发中，可见 [DiffusionX.jl](https://github.com/tangxiangong/DiffusionX.jl)。
 
-[![文档](https://img.shields.io/badge/文档-最新-blue.svg)](https://tangxiangong.github.io/diffusionx/index.html)
+[![文档](https://img.shields.io/badge/文档-最新-blue.svg)](https://tangxiangong.github.io/diffusionx/rust/diffusionx/index.html)
 
 ## 使用示例
 ### Python
