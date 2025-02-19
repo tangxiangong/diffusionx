@@ -46,7 +46,54 @@ let fpt = bm.fpt(time_step, (-1.0, 1.0), max_duration)?;
 // or
 let fpt = FirstPassageTime::new(&bm, (-1.0, 1.0))?;
 let fpt_result = fpt.simulate(max_duration, time_step)?;
+
+## Extensibility
+
+DiffusionX is designed with a trait-based system for high extensibility:
+
+### Core Traits
+
+- `Stochastic`: Base trait for stochastic processes
+- `Simulation`: Core trait for process simulation, defining simulation methods
+- `Moment`: Trait for statistical moments calculation, including raw and central moments
+- `Trajectory`: Trait for trajectory handling, providing trajectory-related functionalities
+
+### Feature Extension
+
+1. Adding New Stochastic Processes:
+   ```rust
+   #[derive(Clone)]
+   struct MyProcess {
+       // Your parameters
+   }
+   
+   impl Stochastic for MyProcess {}
+   
+   impl Simulation for MyProcess {
+       fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+           // Implement your simulation logic
+       }
+   }
+   ```
+
+2. Automatic Feature Acquisition:
+   - Get `Trajectory` and `Moment` traits functionality automatically by implementing `Simulation` trait
+   - Direct access to functional structures like `FirstPassageTime`
+   - Built-in support for moment statistics calculation
+Example
+```rust
+let myprocess = MyProcess::default();
+let traj = myprocess.duration(10)?;
+let mean = traj.raw_moment(1, 1000, time_step)?;
+let msd = traj.central_moment(2, 1000, time_step)?;
+let fpt = FirstPassageTime::new(&myprocess, (-1.0, 1.0))?;
+let fpt_result = fpt.simulate(max_duration, time_step)?;
+let fpt_mean = fpt.raw_moment(1, 1000, time_step)?;
 ```
+3. Parallel Computing Support:
+   - Automatic parallel computation support for all types implementing `Simulation`
+   - Default parallel strategy for statistical calculations
+
 
 ## Progress
 ### Random Number Generation
@@ -100,8 +147,8 @@ Generating random array of length `10_000_000`
 - 🦀 Rust 2024 Edition
 - 🔄 PyO3: Rust/Python bindings
 - 🔢 NumPy: Zero-cost array conversion
-- 🚀 High Performance
-- 🔄 Zero-cost NumPy compatibility: All random number generation functions directly return NumPy arrays, no extra conversion needed
+- 🚀 High performance
+- 🔄 Zero-cost NumPy compatibility: All random number generation functions return NumPy arrays directly
 
 ## License
 

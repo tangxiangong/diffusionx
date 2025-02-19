@@ -49,6 +49,55 @@ let fpt = FirstPassageTime::new(&bm, (-1.0, 1.0))?;
 let fpt_result = fpt.simulate(max_duration, time_step)?;
 ```
 
+## 可扩展性
+
+DiffusionX 采用 trait 系统设计，具有高度的可扩展性：
+
+### 核心 Trait
+
+- `Stochastic`: 随机过程的基本特征 trait
+- `Simulation`: 随机过程模拟的核心 trait，定义了模拟方法
+- `Moment`: 随机过程的统计量计算 trait，包括原点矩和中心矩
+- `Trajectory`: 随机过程轨迹处理 trait，提供轨迹相关功能
+
+### 功能扩展
+
+1. 添加新的随机过程：
+   ```rust
+   #[derive(Clone)]
+   struct MyProcess {
+       // 您的参数
+   }
+   
+   impl Stochastic for MyProcess {}
+   
+   impl Simulation for MyProcess {
+       fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+           // 实现您的模拟逻辑
+       }
+   }
+   ```
+
+2. 自动获得功能：
+   - 实现 `Simulation` trait 后自动获得 `Trajectory` 和 `Moment` 功能
+   - 可直接使用 `FirstPassageTime` 等功能性结构
+   - 支持矩统计量计算
+代码示例
+```rust
+let myprocess = MyProcess::default();
+let traj = myprocess.duration(10)?;
+let mean = traj.raw_moment(1, 1000, time_step)?;
+let msd = traj.central_moment(2, 1000, time_step)?;
+let fpt = FirstPassageTime::new(&myprocess, (-1.0, 1.0))?;
+let fpt_result = fpt.simulate(max_duration, time_step)?;
+let fpt_mean = fpt.raw_moment(1, 1000, time_step)?;
+```
+
+3. 并行计算支持：
+   - 所有实现了 `Simulation` trait 的类型自动支持并行计算
+   - 统计量计算默认使用并行策略
+
+
 ## 进展
 ### 随机数生成
 
