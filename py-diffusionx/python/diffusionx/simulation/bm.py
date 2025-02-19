@@ -1,19 +1,11 @@
 from diffusionx import _core
 from typing import Union
 from .basic import StochasticProcess, Trajectory
+from .utils import check_transform
 import numpy as np
 
 
 real = Union[float, int]
-
-
-def _check_transform(value: real) -> float:
-    if isinstance(value, int):
-        return float(value)
-    elif isinstance(value, float):
-        return value
-    else:
-        raise ValueError("value must be a number")
 
 
 class Bm(StochasticProcess):
@@ -37,8 +29,8 @@ class Bm(StochasticProcess):
         Returns:
             Bm: A Brownian motion object.
         """
-        start_position = _check_transform(start_position)
-        diffusion_coefficient = _check_transform(diffusion_coefficient)
+        start_position = check_transform(start_position)
+        diffusion_coefficient = check_transform(diffusion_coefficient)
         if diffusion_coefficient <= 0:
             raise ValueError("diffusion_coefficient must be positive")
 
@@ -60,7 +52,7 @@ class Bm(StochasticProcess):
         Returns:
             tuple[np.ndarray, np.ndarray]: A tuple containing the times and positions of the Brownian motion.
         """
-        step_size = _check_transform(step_size)
+        step_size = check_transform(step_size)
         if step_size <= 0:
             raise ValueError("step_size must be positive")
         return _core.bm_simulate(
@@ -86,10 +78,10 @@ class Bm(StochasticProcess):
         Returns:
             real: The first passage time of the Brownian motion.
         """
-        step_size = _check_transform(step_size)
-        a = _check_transform(domain[0])
-        b = _check_transform(domain[1])
-        max_duration = _check_transform(max_duration)
+        step_size = check_transform(step_size)
+        a = check_transform(domain[0])
+        b = check_transform(domain[1])
+        max_duration = check_transform(max_duration)
         return _core.bm_fpt(
             self.start_position,
             self.diffusion_coefficient,
@@ -122,7 +114,7 @@ class Bm(StochasticProcess):
             raise ValueError("particles must be an integer")
         elif particles <= 0:
             raise ValueError("particles must be positive")
-        step_size = _check_transform(step_size)
+        step_size = check_transform(step_size)
         if step_size <= 0:
             raise ValueError("step_size must be positive")
         return _core.bm_raw_moment(
@@ -166,7 +158,7 @@ class Bm(StochasticProcess):
             raise ValueError("particles must be an integer")
         elif particles <= 0:
             raise ValueError("particles must be positive")
-        step_size = _check_transform(step_size)
+        step_size = check_transform(step_size)
         if step_size <= 0:
             raise ValueError("step_size must be positive")
         return _core.bm_central_moment(
@@ -176,4 +168,37 @@ class Bm(StochasticProcess):
             step_size,
             order,
             particles,
+        )
+
+    def occupation_time(
+        self,
+        domain: tuple[real, real],
+        duration: real,
+        step_size: real = 0.01,
+    ):
+        """
+        Calculate the occupation time of the Brownian motion.
+
+        Args:
+            domain (tuple[real, real]): The domain of the Brownian motion.
+            duration (real): The duration of the Brownian motion.
+            step_size (real, optional): Step size of the Brownian motion. Defaults to 0.01.
+
+        Returns:
+            real: The occupation time of the Brownian motion.
+        """
+        step_size = check_transform(step_size)
+        duration = check_transform(duration)
+        if duration <= 0:
+            raise ValueError("duration must be positive")
+        a = check_transform(domain[0])
+        b = check_transform(domain[1])
+        if a >= b:
+            raise ValueError("domain must be a valid interval")
+        return _core.bm_occupation_time(
+            self.start_position,
+            self.diffusion_coefficient,
+            step_size,
+            (a, b),
+            duration,
         )
