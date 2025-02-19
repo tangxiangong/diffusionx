@@ -2,7 +2,7 @@ use crate::{SimulationError, XResult, simulation::ContinuousProcess};
 use rayon::prelude::*;
 
 /// Functional for first passage time
-/// 
+///
 /// # Fields
 ///
 /// * `sp` - The simulation object.
@@ -28,20 +28,20 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
     }
 
     /// Simulate the first passage time
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `max_duration` - The maximum duration of the simulation.
     /// * `time_step` - The time step of the simulation.
     ///
     /// # Returns
-    /// 
+    ///
     /// `Option<f64>`
     /// * None if the first passage time is not found within the maximum duration.
     /// * A f64 representing the first passage time of the simulation.
     ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
     /// let fpt_result = fpt.simulate(1000.0, 0.1).unwrap();
@@ -74,24 +74,24 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
             }
         }
     }
-    
+
     /// Get the raw moment of the first passage time
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `max_duration` - The maximum duration of the simulation.
     /// * `time_step` - The time step of the simulation.
     ///
     /// # Returns
-    /// 
+    ///
     /// `Option<f64>`
     /// * None if the raw moment is not found.
     /// * A f64 representing the raw moment of the simulation.
     ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
     /// let raw_moment = fpt.raw_moment(1, 1000, 1000.0, 0.1).unwrap();
@@ -155,22 +155,22 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
     }
 
     /// Get the central moment of the first passage time
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `max_duration` - The maximum duration of the simulation.
     /// * `time_step` - The time step of the simulation.    
     ///
     /// # Returns
-    /// 
+    ///
     /// `Option<f64>`
     /// * None if the central moment is not found.
     /// * A f64 representing the central moment of the simulation.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
     /// let central_moment = fpt.central_moment(1, 1000, 1000.0, 0.1).unwrap();
@@ -216,9 +216,8 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
     }
 }
 
-
 /// Functional for occupation time
-/// 
+///
 /// # Fields
 ///
 /// * `sp` - The simulation object.
@@ -232,7 +231,11 @@ pub struct OccupationTime<SP: ContinuousProcess> {
 }
 
 impl<SP: ContinuousProcess> OccupationTime<SP> {
-    pub fn new(sp: &SP, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>) -> XResult<Self> {
+    pub fn new(
+        sp: &SP,
+        domain: (impl Into<f64>, impl Into<f64>),
+        duration: impl Into<f64>,
+    ) -> XResult<Self> {
         let domain = (domain.0.into(), domain.1.into());
         let duration = duration.into();
         if domain.0 >= domain.1 {
@@ -255,17 +258,17 @@ impl<SP: ContinuousProcess> OccupationTime<SP> {
     }
 
     /// Simulate the occupation time
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `time_step` - The time step of the simulation.
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// * A f64 representing the occupation time of the simulation.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// let occupation_time = ot.simulate(0.1).unwrap();
@@ -273,8 +276,9 @@ impl<SP: ContinuousProcess> OccupationTime<SP> {
     pub fn simulate(&self, time_step: f64) -> XResult<f64> {
         let (t, x) = self.sp.simulate(self.duration, time_step)?;
         let (a, b) = self.domain;
-        
-        let occupation_time = x.windows(2)
+
+        let occupation_time = x
+            .windows(2)
             .zip(t.windows(2))
             .map(|(x_pair, t_pair)| {
                 let in_domain = (a..=b).contains(&x_pair[0]) && (a..=b).contains(&x_pair[1]);
@@ -290,19 +294,19 @@ impl<SP: ContinuousProcess> OccupationTime<SP> {
     }
 
     /// Get the raw moment of the occupation time
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     ///
     /// # Returns
-    /// 
+    ///
     /// * A f64 representing the raw moment of the occupation time of the simulation.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// let raw_moment = ot.raw_moment(1, 1000, 0.1).unwrap();
@@ -337,19 +341,19 @@ impl<SP: ContinuousProcess> OccupationTime<SP> {
     }
 
     /// Get the central moment of the occupation time
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     ///
     /// # Returns
-    /// 
+    ///
     /// * A f64 representing the central moment of the occupation time of the simulation.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// let central_moment = ot.central_moment(1, 1000, 0.1).unwrap();

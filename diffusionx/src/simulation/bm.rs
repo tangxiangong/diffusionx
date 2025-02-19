@@ -4,7 +4,10 @@
 use crate::{
     SimulationError, XResult,
     random::normal,
-    simulation::{ContinuousTrajectoryTrait, Moment, Pair, ContinuousProcess, functional::{FirstPassageTime, OccupationTime}},
+    simulation::{
+        ContinuousProcess, ContinuousTrajectoryTrait, Moment, Pair,
+        functional::{FirstPassageTime, OccupationTime},
+    },
     utils::cumsum,
 };
 use rayon::prelude::*;
@@ -174,7 +177,7 @@ impl Bm {
     /// A f64 representing the first passage time of the Brownian motion simulation.
     ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// let bm = Bm::new(10.0, 1.0).unwrap();
     /// let fpt = bm.fpt((-1.0, 1.0), 1000.0, 0.1).unwrap();
@@ -291,7 +294,7 @@ pub fn simulate_bm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::{Moment, ContinuousTrajectoryTrait};
+    use crate::simulation::{ContinuousTrajectoryTrait, Moment};
 
     #[test]
     fn test_simulate_bm() {

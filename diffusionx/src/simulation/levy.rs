@@ -4,7 +4,10 @@
 use crate::{
     SimulationError, XResult,
     random::stable,
-    simulation::{Pair, ContinuousProcess, functional::{FirstPassageTime, OccupationTime}},
+    simulation::{
+        ContinuousProcess, Pair,
+        functional::{FirstPassageTime, OccupationTime},
+    },
     utils::cumsum,
 };
 use rayon::prelude::*;
@@ -56,9 +59,9 @@ impl Levy {
     }
 
     /// Get the first passage time of the Levy process simulation
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `domain` - The domain of the Levy process simulation.
     /// * `max_duration` - The maximum duration of the Levy process simulation.
     /// * `time_step` - The time step of the Levy process simulation.
@@ -87,19 +90,19 @@ impl Levy {
     }
 
     /// Get the occupation time of the Levy process simulation
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `domain` - The domain of the Levy process simulation.
     /// * `duration` - The duration of the Levy process simulation.
     /// * `time_step` - The time step of the Levy process simulation.
     ///
     /// # Returns
-    /// 
+    ///
     /// A f64 representing the occupation time of the Levy process simulation.
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// let levy = Levy::new(0.0, 1.5).unwrap();
     /// let ot = levy.occupation_time((-1.0, 1.0), 10.0, 0.1).unwrap();
@@ -114,8 +117,6 @@ impl Levy {
         ot.simulate(time_step)
     }
 }
-
-
 
 /// impl `ContinuousProcess` trait for Levy process
 impl ContinuousProcess for Levy {

@@ -39,7 +39,7 @@ use std::{
 };
 
 /// Standard Lévy stable distribution with scale parameter 1 and location parameter 0
-/// 
+///
 /// # Fields
 ///
 /// * `alpha` - Index of stability

@@ -19,13 +19,13 @@ pub trait ContinuousProcess: Clone + Send + Sync {
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair>;
 }
 
-pub trait PointProcess:  Clone + Send + Sync {
+pub trait PointProcess: Clone + Send + Sync {
     /// Simulate the point process
     ///
     /// # Arguments
     ///
     /// * `duration` - The duration of the simulation.
-    /// 
+    ///
     /// # Returns
     ///
     /// A tuple containing the time and the position of the simulation.
@@ -44,7 +44,7 @@ pub trait PointProcess:  Clone + Send + Sync {
 }
 
 /// Continuous trajectory
-/// 
+///
 /// # Fields
 ///
 /// * `sp` - The simulation object.
@@ -72,7 +72,7 @@ impl<SP: ContinuousProcess> ContinuousTrajectory<SP> {
 }
 
 /// Point process trajectory
-/// 
+///
 /// # Fields
 ///
 /// * `sp` - The simulation object.
@@ -92,7 +92,11 @@ impl<SP: PointProcess> PointTrajectory<SP> {
             )
             .into());
         }
-        Ok(Self { sp, duration: Some(duration), num_step: None })
+        Ok(Self {
+            sp,
+            duration: Some(duration),
+            num_step: None,
+        })
     }
 
     pub fn with_step(sp: SP, num_step: usize) -> XResult<Self> {
@@ -102,7 +106,11 @@ impl<SP: PointProcess> PointTrajectory<SP> {
             )
             .into());
         }
-        Ok(Self { sp, duration: None, num_step: Some(num_step) })
+        Ok(Self {
+            sp,
+            duration: None,
+            num_step: Some(num_step),
+        })
     }
 
     pub fn simulate_with_duration(&self) -> XResult<PointPair> {
@@ -142,7 +150,7 @@ pub trait PointTrajectoryTrait: PointProcess {
         Ok(traj)
     }
 
-    fn step(&self, num_step: usize) -> XResult<PointTrajectory<Self>> {  
+    fn step(&self, num_step: usize) -> XResult<PointTrajectory<Self>> {
         let traj = PointTrajectory::with_step(self.clone(), num_step)?;
         Ok(traj)
     }
@@ -255,7 +263,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
         }
 
         let sp = self.sp.clone();
-        
+
         if self.duration.is_none() {
             return Err(SimulationError::InvalidParameters(
                 "duration must be provided".to_string(),
@@ -275,7 +283,8 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
                 }
             })
             .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))? / particles as f64;
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64;
         Ok(result)
     }
     fn central_moment(&self, order: i32, particles: usize, _time_step: f64) -> XResult<f64> {
