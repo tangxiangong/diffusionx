@@ -1,6 +1,5 @@
-//! # DiffusionX
 //! DiffusionX is a multi-threaded high-performance Rust library for random number/stochastic process simulation.
-//! ## Usage
+//! # Usage
 //! ```rust
 //! use diffusionx::simulation::{Bm, Simulation, Functional};
 //! // Brownian motion simulation
@@ -14,21 +13,21 @@
 //! let max_duration = 1000; // if over this duration, the simulation will be terminated and return None
 //! let fpt = bm.fpt(time_step, (-1.0, 1.0), max_duration)?;
 //! ```
-//! ## Progress
-//! ### Random Number Generation
+//! # Progress
+//! ## Random Number Generation
 //! - [x] Normal distribution
 //! - [x] Uniform distribution
 //! - [x] Exponential distribution
 //! - [x] Poisson distribution
 //! - [x] Alpha-stable distribution
-//! ### Stochastic Processes
+//! ## Stochastic Processes
 //! - [x] Brownian motion
 //! - [ ] Alpha-stable Lévy process
 //! - [ ] Fractional Brownian motion
 //! - [ ] Poisson process
 //! - [ ] Compound Poisson process
 //! - [ ] Langevin equation
-//! ## License
+//! # License
 //! This project is dual-licensed under:
 //! * [MIT License](https://opensource.org/licenses/MIT)
 //! * [Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)

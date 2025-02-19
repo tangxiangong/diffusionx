@@ -59,10 +59,12 @@ impl Bm {
         })
     }
 
+    /// Get the starting position of the Brownian motion simulation
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
+    /// Get the diffusion coefficient of the Brownian motion simulation
     pub fn diffusion_coefficient(&self) -> f64 {
         self.diffusion_coefficient
     }
@@ -101,6 +103,25 @@ impl Bm {
         traj.central_moment(2, particles, time_step)
     }
 
+    /// Get the raw moment of the Brownian motion simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the Brownian motion simulation.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the Brownian motion simulation.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the raw moment of the Brownian motion simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let bm = Bm::new(10.0, 1.0).unwrap();
+    /// let moment = bm.raw_moment(1.0, 1000, 0.1).unwrap();
+    /// ```
     pub fn raw_moment(
         &self,
         duration: impl Into<f64>,
@@ -112,6 +133,25 @@ impl Bm {
         traj.raw_moment(order, particles, time_step)
     }
 
+    /// Get the central moment of the Brownian motion simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the Brownian motion simulation.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the Brownian motion simulation.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the central moment of the Brownian motion simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let bm = Bm::new(10.0, 1.0).unwrap();
+    /// let msd = bm.msd(1.0, 1000, 0.1).unwrap();
+    /// ```
     pub fn central_moment(
         &self,
         duration: impl Into<f64>,
@@ -123,6 +163,24 @@ impl Bm {
         traj.central_moment(order, particles, time_step)
     }
 
+    /// Get the first passage time of the Brownian motion simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the Brownian motion simulation.
+    /// * `max_duration` - The maximum duration of the Brownian motion simulation.
+    /// * `time_step` - The time step of the Brownian motion simulation.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the first passage time of the Brownian motion simulation.
+    ///
+    /// # Example
+    /// 
+    /// ```rust
+    /// let bm = Bm::new(10.0, 1.0).unwrap();
+    /// let fpt = bm.fpt((-1.0, 1.0), 1000.0, 0.1).unwrap();
+    /// ```
     pub fn fpt(
         &self,
         domain: (impl Into<f64>, impl Into<f64>),
@@ -170,8 +228,8 @@ impl Simulation for Bm {
 ///
 /// * `start_position` - The starting position of the Brownian motion.  
 /// * `diffusion_coefficient` - The diffusion coefficient of the Brownian motion.
-/// * `time_step` - The time step of the Brownian motion.
 /// * `duration` - The duration of the Brownian motion.
+/// * `time_step` - The time step of the Brownian motion.
 ///
 /// # Returns
 ///

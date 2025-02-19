@@ -1,6 +1,12 @@
 use crate::{SimulationError, XResult, simulation::Simulation};
 use rayon::prelude::*;
 
+/// Functional for first passage time
+/// 
+/// # Fields
+///
+/// * `sp` - The simulation object.
+/// * `domain` - The domain of the simulation.
 pub struct FirstPassageTime<SP: Simulation> {
     sp: SP,
     domain: (f64, f64),
@@ -21,6 +27,25 @@ impl<SP: Simulation> FirstPassageTime<SP> {
         })
     }
 
+    /// Simulate the first passage time
+    /// 
+    /// # Arguments
+    /// 
+    /// * `max_duration` - The maximum duration of the simulation.
+    /// * `time_step` - The time step of the simulation.
+    ///
+    /// # Returns
+    /// 
+    /// `Option<f64>`
+    /// * None if the first passage time is not found within the maximum duration.
+    /// * A f64 representing the first passage time of the simulation.
+    ///
+    /// # Example
+    /// 
+    /// ```rust
+    /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
+    /// let fpt_result = fpt.simulate(1000.0, 0.1).unwrap();
+    /// ```
     pub fn simulate(&self, max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(
@@ -49,7 +74,28 @@ impl<SP: Simulation> FirstPassageTime<SP> {
             }
         }
     }
-
+    
+    /// Get the raw moment of the first passage time
+    /// 
+    /// # Arguments
+    /// 
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `max_duration` - The maximum duration of the simulation.
+    /// * `time_step` - The time step of the simulation.
+    ///
+    /// # Returns
+    /// 
+    /// `Option<f64>`
+    /// * None if the raw moment is not found.
+    /// * A f64 representing the raw moment of the simulation.
+    ///
+    /// # Example
+    /// 
+    /// ```rust
+    /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
+    /// let raw_moment = fpt.raw_moment(1, 1000, 1000.0, 0.1).unwrap();
+    /// ```
     pub fn raw_moment(
         &self,
         order: i32,
@@ -107,6 +153,28 @@ impl<SP: Simulation> FirstPassageTime<SP> {
             Ok(Some(sum / valid_count as f64))
         }
     }
+
+    /// Get the central moment of the first passage time
+    /// 
+    /// # Arguments
+    /// 
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `max_duration` - The maximum duration of the simulation.
+    /// * `time_step` - The time step of the simulation.    
+    ///
+    /// # Returns
+    /// 
+    /// `Option<f64>`
+    /// * None if the central moment is not found.
+    /// * A f64 representing the central moment of the simulation.
+    /// 
+    /// # Example
+    /// 
+    /// ```rust
+    /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
+    /// let central_moment = fpt.central_moment(1, 1000, 1000.0, 0.1).unwrap();
+    /// ```
     pub fn central_moment(
         &self,
         order: i32,

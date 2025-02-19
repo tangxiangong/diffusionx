@@ -39,6 +39,11 @@ use std::{
 };
 
 /// Standard Lévy stable distribution with scale parameter 1 and location parameter 0
+/// 
+/// # Fields
+///
+/// * `alpha` - Index of stability
+/// * `beta` - Skewness parameter
 #[derive(Debug, Clone, Copy)]
 pub struct StandardStable {
     /// Index of stability

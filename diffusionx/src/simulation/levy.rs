@@ -45,14 +45,37 @@ impl Levy {
         })
     }
 
+    /// Get the starting position of the Levy process simulation
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
+    /// Get the stability index of the Levy process simulation
     pub fn index(&self) -> f64 {
         self.alpha
     }
 
+    /// Get the first passage time of the Levy process simulation
+    /// 
+    /// # Arguments
+    /// 
+    /// * `domain` - The domain of the Levy process simulation.
+    /// * `max_duration` - The maximum duration of the Levy process simulation.
+    /// * `time_step` - The time step of the Levy process simulation.
+    ///
+    /// # Returns
+    ///
+    /// `Option<f64>`
+    /// * None if the first passage time is not found within the maximum duration.
+    /// * A f64 representing the first passage time of the simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let levy = Levy::new(0.0, 1.5).unwrap();
+    /// let params = 0.1;
+    /// let (t, x) = levy.simulate(params).unwrap();
+    /// ```
     pub fn fpt(
         &self,
         domain: (impl Into<f64>, impl Into<f64>),

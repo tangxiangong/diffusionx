@@ -3,11 +3,10 @@ use rayon::prelude::*;
 
 pub type Pair = (Vec<f64>, Vec<f64>);
 
+/// Stochastic trait
 pub trait Stochastic: Clone + Send + Sync {}
 
 /// Simulation trait
-///
-/// This trait represents a simulation.
 pub trait Simulation: Stochastic {
     /// Simulate the simulation
     ///
@@ -21,6 +20,12 @@ pub trait Simulation: Stochastic {
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair>;
 }
 
+/// Stochastic trajectory
+/// 
+/// # Fields
+///
+/// * `sp` - The simulation object.
+/// * `duration` - The duration of the simulation.
 pub struct StochasticTrajectory<SP: Simulation> {
     pub(crate) sp: SP,
     pub(crate) duration: f64,
@@ -43,6 +48,7 @@ impl<SP: Simulation> StochasticTrajectory<SP> {
     }
 }
 
+/// Trajectory trait
 pub trait Trajectory: Simulation {
     fn duration(&self, duration: impl Into<f64>) -> XResult<StochasticTrajectory<Self>> {
         let traj = StochasticTrajectory::new(self.clone(), duration)?;
@@ -53,8 +59,6 @@ pub trait Trajectory: Simulation {
 impl<SP: Simulation> Trajectory for SP {}
 
 /// Moment trait
-///
-/// This trait represents a simulation that has moments.
 pub trait Moment {
     /// Get the raw moment of the simulation
     ///
