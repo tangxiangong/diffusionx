@@ -1,0 +1,142 @@
+name: Publish to PyPI
+
+# Triggered on release creation or manual dispatch
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+# Environment variables for the entire workflow
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: "-C target-cpu=native"
+
+# Required setup:
+# 1. Create a PyPI account and enable two-factor authentication
+# 2. Set up trusted publisher in PyPI project settings:
+#    - Owner: [Your GitHub username/org]
+#    - Repository: DiffusionX
+#    - Workflow name: Publish to PyPI
+#    - Environment: pypi
+# 3. Create a 'pypi' environment in GitHub repository settings
+#    Settings -> Environments -> New environment -> Name: pypi
+
+jobs:
+  build-wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.12', '3.11', '3.10']
+        target: [x86_64, aarch64]
+        exclude:
+          - os: windows-latest
+            target: aarch64
+          - os: ubuntu-latest
+            target: aarch64
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "rust-cache-${{ matrix.target }}"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest numpy matplotlib scipy
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        env:
+          RUST_BACKTRACE: full
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --manifest-path py-diffusionx/Cargo.toml
+          sccache: 'true'
+          manylinux: auto
+
+      - name: Run tests
+        if: matrix.target == 'x86_64'
+        run: |
+          pip install dist/*.whl
+          cd py-diffusionx
+          python -m pytest python/tests
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.target }}-py${{ matrix.python-version }}
+          path: dist
+          if-no-files-found: error
+
+  build-sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist --manifest-path py-diffusionx/Cargo.toml
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: [build-wheels, build-sdist]
+    runs-on: ubuntu-latest
+    # Environment configuration for PyPI trusted publishing
+    environment:
+      name: pypi
+      url: https://pypi.org/p/diffusionx
+    # Required permissions for OIDC authentication with PyPI
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          skip-existing: true
