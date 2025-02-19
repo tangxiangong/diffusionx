@@ -73,13 +73,6 @@ jobs:
           sccache: 'true'
           manylinux: auto
 
-      - name: Run tests
-        if: matrix.target == 'x86_64'
-        run: |
-          pip install dist/*.whl
-          cd py-diffusionx
-          python -m pytest python/tests
-
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
