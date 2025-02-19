@@ -2,11 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### 🚀 Features
+
+- Add occupation time functionality
+- Add Lévy process simulation and related functionality
+- Add occupation time for Brownian motion
+
+### 🐛 Bug Fixes
+
+- *(Python)* Add input validation for Brownian motion and Lévy process methods
+
+### 📚 Documentation
+
+- Update README with new features and progress
+- Update project roadmap and feature tracking
+
+### ⚙️ Miscellaneous Tasks
+
+- Add changelog and git-cliff configuration
+
 ## [0.1.1-remove-test] - 2025-02-19
 
 ### 🚜 Refactor
 
 - Remove gamma function implementations from utils
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove test step from Python publish workflow
+
+## [0.1.1-fix] - 2025-02-19
+
+### 💼 Other
+
+- Lower Python version requirement to 3.9
 
 ### ⚙️ Miscellaneous Tasks
 
