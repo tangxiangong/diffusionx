@@ -22,11 +22,14 @@
 //! - [x] Alpha-stable distribution
 //! ## Stochastic Processes
 //! - [x] Brownian motion
-//! - [ ] Alpha-stable Lévy process
+//! - [x] Alpha-stable Lévy process
 //! - [ ] Fractional Brownian motion
 //! - [ ] Poisson process
 //! - [ ] Compound Poisson process
 //! - [ ] Langevin equation
+//! ## Functional
+//! - [x] First passage time
+//! - [x] Occupation time
 //! # License
 //! This project is dual-licensed under:
 //! * [MIT License](https://opensource.org/licenses/MIT)
