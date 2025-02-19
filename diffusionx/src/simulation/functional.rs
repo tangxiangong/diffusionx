@@ -1,4 +1,4 @@
-use crate::{SimulationError, XResult, simulation::Simulation};
+use crate::{SimulationError, XResult, simulation::ContinuousProcess};
 use rayon::prelude::*;
 
 /// Functional for first passage time
@@ -7,12 +7,12 @@ use rayon::prelude::*;
 ///
 /// * `sp` - The simulation object.
 /// * `domain` - The domain of the simulation.
-pub struct FirstPassageTime<SP: Simulation> {
+pub struct FirstPassageTime<SP: ContinuousProcess> {
     sp: SP,
     domain: (f64, f64),
 }
 
-impl<SP: Simulation> FirstPassageTime<SP> {
+impl<SP: ContinuousProcess> FirstPassageTime<SP> {
     pub fn new(sp: &SP, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<Self> {
         let domain = (domain.0.into(), domain.1.into());
         if domain.0 >= domain.1 {
@@ -225,13 +225,13 @@ impl<SP: Simulation> FirstPassageTime<SP> {
 /// * `domain` - The domain of the simulation.
 /// * `duration` - The duration of the simulation.
 #[derive(Debug, Clone)]
-pub struct OccupationTime<SP: Simulation> {
+pub struct OccupationTime<SP: ContinuousProcess> {
     sp: SP,
     domain: (f64, f64),
     duration: f64,
 }
 
-impl<SP: Simulation> OccupationTime<SP> {
+impl<SP: ContinuousProcess> OccupationTime<SP> {
     pub fn new(sp: &SP, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>) -> XResult<Self> {
         let domain = (domain.0.into(), domain.1.into());
         let duration = duration.into();
@@ -273,12 +273,19 @@ impl<SP: Simulation> OccupationTime<SP> {
     pub fn simulate(&self, time_step: f64) -> XResult<f64> {
         let (t, x) = self.sp.simulate(self.duration, time_step)?;
         let (a, b) = self.domain;
-        let mut occupation_time = 0.0;
-        for i in 0..t.len() -1 {
-            if (a..=b).contains(&x[i]) && (a..=b).contains(&x[i + 1]) {
-                occupation_time += t[i + 1] - t[i];
-            }
-        }
+        
+        let occupation_time = x.windows(2)
+            .zip(t.windows(2))
+            .map(|(x_pair, t_pair)| {
+                let in_domain = (a..=b).contains(&x_pair[0]) && (a..=b).contains(&x_pair[1]);
+                if in_domain {
+                    t_pair[1] - t_pair[0]
+                } else {
+                    0.0
+                }
+            })
+            .sum();
+
         Ok(occupation_time)
     }
 
