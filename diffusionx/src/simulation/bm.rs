@@ -4,10 +4,7 @@
 use crate::{
     SimulationError, XResult,
     random::normal,
-    simulation::{
-        ContinuousProcess, ContinuousTrajectoryTrait, Moment, Pair,
-        functional::{FirstPassageTime, OccupationTime},
-    },
+    simulation::prelude::*,
     utils::cumsum,
 };
 use rayon::prelude::*;
@@ -294,7 +291,7 @@ pub fn simulate_bm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::{ContinuousTrajectoryTrait, Moment};
+    use crate::simulation::prelude::{Moment, ContinuousTrajectoryTrait};
 
     #[test]
     fn test_simulate_bm() {

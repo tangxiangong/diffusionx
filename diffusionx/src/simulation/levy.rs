@@ -4,10 +4,7 @@
 use crate::{
     SimulationError, XResult,
     random::stable,
-    simulation::{
-        ContinuousProcess, Pair,
-        functional::{FirstPassageTime, OccupationTime},
-    },
+    simulation::prelude::*,
     utils::cumsum,
 };
 use rayon::prelude::*;

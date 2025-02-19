@@ -1,4 +1,4 @@
-use crate::{SimulationError, XResult, simulation::ContinuousProcess};
+use crate::{SimulationError, XResult, simulation::prelude::ContinuousProcess};
 use rayon::prelude::*;
 
 /// Functional for first passage time
