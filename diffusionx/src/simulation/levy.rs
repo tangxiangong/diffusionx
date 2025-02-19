@@ -4,7 +4,7 @@
 use crate::{
     SimulationError, XResult,
     random::stable,
-    simulation::{Pair, Simulation, Stochastic, functional::{FirstPassageTime, OccupationTime}},
+    simulation::{Pair, ContinuousProcess, functional::{FirstPassageTime, OccupationTime}},
     utils::cumsum,
 };
 use rayon::prelude::*;
@@ -115,10 +115,10 @@ impl Levy {
     }
 }
 
-impl Stochastic for Levy {}
 
-/// impl `Simulation` trait for Levy process
-impl Simulation for Levy {
+
+/// impl `ContinuousProcess` trait for Levy process
+impl ContinuousProcess for Levy {
     /// Simulate Levy process
     ///
     /// # Arguments

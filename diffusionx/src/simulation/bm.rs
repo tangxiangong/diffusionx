@@ -4,7 +4,7 @@
 use crate::{
     SimulationError, XResult,
     random::normal,
-    simulation::{Moment, Pair, Simulation, Stochastic, Trajectory, functional::{FirstPassageTime, OccupationTime}},
+    simulation::{ContinuousTrajectoryTrait, Moment, Pair, ContinuousProcess, functional::{FirstPassageTime, OccupationTime}},
     utils::cumsum,
 };
 use rayon::prelude::*;
@@ -22,8 +22,6 @@ pub struct Bm {
     start_position: f64,
     diffusion_coefficient: f64,
 }
-
-impl Stochastic for Bm {}
 
 impl Default for Bm {
     fn default() -> Self {
@@ -220,12 +218,13 @@ impl Bm {
     }
 }
 
-/// impl `Simulation` trait for Brownian motion
-impl Simulation for Bm {
+/// impl `ContinuousProcess` trait for Brownian motion
+impl ContinuousProcess for Bm {
     /// Simulate Brownian motion
     ///
     /// # Arguments
     ///
+    /// * `duration` - The duration of the Brownian motion simulation.
     /// * `time_step` - The time step of the Brownian motion simulation.
     ///
     /// # Returns
@@ -292,7 +291,7 @@ pub fn simulate_bm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::{Moment, Trajectory};
+    use crate::simulation::{Moment, ContinuousTrajectoryTrait};
 
     #[test]
     fn test_simulate_bm() {
