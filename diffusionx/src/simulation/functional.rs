@@ -215,3 +215,149 @@ impl<SP: Simulation> FirstPassageTime<SP> {
         }
     }
 }
+
+
+/// Functional for occupation time
+/// 
+/// # Fields
+///
+/// * `sp` - The simulation object.
+/// * `domain` - The domain of the simulation.
+/// * `duration` - The duration of the simulation.
+#[derive(Debug, Clone)]
+pub struct OccupationTime<SP: Simulation> {
+    sp: SP,
+    domain: (f64, f64),
+    duration: f64,
+}
+
+impl<SP: Simulation> OccupationTime<SP> {
+    pub fn new(sp: &SP, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>) -> XResult<Self> {
+        let domain = (domain.0.into(), domain.1.into());
+        let duration = duration.into();
+        if domain.0 >= domain.1 {
+            return Err(SimulationError::InvalidParameters(
+                "domain must be a valid interval".to_string(),
+            )
+            .into());
+        }
+        if duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(
+                "duration must be positive".to_string(),
+            )
+            .into());
+        }
+        Ok(Self {
+            sp: sp.clone(),
+            domain,
+            duration,
+        })
+    }
+
+    /// Simulate the occupation time
+    /// 
+    /// # Arguments
+    /// 
+    /// * `time_step` - The time step of the simulation.
+    /// 
+    /// # Returns
+    /// 
+    /// * A f64 representing the occupation time of the simulation.
+    /// 
+    /// # Example
+    /// 
+    /// ```rust
+    /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
+    /// let occupation_time = ot.simulate(0.1).unwrap();
+    /// ```
+    pub fn simulate(&self, time_step: f64) -> XResult<f64> {
+        let (t, x) = self.sp.simulate(self.duration, time_step)?;
+        let (a, b) = self.domain;
+        let mut occupation_time = 0.0;
+        for i in 0..t.len() -1 {
+            if (a..=b).contains(&x[i]) && (a..=b).contains(&x[i + 1]) {
+                occupation_time += t[i + 1] - t[i];
+            }
+        }
+        Ok(occupation_time)
+    }
+
+    /// Get the raw moment of the occupation time
+    /// 
+    /// # Arguments
+    /// 
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the simulation.
+    ///
+    /// # Returns
+    /// 
+    /// * A f64 representing the raw moment of the occupation time of the simulation.
+    /// 
+    /// # Example
+    /// 
+    /// ```rust
+    /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
+    /// let raw_moment = ot.raw_moment(1, 1000, 0.1).unwrap();
+    /// ```
+    pub fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(
+                "particles must be positive".to_string(),
+            )
+            .into());
+        }
+        if order < 0 {
+            return Err(SimulationError::InvalidParameters(
+                "order must be non-negative".to_string(),
+            )
+            .into());
+        }
+        if order == 0 {
+            return Ok(0.0);
+        }
+
+        let result = (0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let occupation_time = self.simulate(time_step)?;
+                Ok(occupation_time.powi(order))
+            })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64;
+        Ok(result)
+    }
+
+    /// Get the central moment of the occupation time
+    /// 
+    /// # Arguments
+    /// 
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the simulation.
+    ///
+    /// # Returns
+    /// 
+    /// * A f64 representing the central moment of the occupation time of the simulation.
+    /// 
+    /// # Example
+    /// 
+    /// ```rust
+    /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
+    /// let central_moment = ot.central_moment(1, 1000, 0.1).unwrap();
+    /// ```
+    pub fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
+        let mean = self.raw_moment(order, particles, time_step)?;
+        let result = (0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let occupation_time = self.simulate(time_step)?;
+                Ok((occupation_time - mean).powi(order))
+            })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64;
+        Ok(result)
+    }
+}

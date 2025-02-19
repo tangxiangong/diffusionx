@@ -4,7 +4,7 @@
 use crate::{
     SimulationError, XResult,
     random::normal,
-    simulation::{Moment, Pair, Simulation, Stochastic, Trajectory, functional::FirstPassageTime},
+    simulation::{Moment, Pair, Simulation, Stochastic, Trajectory, functional::{FirstPassageTime, OccupationTime}},
     utils::cumsum,
 };
 use rayon::prelude::*;
@@ -190,6 +190,34 @@ impl Bm {
         let fpt = FirstPassageTime::new(self, domain)?;
         fpt.simulate(max_duration, time_step)
     }
+
+    /// Get the occupation time of the Brownian motion simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the Brownian motion simulation.
+    /// * `duration` - The duration of the Brownian motion simulation.
+    /// * `time_step` - The time step of the Brownian motion simulation.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the occupation time of the Brownian motion simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let bm = Bm::new(10.0, 1.0).unwrap();
+    /// let ot = bm.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
+    /// ```
+    pub fn occupation_time(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        duration: impl Into<f64>,
+        time_step: f64,
+    ) -> XResult<f64> {
+        let ot = OccupationTime::new(self, domain, duration)?;
+        ot.simulate(time_step)
+    }
 }
 
 /// impl `Simulation` trait for Brownian motion
@@ -292,6 +320,14 @@ mod tests {
         let time_step = 0.1;
         let fpt = bm.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
         println!("fpt: {:?}", fpt);
+    }
+
+    #[test]
+    fn test_occupation_time() {
+        let bm = Bm::new(0.0, 1.0).unwrap();
+        let time_step = 0.1;
+        let ot = bm.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
+        println!("ot: {:?}", ot);
     }
 
     #[test]
