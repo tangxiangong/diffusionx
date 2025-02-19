@@ -53,3 +53,30 @@ def bm_fpt(
     domain: tuple[float, float],
     max_duration: float,
 ) -> float: ...
+def levy_simulate(
+    start_position: float,
+    alpha: float,
+    duration: float,
+    step_size: float,
+) -> tuple[np.ndarray, np.ndarray]: ...
+def levy_fpt(
+    start_position: float,
+    alpha: float,
+    step_size: float,
+    domain: tuple[float, float],
+    max_duration: float,
+) -> float: ...
+def bm_occupation_time(
+    start_position: float,
+    diffusion_coefficient: float,
+    step_size: float,
+    domain: tuple[float, float],
+    duration: float,
+) -> float: ...
+def levy_occupation_time(
+    start_position: float,
+    alpha: float,
+    step_size: float,
+    domain: tuple[float, float],
+    duration: float,
+) -> float: ...

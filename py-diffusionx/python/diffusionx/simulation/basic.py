@@ -14,18 +14,6 @@ class StochasticProcess(ABC):
         pass
 
     @abstractmethod
-    def raw_moment(
-        self, duration: real, order: int, particles: int, step_size: float = 0.01
-    ) -> float:
-        pass
-
-    @abstractmethod
-    def central_moment(
-        self, duration: real, order: int, particles: int, step_size: float = 0.01
-    ) -> float:
-        pass
-
-    @abstractmethod
     def fpt(
         self,
         domain: tuple[real, real],
@@ -50,11 +38,3 @@ class Trajectory:
 
     def simulate(self, step_size: real = 0.01) -> tuple[np.ndarray, np.ndarray]:
         return self.sp.simulate(self.duration, step_size)
-
-    def raw_moment(self, duration, order: int, particles: int, step_size: float = 0.01):
-        return self.sp.raw_moment(duration, order, particles, step_size)
-
-    def central_moment(
-        self, duration: real, order: int, particles: int, step_size: float = 0.01
-    ):
-        return self.sp.central_moment(duration, order, particles, step_size)
