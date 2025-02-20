@@ -121,6 +121,7 @@ impl ContinuousProcess for Levy {
     ///
     /// # Arguments
     ///
+    /// * `duration` - The duration of the Levy process simulation.
     /// * `time_step` - The time step of the Levy process simulation.
     ///
     /// # Returns
@@ -160,12 +161,12 @@ impl ContinuousProcess for Levy {
 ///
 /// * `start_position` - The starting position of the Levy process.  
 /// * `alpha` - The stability index of the Levy process.
-/// * `tau` - The time step of the Levy process.
 /// * `duration` - The duration of the Levy process.
+/// * `time_step` - The time step of the Levy process.
 ///
 /// # Returns
 ///
-/// The result of the Levy process simulation.   
+/// A tuple containing the time and the position of the Levy process simulation.   
 ///
 /// # Example
 ///

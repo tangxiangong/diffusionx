@@ -260,7 +260,7 @@ impl ContinuousProcess for Bm {
 ///
 /// # Returns
 ///
-/// The result of the Brownian motion simulation.   
+/// A tuple containing the time and the position of the Brownian motion simulation.   
 ///
 /// # Example
 ///
