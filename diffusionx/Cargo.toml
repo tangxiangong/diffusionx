@@ -4,7 +4,7 @@ authors.workspace = true
 edition.workspace = true
 version.workspace = true
 description = "A library for random number/stochastic process simulation with high performance."
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 readme = "README.md"
 

@@ -51,7 +51,7 @@ jobs:
           cache: 'pip'
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@beta
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
