@@ -1,14 +1,9 @@
 //! Subordinator simulation
-//! 
+//!
 //! An alpha stable subordinator is an alpha stable Levy process that is non-negative and has a non-decreasing sample path.
 //! For Levy process, see [`crate::simulation::levy`].
 
-use crate::{
-    SimulationError, XResult,
-    random::stable,
-    simulation::prelude::*,
-    utils::cumsum,
-};
+use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
 /// Subordinator simulation
@@ -36,9 +31,7 @@ impl Subordinator {
             )
             .into());
         }
-        Ok(Self {
-            alpha,
-        })
+        Ok(Self { alpha })
     }
 
     /// Get the stability index of the subordinator
@@ -209,7 +202,9 @@ mod tests {
     fn test_occupation_time() {
         let subordinator = Subordinator::new(0.5).unwrap();
         let time_step = 0.1;
-        let ot = subordinator.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
+        let ot = subordinator
+            .occupation_time((-1.0, 1.0), 10.0, time_step)
+            .unwrap();
         println!("ot: {:?}", ot);
     }
 

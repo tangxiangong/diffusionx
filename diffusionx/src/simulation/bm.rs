@@ -1,12 +1,7 @@
 //! Brownian motion simulation
 //! For Levy process, see [`crate::simulation::levy`].
 
-use crate::{
-    SimulationError, XResult,
-    random::normal,
-    simulation::prelude::*,
-    utils::cumsum,
-};
+use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
 /// Brownian motion simulation
@@ -291,7 +286,7 @@ pub fn simulate_bm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::prelude::{Moment, ContinuousTrajectoryTrait};
+    use crate::simulation::prelude::{ContinuousTrajectoryTrait, Moment};
 
     #[test]
     fn test_simulate_bm() {

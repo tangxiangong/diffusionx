@@ -1,12 +1,6 @@
 //! Poisson process simulation
 
-
-use crate::{
-    SimulationError, XResult,
-    random::exponential,
-    simulation::prelude::*,
-    utils::cumsum,
-};
+use crate::{SimulationError, XResult, random::exponential, simulation::prelude::*, utils::cumsum};
 
 /// Poisson process simulation
 ///
@@ -45,7 +39,7 @@ impl Poisson {
 
 impl PointProcess for Poisson {
     fn simulate_with_step(&self, num_step: usize) -> XResult<PointPair> {
-        let durations = exponential::rands(self.lambda, num_step)?;        
+        let durations = exponential::rands(self.lambda, num_step)?;
         let t = cumsum(0.0, &durations);
         let x = (0..=num_step as i64).collect::<Vec<_>>();
         Ok((t, x))

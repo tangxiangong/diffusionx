@@ -1,2 +1,2 @@
-pub use super::traits::*;
 pub use super::functional::*;
+pub use super::traits::*;

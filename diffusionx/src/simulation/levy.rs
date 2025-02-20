@@ -1,12 +1,7 @@
 //! Levy process simulation
 //! For Brownian motion, see [`crate::simulation::bm`].
 
-use crate::{
-    SimulationError, XResult,
-    random::stable,
-    simulation::prelude::*,
-    utils::cumsum,
-};
+use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
 /// Levy process simulation

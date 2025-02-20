@@ -1,5 +1,5 @@
 use crate::XPyResult;
-use diffusionx::simulation::{prelude::*, Bm, Levy};
+use diffusionx::simulation::{Bm, Levy, prelude::*};
 use numpy::{IntoPyArray, Ix1, PyArray};
 use pyo3::prelude::*;
 
