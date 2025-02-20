@@ -106,8 +106,8 @@ impl Subordinator {
     }
 }
 
-/// impl `ContinuousProcess` trait for Levy process
-impl ContinuousProcess for Levy {
+/// impl `ContinuousProcess` trait for Subordinator
+impl ContinuousProcess for Subordinator {
     /// Simulate subordinator
     ///
     /// # Arguments
