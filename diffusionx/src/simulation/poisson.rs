@@ -50,35 +50,4 @@ impl PointProcess for Poisson {
         let x = (0..=num_step as i64).collect::<Vec<_>>();
         Ok((t, x))
     }
-    fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<PointPair> {
-        let duration = duration.into();
-        let mut num_step = (duration / self.lambda).ceil() as usize;
-        let (t, x) = loop {
-            let (t, x) = self.simulate_with_step(num_step)?;
-            if t.last().is_none() {
-                return Err(SimulationError::Unknown.into());
-            }
-            let end_time = *t.last().unwrap();
-            if end_time >= duration {
-                break (t, x);
-            }
-            num_step *= 2;
-        };
-        let index = t.iter().position(|&time| time >= duration).unwrap();
-        let mut t_ = vec![0.0; index+1];
-        let mut x_ = vec![0i64; index+1];
-        for i in 0..=index-1 {
-            t_[i] = t[i];
-            x_[i] = x[i];
-        }
-        if t[index] > duration {
-            t_[index] = duration;
-            x_[index] = x_[index-1];
-        } else {
-            t_[index] = t[index];
-            x_[index] = x[index];
-        }
-
-        Ok((t_, x_))
-    }           
 }
