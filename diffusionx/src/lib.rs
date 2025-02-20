@@ -23,6 +23,8 @@
 //! ## Stochastic Processes
 //! - [x] Brownian motion
 //! - [x] Alpha-stable Lévy process
+//! - [x] Subordinator
+//! - [ ] Inverse Subordinator
 //! - [ ] Fractional Brownian motion
 //! - [ ] Poisson process
 //! - [ ] Compound Poisson process

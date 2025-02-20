@@ -1,7 +1,8 @@
 //! Simulation module
-//! Support:
+//! Now implemented:
 //! - Brownian motion
 //! - Levy process
+//! - Subordinator
 
 pub mod prelude;
 
@@ -15,5 +16,8 @@ pub use levy::*;
 
 mod subordinator;
 pub use subordinator::*;
+
+mod poisson;
+pub use poisson::*;
 
 pub mod functional;
