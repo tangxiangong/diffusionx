@@ -8,6 +8,9 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 readme = "README.md"
 
+[features]
+callable = []
+
 [[bench]]
 name = "random_generation"
 harness = false

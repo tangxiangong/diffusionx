@@ -1,0 +1,8 @@
+[toolchain]
+channel = "nightly"
+components = ["rustc", "rust-std", "cargo", "rustfmt", "clippy"]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+]
