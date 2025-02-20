@@ -21,6 +21,3 @@ mod poisson;
 pub use poisson::*;
 
 pub mod functional;
-
-#[cfg(feature = "callable")]
-pub mod callable;
