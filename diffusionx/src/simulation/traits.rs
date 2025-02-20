@@ -46,10 +46,8 @@ pub trait PointProcess: Clone + Send + Sync {
         let index = t.iter().position(|&time| time >= duration).unwrap();
         let mut t_ = vec![0.0; index + 1];
         let mut x_ = vec![0i64; index + 1];
-        for i in 0..=index - 1 {
-            t_[i] = t[i];
-            x_[i] = x[i];
-        }
+        t_[..index].copy_from_slice(&t[..index]);
+        x_[..index].copy_from_slice(&x[..index]);
         if t[index] > duration {
             t_[index] = duration;
             x_[index] = x_[index - 1];
