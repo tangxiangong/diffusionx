@@ -13,4 +13,7 @@ pub use bm::*;
 mod levy;
 pub use levy::*;
 
+mod subordinator;
+pub use subordinator::*;
+
 pub mod functional;
