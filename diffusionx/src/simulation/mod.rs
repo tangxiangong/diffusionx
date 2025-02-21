@@ -3,6 +3,9 @@
 //! - Brownian motion
 //! - Levy process
 //! - Subordinator
+//! - Inverse subordinator
+//! - Poisson process
+
 
 pub mod prelude;
 

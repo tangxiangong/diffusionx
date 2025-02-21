@@ -171,10 +171,10 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 
 - [x] 布朗运动
 - [x] alpha 稳定 Levy 过程
-- [x] alpha 稳定从属过程
-- [ ] 逆 alpha 稳定从属过程
+- [x] 从属过程
+- [x] 逆从属过程
 - [ ] 分数布朗运动
-- [ ] 泊松过程
+- [x] 泊松过程
 - [ ] 复合泊松过程
 - [ ] Langevin 方程
 
