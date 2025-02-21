@@ -8,27 +8,20 @@ All notable changes to this project will be documented in this file.
 
 - *(Rust)* Add subordinator simulation module
 - *(Rust)* Add Poisson process simulation module
-- *(Rust)* Add callable feature for simulation processes, which needs `nightly`.
-- Add point process simulation methods for first passage and occupation time
+- *(Rust)* Add point process simulation methods for first passage and occupation time
 - *(Rust)* Implement inverse subordinator simulation
 
 ### 🚜 Refactor
 
-- Move simulate_with_duration implementation to traits module
-- Standardize import statements and code formatting
-- Optimize slice copying in point process duration simulation
+- *(Rust)* Move simulate_with_duration implementation to traits module
+- *(Rust)* Standardize import statements and code formatting
+- *(Rust)* Optimize slice copying in point process duration simulation
 
 ### 📚 Documentation
 
-- Improve documentation for Brownian motion and Lévy process simulations
-- Update README with subordinator process roadmap
+- *(Rust)* Update README with subordinator process roadmap
 - *(Rust)* Implement subordinator and Poisson process simulations
 
-### ⚙️ Miscellaneous Tasks
-
-- Remove rust-toolchain.toml configuration
-- Update Rust toolchain and license configuration
-- Remove callable feature and nightly Rust toolchain
 
 ## [Rust-v0.1.2] - 2025-02-19
 
