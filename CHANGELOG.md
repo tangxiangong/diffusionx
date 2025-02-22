@@ -2,26 +2,50 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Python-0.1.2] - 2025-02-22
+
+### 🚀 Features
+
+- *(Rust)* Add occupation time for inverse subordinator
+- *(Python)* Add functional simulation methods for first passage time and occupation time
+- *(Python)* Add Poisson, Subordinator, and Inverse Subordinator simulation classes
+
+### 💼 Other
+
+- Release Rust version 0.1.3
+- Bump Python package version to 0.1.2
+
+### 📚 Documentation
+
+- *(Rust)* Update CHANGELOG for version 0.1.3
+
 ## [Rust-0.1.3] - 2025-02-21
 
 ### 🚀 Features
 
 - *(Rust)* Add subordinator simulation module
 - *(Rust)* Add Poisson process simulation module
-- *(Rust)* Add point process simulation methods for first passage and occupation time
+- *(Rust)* Add callable feature for simulation processes, which needs `nightly`.
+- Add point process simulation methods for first passage and occupation time
 - *(Rust)* Implement inverse subordinator simulation
 
 ### 🚜 Refactor
 
-- *(Rust)* Move simulate_with_duration implementation to traits module
-- *(Rust)* Standardize import statements and code formatting
-- *(Rust)* Optimize slice copying in point process duration simulation
+- Move simulate_with_duration implementation to traits module
+- Standardize import statements and code formatting
+- Optimize slice copying in point process duration simulation
 
 ### 📚 Documentation
 
-- *(Rust)* Update README with subordinator process roadmap
+- Improve documentation for Brownian motion and Lévy process simulations
+- Update README with subordinator process roadmap
 - *(Rust)* Implement subordinator and Poisson process simulations
 
+### ⚙️ Miscellaneous Tasks
+
+- Remove rust-toolchain.toml configuration
+- Update Rust toolchain and license configuration
+- Remove callable feature and nightly Rust toolchain
 
 ## [Rust-v0.1.2] - 2025-02-19
 
