@@ -9,4 +9,4 @@ def check_transform(value: real) -> float:
     elif isinstance(value, float):
         return value
     else:
-        raise ValueError("value must be a number")
+        raise ValueError(f"{value} must be a number")

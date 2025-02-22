@@ -13,15 +13,6 @@ class StochasticProcess(ABC):
     ) -> tuple[np.ndarray, np.ndarray]:
         pass
 
-    @abstractmethod
-    def fpt(
-        self,
-        domain: tuple[real, real],
-        step_size: real = 0.01,
-        max_duration: real = 1000,
-    ) -> float:
-        pass
-
 
 class Trajectory:
     def __init__(self, sp: StochasticProcess, duration: real):
