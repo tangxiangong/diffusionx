@@ -272,6 +272,30 @@ impl InvSubordinator {
         let fpt = FirstPassageTime::new(self, domain)?;
         fpt.simulate(max_duration, time_step)
     }
+
+    /// Get the occupation time of the inverse subordinator
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the inverse subordinator.
+    /// * `duration` - The duration of the inverse subordinator.
+    /// * `time_step` - The time step of the inverse subordinator.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the occupation time of the inverse subordinator.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
+    /// let params = 0.1;
+    /// let (t, x) = inv_subordinator.simulate(params).unwrap();
+    /// ```
+    pub fn occupation_time(&self, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>, time_step: f64) -> XResult<f64> {
+        let ot = OccupationTime::new(self, domain, duration)?;
+        ot.simulate(time_step)
+    }
 }
 
 impl ContinuousProcess for InvSubordinator {
