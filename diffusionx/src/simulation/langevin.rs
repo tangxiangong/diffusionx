@@ -92,7 +92,7 @@ pub fn simulate_langevin(drift: fn(f64, f64) -> f64, diffusion: fn(f64, f64) -> 
     x[0] = start_position.into();
     let noise = normal::standard_rands(num);
     for i in 1..=num {
-        x[i] = x[i-1] + drift(x[i-1], t[i-1]) * time_step + diffusion(x[i-1], t[i-1]) * noise[i-1] * time_step;
+        x[i] = x[i-1] + drift(x[i-1], t[i-1]) * time_step + diffusion(x[i-1], t[i-1]) * noise[i-1] * time_step.sqrt();
     }
     Ok((t, x))
 }
