@@ -23,4 +23,7 @@ pub use subordinator::*;
 mod poisson;
 pub use poisson::*;
 
+mod langevin;
+pub use langevin::*;
+
 pub mod functional;
