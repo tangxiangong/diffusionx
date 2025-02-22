@@ -80,3 +80,67 @@ def levy_occupation_time(
     domain: tuple[float, float],
     duration: float,
 ) -> float: ...
+def poisson_simulate_duration(
+    lambda_: float,
+    duration: float,
+) -> tuple[np.ndarray, np.ndarray]: ...
+def poisson_simulate_step(
+    lambda_: float,
+    num_step: int,
+) -> tuple[np.ndarray, np.ndarray]: ...
+def poisson_raw_moment(
+    lambda_: float,
+    duration: float,
+    order: int,
+    particles: int,
+) -> float: ...
+def poisson_central_moment(
+    lambda_: float,
+    duration: float,
+    order: int,
+    particles: int,
+) -> float: ...
+def poisson_fpt(
+    lambda_: float,
+    domain: tuple[float, float],
+    max_duration: float,
+) -> float: ...
+def poisson_occupation_time(
+    lambda_: float,
+    domain: tuple[float, float],
+    duration: float,
+) -> float: ...
+def subordinator_simulate(
+    alpha: float,
+    duration: float,
+    step_size: float,
+) -> tuple[np.ndarray, np.ndarray]: ...
+def subordinator_fpt(
+    alpha: float,
+    domain: tuple[float, float],
+    max_duration: float,
+    step_size: float,
+) -> float: ...
+def subordinator_occupation_time(
+    alpha: float,
+    domain: tuple[float, float],
+    duration: float,
+    step_size: float,
+) -> float: ...
+def inv_subordinator_simulate(
+    alpha: float,
+    duration: float,
+    step_size: float,
+) -> tuple[np.ndarray, np.ndarray]: ...
+def inv_subordinator_fpt(
+    alpha: float,
+    domain: tuple[float, float],
+    max_duration: float,
+    step_size: float,
+) -> float: ...
+def inv_subordinator_occupation_time(
+    alpha: float,
+    domain: tuple[float, float],
+    duration: float,
+    step_size: float,
+) -> float: ...

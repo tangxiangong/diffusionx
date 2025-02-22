@@ -1,9 +1,11 @@
 use crate::XPyResult;
-use diffusionx::simulation::{Bm, Levy, prelude::*};
+use diffusionx::simulation::{Bm, Levy, Poisson, Subordinator, InvSubordinator, prelude::*};
 use numpy::{IntoPyArray, Ix1, PyArray};
 use pyo3::prelude::*;
 
 type PyArrayPair<'py> = (Bound<'py, PyArray<f64, Ix1>>, Bound<'py, PyArray<f64, Ix1>>);
+
+type PyArrayPointPair<'py> = (Bound<'py, PyArray<f64, Ix1>>, Bound<'py, PyArray<i64, Ix1>>);
 
 #[pyfunction]
 pub fn bm_simulate(
@@ -112,5 +114,153 @@ pub fn levy_occupation_time(
 ) -> XPyResult<f64> {
     let levy = Levy::new(start_position, alpha)?;
     let result = levy.occupation_time(domain, duration, step_size)?;
+    Ok(result)
+}
+
+#[pyfunction]
+pub fn poisson_simulate_duration(
+    py: Python,
+    lambda: f64,
+    duration: f64
+) -> XPyResult<PyArrayPointPair<'_>> {
+    let poisson = Poisson::new(lambda)?;
+    let (times, positions) = poisson.simulate_with_duration(duration)?;
+    let times_array = times.into_pyarray(py);
+    let positions_array = positions.into_pyarray(py);
+    Ok((times_array, positions_array))
+}
+
+#[pyfunction]
+pub fn poisson_simulate_step(
+    py: Python,
+    lambda: f64,
+    num_step: usize
+) -> XPyResult<PyArrayPointPair<'_>> {
+    let poisson = Poisson::new(lambda)?;
+    let (times, positions) = poisson.simulate_with_step(num_step)?;
+    let times_array = times.into_pyarray(py);
+    let positions_array = positions.into_pyarray(py);
+    Ok((times_array, positions_array))
+}
+
+#[pyfunction]
+pub fn poisson_raw_moment(
+    lambda: f64,
+    duration: f64,
+    order: i32,
+    particles: usize
+) -> XPyResult<f64> {
+    let poisson = Poisson::new(lambda)?;
+    let result = poisson.raw_moment(duration, order, particles)?;
+    Ok(result)
+}
+
+#[pyfunction]
+pub fn poisson_central_moment(
+    lambda: f64,
+    duration: f64,
+    order: i32,
+    particles: usize
+) -> XPyResult<f64> {
+    let poisson = Poisson::new(lambda)?;
+    let result = poisson.central_moment(duration, order, particles)?;
+    Ok(result)
+}
+
+#[pyfunction]
+pub fn poisson_fpt(
+    lambda: f64,
+    domain: (f64, f64),
+    max_duration: f64
+) -> XPyResult<Option<f64>> {
+    let poisson = Poisson::new(lambda)?;
+    let result = poisson.fpt(domain, max_duration)?;
+    Ok(result)
+}
+
+#[pyfunction]
+pub fn poisson_occupation_time(
+    lambda: f64,
+    domain: (f64, f64),
+    duration: f64
+) -> XPyResult<f64> {
+    let poisson = Poisson::new(lambda)?;
+    let result = poisson.occupation_time(domain, duration)?;
+    Ok(result)
+}
+
+#[pyfunction]
+pub fn subordinator_simulate(
+    py: Python,
+    alpha: f64,
+    duration: f64,
+    step_size: f64
+) -> XPyResult<PyArrayPair<'_>> {
+    let subordinator = Subordinator::new(alpha)?;
+    let (times, positions) = subordinator.simulate(duration, step_size)?;
+    let times_array = times.into_pyarray(py);
+    let positions_array = positions.into_pyarray(py);
+    Ok((times_array, positions_array))
+}
+
+#[pyfunction]
+pub fn subordinator_fpt(
+    alpha: f64,
+    domain: (f64, f64),
+    max_duration: f64,
+    step_size: f64
+) -> XPyResult<Option<f64>> {
+    let subordinator = Subordinator::new(alpha)?;
+    let result = subordinator.fpt(domain, max_duration, step_size)?;
+    Ok(result)
+}
+
+#[pyfunction]
+pub fn subordinator_occupation_time(
+    alpha: f64,
+    domain: (f64, f64),
+    duration: f64,
+    step_size: f64
+) -> XPyResult<f64> {
+    let subordinator = Subordinator::new(alpha)?;
+    let result = subordinator.occupation_time(domain, duration, step_size)?;
+    Ok(result)
+}
+
+#[pyfunction]
+pub fn inv_subordinator_simulate(
+    py: Python,
+    alpha: f64,
+    duration: f64,
+    step_size: f64
+) -> XPyResult<PyArrayPair<'_>> {
+    let inv_subordinator = InvSubordinator::new(alpha)?;
+    let (times, positions) = inv_subordinator.simulate(duration, step_size)?;
+    let times_array = times.into_pyarray(py);
+    let positions_array = positions.into_pyarray(py);
+    Ok((times_array, positions_array))
+}
+
+#[pyfunction]
+pub fn inv_subordinator_fpt(
+    alpha: f64,
+    domain: (f64, f64),
+    max_duration: f64,
+    step_size: f64
+) -> XPyResult<Option<f64>> {
+    let inv_subordinator = InvSubordinator::new(alpha)?;
+    let result = inv_subordinator.fpt(domain, max_duration, step_size)?;
+    Ok(result)
+}
+
+#[pyfunction]
+pub fn inv_subordinator_occupation_time(
+    alpha: f64,
+    domain: (f64, f64),
+    duration: f64,
+    step_size: f64
+) -> XPyResult<f64> {
+    let inv_subordinator = InvSubordinator::new(alpha)?;
+    let result = inv_subordinator.occupation_time(domain, duration, step_size)?;
     Ok(result)
 }

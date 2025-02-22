@@ -134,3 +134,180 @@ class Levy(StochasticProcess):
             (a, b),
             duration,
         )
+
+
+class Subordinator(StochasticProcess):
+    def __init__(
+        self,
+        alpha: real,
+    ):
+        """
+        Initialize a subordinator object.
+
+        Args:
+            alpha (real): The alpha parameter of the subordinator, the value must be in the range (0, 1).
+
+        Raises:
+            ValueError: If alpha is not in the range (0, 1).
+
+        Returns:
+            Subordinator: A subordinator object.
+        """
+        alpha = check_transform(alpha)
+        if alpha <= 0 or alpha > 1:
+            raise ValueError("alpha must be in the range (0, 2]")
+
+        self.alpha = alpha
+
+    def __call__(self, duration: real) -> Trajectory:
+        return Trajectory(self, duration)
+
+    def simulate(
+        self, duration: real, step_size: real = 0.01
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Simulate the subordinator.
+
+        Args:
+            duration (real): The duration of the subordinator.
+            step_size (real, optional): Step size of the subordinator. Defaults to 0.01.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: A tuple containing the times and positions of the subordinator.
+        """
+        step_size = check_transform(step_size)
+        duration = check_transform(duration)
+        if duration <= 0:
+            raise ValueError("duration must be positive")
+        if step_size <= 0:
+            raise ValueError("step_size must be positive")
+        return _core.subordinator_simulate(
+            self.alpha,
+            duration,
+            step_size,
+        )
+
+    def fpt(
+        self,
+        domain: tuple[real, real],
+        step_size: real = 0.01,
+        max_duration: real = 1000,
+    ):
+        """
+        Calculate the first passage time of the subordinator.
+
+        Args:
+            domain (tuple[real, real]): The domain of the subordinator.
+            step_size (real, optional): Step size of the subordinator. Defaults to 0.01.
+
+        Returns:
+            real: The first passage time of the subordinator.
+        """
+        step_size = check_transform(step_size)
+        if step_size <= 0:
+            raise ValueError("step_size must be positive")
+        a = check_transform(domain[0])
+        b = check_transform(domain[1])
+        if a >= b:
+            raise ValueError("domain must be a valid interval")
+        max_duration = check_transform(max_duration)
+        if max_duration <= 0:
+            raise ValueError("max_duration must be positive")
+        return _core.subordinator_fpt(
+            self.alpha,
+            (a, b),
+            max_duration,
+            step_size,
+        )
+
+    def occupation_time(
+        self,
+        domain: tuple[real, real],
+        duration: real,
+        step_size: real = 0.01,
+    ):
+        """
+        Calculate the occupation time of the Lévy process.
+
+        Args:
+            domain (tuple[real, real]): The domain of the subordinator.
+            duration (real): The duration of the subordinator.
+            step_size (real, optional): Step size of the subordinator. Defaults to 0.01.
+
+        Returns:
+            real: The occupation time of the subordinator.
+        """
+        step_size = check_transform(step_size)
+        if step_size <= 0:
+            raise ValueError("step_size must be positive")
+        duration = check_transform(duration)
+        if duration <= 0:
+            raise ValueError("duration must be positive")
+        a = check_transform(domain[0])
+        b = check_transform(domain[1])
+        if a >= b:
+            raise ValueError("domain must be a valid interval")
+        return _core.subordinator_occupation_time(
+            self.alpha,
+            (a, b),
+            duration,
+            step_size,
+        )
+
+
+class InvSubordinator(StochasticProcess):
+    def __init__(
+        self,
+        alpha: real,
+    ):
+        """
+        Initialize an inverse subordinator object.
+
+        Args:
+            alpha (real): The alpha parameter of the inverse subordinator, the value must be in the range (0, 1).
+
+        Raises:
+            ValueError: If alpha is not in the range (0, 1).
+
+        Returns:
+            InvSubordinator: An inverse subordinator object.
+        """
+        alpha = check_transform(alpha)
+        if alpha <= 0 or alpha > 1:
+            raise ValueError("alpha must be in the range (0, 1)")
+
+        self.alpha = alpha
+
+    def __call__(self, duration: real) -> Trajectory:
+        return Trajectory(self, duration)
+
+    def simulate(
+        self, duration: real, step_size: real = 0.01
+    ) -> tuple[np.ndarray, np.ndarray]:
+        return _core.inv_subordinator_simulate(self.alpha, duration, step_size)
+
+    def fpt(
+        self,
+        domain: tuple[real, real],
+        step_size: real = 0.01,
+        max_duration: real = 1000,
+    ):
+        return _core.inv_subordinator_fpt(
+            self.alpha,
+            domain,
+            max_duration,
+            step_size,
+        )
+
+    def occupation_time(
+        self,
+        domain: tuple[real, real],
+        duration: real,
+        step_size: real = 0.01,
+    ):
+        return _core.inv_subordinator_occupation_time(
+            self.alpha,
+            domain,
+            duration,
+            step_size,
+        )
