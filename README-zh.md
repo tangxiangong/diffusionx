@@ -176,7 +176,9 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 - [ ] 分数布朗运动
 - [x] 泊松过程
 - [ ] 复合泊松过程
-- [ ] Langevin 方程
+- [x] Langevin 方程
+- [x] 广义 Langevin 方程
+- [x] 从属 Langevin 方程
 
 ### 泛函分布
 

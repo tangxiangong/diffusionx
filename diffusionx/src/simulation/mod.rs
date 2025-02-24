@@ -5,6 +5,8 @@
 //! - Subordinator
 //! - Inverse subordinator
 //! - Poisson process
+//! - Generalized Langevin equation
+//! - Subordinated Langevin equation
 
 
 pub mod prelude;

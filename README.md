@@ -175,7 +175,9 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 - [ ] Fractional Brownian motion
 - [x] Poisson process
 - [ ] Compound Poisson process
-- [ ] Langevin process
+- [x] Langevin process
+- [x] Generalized Langevin equation
+- [x] Subordinated Langevin equation
   
 ### Functional
 

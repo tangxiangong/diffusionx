@@ -28,7 +28,9 @@
 //! - [ ] Fractional Brownian motion
 //! - [x] Poisson process
 //! - [ ] Compound Poisson process
-//! - [ ] Langevin equation
+//! - [x] Langevin equation
+//! - [x] Generalized Langevin equation
+//! - [x] Subordinated Langevin equation
 //! ## Functional
 //! - [x] First passage time
 //! - [x] Occupation time
