@@ -1,7 +1,7 @@
 //! Langevin equation simulation
 //! 
 
-use crate::{XResult, random::normal, simulation::prelude::*, SimulationError};
+use crate::{XResult, random::normal, simulation::prelude::*};
 use rayon::prelude::*;
 
 /// Langevin equation
@@ -25,9 +25,6 @@ pub struct Langevin {
 impl Langevin {
     pub fn new(drift_func: fn(f64, f64) -> f64, diffusion_func: fn(f64, f64) -> f64, start_position: impl Into<f64>) -> XResult<Self> {
         let start_position = start_position.into();
-        if start_position < 0.0 {
-            return Err(SimulationError::InvalidParameters("start_position must be greater than 0.0".to_string()).into());
-        }
         Ok(Self { drift_func, diffusion_func, start_position })
     }
 
