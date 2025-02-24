@@ -191,25 +191,25 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 
 |                          | 标准正态分布 | `[0, 1]` 均匀分布 |  稳定分布  |
 | :----------------------: | :----------: | :---------------: | :--------: |
-|  DiffusionX (Rust 版本)  |  23.811 ms   |     20.450 ms     | 273.68 ms  |
-| DiffusionX (Python 版本) |   24.1 ms    |     21.687 ms     |  277.6 ms  |
-|          Julia           |  28.748 ms   |     9.748 ms      | 713.955 ms |
-|      NumPy / SciPy       |    295 ms    |      81.2 ms      |   3.39 s   |
-|          Numba           |      -       |         -         |   1.52 s   |
+|  DiffusionX (Rust 版本)  |  17.576 ms   |     15.131 ms     | 133.85 ms  |
+| DiffusionX (Python 版本) |   41.2 ms    |     34.3 ms     |  293 ms  |
+|          Julia           |  27.671 ms   |     12.755 ms      | 570.260 ms |
+|      NumPy / SciPy       |    199 ms    |      66.6 ms      |   1.67 s   |
+|          Numba           |      -       |         -         |   1.15 s   |
 
 ### 测试环境
 
 #### 硬件配置
-- 设备型号：MacBook Pro 13-inch (2020)
-- 处理器：Intel Core i5-1038NG7 @ 2.0GHz (4核8线程)
-- 内存：16GB LPDDR4X 3733MHz
+- 设备型号：MacBook Air 13-inch (2024)
+- 处理器：Apple M3 芯片
+- 内存：16GB
 
 #### 软件环境
 - 操作系统：macOS Sequoia 15.3
-- Rust：1.85.0-beta.7
+- Rust：1.85.0
 - Python：3.12
 - Julia：1.11
-- NumPy：2.2.2
+- NumPy：2
 - SciPy：1.15.1
 
 ## 技术栈 & 特性

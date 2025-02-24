@@ -163,24 +163,25 @@ Generating random array of length `10_000_000`
 
 |               | Standard Normal | Uniform [0, 1] |   Stable   |
 | :-----------: | :-------------: | :------------: | :--------: |
-|  DiffusionX   |    23.811 ms    |   20.450 ms    | 273.68 ms  |
-|     Julia     |    28.748 ms    |    9.748 ms    | 713.955 ms |
-| NumPy / SciPy |     295 ms      |    81.2 ms     |   3.39 s   |
-|     Numba     |        -        |       -        |   1.52 s   |
+|  DiffusionX   |    17.576 ms   |     15.131 ms     | 133.85 ms  |
+|     Julia     |    27.671 ms   |     12.755 ms      | 570.260 ms |
+| NumPy / SciPy |     199 ms    |      66.6 ms      |   1.67 s   |
+|     Numba     |        -        |       -        |   1.15 s   |
+
 
 ### Test Environment
 
 #### Hardware Configuration
-- Device Model: MacBook Pro 13-inch (2020)
-- Processor: Intel Core i5-1038NG7 @ 2.0GHz (4 cores 8 threads)
-- Memory: 16GB LPDDR4X 3733MHz
+- Device Model: MacBook Air 13-inch (2024)
+- Processor: Apple M3
+- Memory: 16GB
 
 #### Software Environment
 - Operating System: macOS Sequoia 15.3
-- Rust: 1.85.0-beta.7
+- Rust: 1.85.0
 - Python: 3.12
 - Julia: 1.11
-- NumPy: 2.2.2
+- NumPy: 2
 - SciPy: 1.15.1
 
 ## License
