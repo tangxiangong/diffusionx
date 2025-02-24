@@ -26,4 +26,7 @@ pub use poisson::*;
 mod langevin;
 pub use langevin::*;
 
+mod generalized_langevin;
+pub use generalized_langevin::*;
+
 pub mod functional;
