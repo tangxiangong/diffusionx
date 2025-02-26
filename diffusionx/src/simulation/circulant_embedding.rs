@@ -1,6 +1,5 @@
-use ndarray::Array1;
-use rand::rng;
-use rand_distr::{Distribution, Normal};
+use crate::random::normal;
+use rayon::prelude::*;
 use rustfft::{FftPlanner, num_complex::Complex};
 
 /// Circulant embedding method for generating stationary Gaussian random fields with given correlation functions
@@ -8,11 +7,11 @@ pub struct CirculantEmbedding {
     /// size of the grid
     size: usize,
     /// correlation function
-    correlation_fn: Box<dyn Fn(f64) -> f64>,
+    correlation_fn: Box<dyn Fn(f64) -> f64 + Send + Sync + 'static>,
 }
 
 impl CirculantEmbedding {
-    /// Create a new circulant embedding instance
+    /// Create a new one-dimensional circulant embedding instance
     ///
     /// # Parameters
     ///
@@ -20,7 +19,7 @@ impl CirculantEmbedding {
     /// * `correlation_fn` - Correlation function, takes distance as input and returns correlation
     pub fn new<F>(size: usize, correlation_fn: F) -> Self
     where
-        F: Fn(f64) -> f64 + 'static,
+        F: Fn(f64) -> f64 + Send + Sync + 'static,
     {
         CirculantEmbedding {
             size,
@@ -29,23 +28,27 @@ impl CirculantEmbedding {
     }
 
     /// Generate a one-dimensional stationary Gaussian random field
-    pub fn generate(&self) -> Array1<f64> {
+    pub fn generate(&self) -> Vec<f64> {
         let n = self.size;
         let m = 2 * n;
 
         // Build the first row of the circulant embedding matrix (values of the correlation function at different distances)
-        let mut first_row = Array1::zeros(m);
-        for i in 0..m {
-            let dist = if i <= m / 2 { i as f64 } else { (m - i) as f64 };
-            first_row[i] = (self.correlation_fn)(dist);
-        }
+        let first_row = (0..m)
+            .into_par_iter()
+            .map(|i| {
+                let dist = if i <= m / 2 { i as f64 } else { (m - i) as f64 };
+                (self.correlation_fn)(dist)
+            })
+            .collect::<Vec<_>>();
 
         // Calculate the eigenvalues (using FFT)
         let mut planner = FftPlanner::new();
         let fft = planner.plan_fft_forward(m);
 
-        let mut complex_data: Vec<Complex<f64>> =
-            first_row.iter().map(|&x| Complex::new(x, 0.0)).collect();
+        let mut complex_data: Vec<Complex<f64>> = first_row
+            .into_par_iter()
+            .map(|x| Complex::new(x, 0.0))
+            .collect();
 
         fft.process(&mut complex_data);
 
@@ -60,16 +63,8 @@ impl CirculantEmbedding {
         }
 
         // Generate a random Gaussian vector
-        let mut rng = rng();
-
-        let normal = Normal::new(0.0, 1.0).unwrap();
-        let mut z_real = Vec::with_capacity(m);
-        let mut z_imag = Vec::with_capacity(m);
-
-        for _ in 0..m {
-            z_real.push(normal.sample(&mut rng));
-            z_imag.push(normal.sample(&mut rng));
-        }
+        let z_real = normal::standard_rands(m);
+        let mut z_imag = normal::standard_rands(m);
 
         // Special handling to ensure real output
         z_imag[0] = 0.0;
@@ -78,32 +73,51 @@ impl CirculantEmbedding {
         }
 
         // Build the complex vector and multiply by the square root of the eigenvalues
-        let mut complex_result = Vec::with_capacity(m);
-        for i in 0..m {
-            let sqrt_lambda = complex_data[i].re.max(0.0).sqrt();
-            let real_part = sqrt_lambda * z_real[i];
-            let imag_part = sqrt_lambda * z_imag[i];
-            complex_result.push(Complex::new(real_part, imag_part));
-        }
+        let mut complex_result = (0..m)
+            .into_par_iter()
+            .map(|i| {
+                let sqrt_lambda = complex_data[i].re.max(0.0).sqrt();
+                let real_part = sqrt_lambda * z_real[i];
+                let imag_part = sqrt_lambda * z_imag[i];
+                Complex::new(real_part, imag_part)
+            })
+            .collect::<Vec<_>>();
 
         // Perform inverse FFT
         let ifft = planner.plan_fft_inverse(m);
         ifft.process(&mut complex_result);
 
         // Extract the result and scale
-        let scale = 1.0 / (m as f64).sqrt();
-        let result = Array1::from_iter(complex_result.iter().take(n).map(|c| c.re * scale));
+        let mut result = complex_result
+            .into_iter()
+            .take(n)
+            .map(|c| c.re)
+            .collect::<Vec<_>>();
+
+        // 归一化处理，确保方差为1
+        let mean = result.iter().sum::<f64>() / n as f64;
+        let variance = result.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / n as f64;
+        let scale_factor = 1.0 / variance.sqrt();
+
+        for i in 0..n {
+            result[i] = (result[i] - mean) * scale_factor;
+        }
 
         result
     }
 }
 
-pub fn fbm_correlation(hurst: f64) -> impl Fn(f64) -> f64 {
+/// Fractional Brownian motion correlation function
+pub fn fbm_correlation(hurst: f64, time_step: f64) -> impl Fn(f64) -> f64 {
     move |r: f64| {
-        let h = hurst;
-        let gamma = 0.5 * (2.0 * h - 1.0);
-        let c = (gamma * (gamma + 1.0) / 2.0).powi(2);
-        c * r.powf(h)
+        let r_abs = r.abs();
+        if r_abs < 1e-10 {
+            return 1.0;
+        }
+
+        let h2 = 2.0 * hurst;
+        0.5 * time_step.powf(h2)
+            * ((r_abs + 1.0).powf(h2) - 2.0 * r_abs.powf(h2) + (r_abs - 1.0).abs().powf(h2))
     }
 }
 
@@ -155,7 +169,7 @@ mod tests {
         assert_eq!(field.len(), size);
 
         // Calculate the sample mean (should be close to 0)
-        let mean = field.sum() / size as f64;
+        let mean = field.iter().sum::<f64>() / size as f64;
         assert!(mean.abs() < 0.5); // Allow some statistical fluctuations
 
         // Calculate the sample variance (should be close to 1)
