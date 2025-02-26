@@ -88,20 +88,20 @@ impl CirculantEmbedding {
         ifft.process(&mut complex_result);
 
         // Extract the result and scale
-        let mut result = complex_result
+        let result = complex_result
             .into_iter()
             .take(n)
             .map(|c| c.re)
             .collect::<Vec<_>>();
 
-        // 归一化处理，确保方差为1
-        let mean = result.iter().sum::<f64>() / n as f64;
-        let variance = result.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / n as f64;
-        let scale_factor = 1.0 / variance.sqrt();
+        // // 归一化处理，确保方差为1
+        // let mean = result.iter().sum::<f64>() / n as f64;
+        // let variance = result.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / n as f64;
+        // let scale_factor = 1.0 / variance.sqrt();
 
-        for i in 0..n {
-            result[i] = (result[i] - mean) * scale_factor;
-        }
+        // for i in 0..n {
+        //     result[i] = (result[i] - mean) * scale_factor;
+        // }
 
         result
     }
