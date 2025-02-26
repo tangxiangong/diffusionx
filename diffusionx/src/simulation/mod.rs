@@ -31,4 +31,7 @@ pub use langevin::*;
 mod generalized_langevin;
 pub use generalized_langevin::*;
 
+mod circulant_embedding;
+pub use circulant_embedding::*; 
+
 pub mod functional;
