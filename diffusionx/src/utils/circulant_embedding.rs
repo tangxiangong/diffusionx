@@ -3,10 +3,13 @@ use rayon::prelude::*;
 use rustfft::{FftPlanner, num_complex::Complex};
 
 /// Circulant embedding method for generating stationary Gaussian random fields with given correlation functions
+///
+/// # Fields
+///
+/// * `size` - Number of grid points per dimension
+/// * `correlation_fn` - Correlation function, takes distance as input and returns correlation
 pub struct CirculantEmbedding {
-    /// size of the grid
     size: usize,
-    /// correlation function
     correlation_fn: Box<dyn Fn(f64) -> f64 + Send + Sync + 'static>,
 }
 
@@ -88,11 +91,11 @@ impl CirculantEmbedding {
         ifft.process(&mut complex_result);
 
         // Extract the result and scale
-        let result = complex_result
+        complex_result
             .into_iter()
             .take(n)
             .map(|c| c.re)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
 
         // // 归一化处理，确保方差为1
         // let mean = result.iter().sum::<f64>() / n as f64;
@@ -103,7 +106,7 @@ impl CirculantEmbedding {
         //     result[i] = (result[i] - mean) * scale_factor;
         // }
 
-        result
+        // result
     }
 }
 
