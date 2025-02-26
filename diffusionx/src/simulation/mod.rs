@@ -8,7 +8,6 @@
 //! - Generalized Langevin equation
 //! - Subordinated Langevin equation
 
-
 pub mod prelude;
 
 pub mod traits;
@@ -32,6 +31,6 @@ mod generalized_langevin;
 pub use generalized_langevin::*;
 
 mod circulant_embedding;
-pub use circulant_embedding::*; 
+pub use circulant_embedding::*;
 
 pub mod functional;

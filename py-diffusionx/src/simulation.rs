@@ -1,5 +1,5 @@
 use crate::XPyResult;
-use diffusionx::simulation::{Bm, Levy, Poisson, Subordinator, InvSubordinator, prelude::*};
+use diffusionx::simulation::{Bm, InvSubordinator, Levy, Poisson, Subordinator, prelude::*};
 use numpy::{IntoPyArray, Ix1, PyArray};
 use pyo3::prelude::*;
 
@@ -121,7 +121,7 @@ pub fn levy_occupation_time(
 pub fn poisson_simulate_duration(
     py: Python,
     lambda: f64,
-    duration: f64
+    duration: f64,
 ) -> XPyResult<PyArrayPointPair<'_>> {
     let poisson = Poisson::new(lambda)?;
     let (times, positions) = poisson.simulate_with_duration(duration)?;
@@ -134,7 +134,7 @@ pub fn poisson_simulate_duration(
 pub fn poisson_simulate_step(
     py: Python,
     lambda: f64,
-    num_step: usize
+    num_step: usize,
 ) -> XPyResult<PyArrayPointPair<'_>> {
     let poisson = Poisson::new(lambda)?;
     let (times, positions) = poisson.simulate_with_step(num_step)?;
@@ -148,7 +148,7 @@ pub fn poisson_raw_moment(
     lambda: f64,
     duration: f64,
     order: i32,
-    particles: usize
+    particles: usize,
 ) -> XPyResult<f64> {
     let poisson = Poisson::new(lambda)?;
     let result = poisson.raw_moment(duration, order, particles)?;
@@ -160,7 +160,7 @@ pub fn poisson_central_moment(
     lambda: f64,
     duration: f64,
     order: i32,
-    particles: usize
+    particles: usize,
 ) -> XPyResult<f64> {
     let poisson = Poisson::new(lambda)?;
     let result = poisson.central_moment(duration, order, particles)?;
@@ -168,22 +168,14 @@ pub fn poisson_central_moment(
 }
 
 #[pyfunction]
-pub fn poisson_fpt(
-    lambda: f64,
-    domain: (f64, f64),
-    max_duration: f64
-) -> XPyResult<Option<f64>> {
+pub fn poisson_fpt(lambda: f64, domain: (f64, f64), max_duration: f64) -> XPyResult<Option<f64>> {
     let poisson = Poisson::new(lambda)?;
     let result = poisson.fpt(domain, max_duration)?;
     Ok(result)
 }
 
 #[pyfunction]
-pub fn poisson_occupation_time(
-    lambda: f64,
-    domain: (f64, f64),
-    duration: f64
-) -> XPyResult<f64> {
+pub fn poisson_occupation_time(lambda: f64, domain: (f64, f64), duration: f64) -> XPyResult<f64> {
     let poisson = Poisson::new(lambda)?;
     let result = poisson.occupation_time(domain, duration)?;
     Ok(result)
@@ -194,7 +186,7 @@ pub fn subordinator_simulate(
     py: Python,
     alpha: f64,
     duration: f64,
-    step_size: f64
+    step_size: f64,
 ) -> XPyResult<PyArrayPair<'_>> {
     let subordinator = Subordinator::new(alpha)?;
     let (times, positions) = subordinator.simulate(duration, step_size)?;
@@ -208,7 +200,7 @@ pub fn subordinator_fpt(
     alpha: f64,
     domain: (f64, f64),
     max_duration: f64,
-    step_size: f64
+    step_size: f64,
 ) -> XPyResult<Option<f64>> {
     let subordinator = Subordinator::new(alpha)?;
     let result = subordinator.fpt(domain, max_duration, step_size)?;
@@ -220,7 +212,7 @@ pub fn subordinator_occupation_time(
     alpha: f64,
     domain: (f64, f64),
     duration: f64,
-    step_size: f64
+    step_size: f64,
 ) -> XPyResult<f64> {
     let subordinator = Subordinator::new(alpha)?;
     let result = subordinator.occupation_time(domain, duration, step_size)?;
@@ -232,7 +224,7 @@ pub fn inv_subordinator_simulate(
     py: Python,
     alpha: f64,
     duration: f64,
-    step_size: f64
+    step_size: f64,
 ) -> XPyResult<PyArrayPair<'_>> {
     let inv_subordinator = InvSubordinator::new(alpha)?;
     let (times, positions) = inv_subordinator.simulate(duration, step_size)?;
@@ -246,7 +238,7 @@ pub fn inv_subordinator_fpt(
     alpha: f64,
     domain: (f64, f64),
     max_duration: f64,
-    step_size: f64
+    step_size: f64,
 ) -> XPyResult<Option<f64>> {
     let inv_subordinator = InvSubordinator::new(alpha)?;
     let result = inv_subordinator.fpt(domain, max_duration, step_size)?;
@@ -258,7 +250,7 @@ pub fn inv_subordinator_occupation_time(
     alpha: f64,
     domain: (f64, f64),
     duration: f64,
-    step_size: f64
+    step_size: f64,
 ) -> XPyResult<f64> {
     let inv_subordinator = InvSubordinator::new(alpha)?;
     let result = inv_subordinator.occupation_time(domain, duration, step_size)?;

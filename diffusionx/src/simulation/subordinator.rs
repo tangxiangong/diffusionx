@@ -262,13 +262,18 @@ impl InvSubordinator {
     /// * A f64 representing the first passage time of the simulation.
     ///
     /// # Example
-    /// 
+    ///
     /// ```rust
     /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
     /// let params = 0.1;
     /// let (t, x) = inv_subordinator.simulate(params).unwrap();
     /// ```
-    pub fn fpt(&self, domain: (impl Into<f64>, impl Into<f64>), max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>> {
+    pub fn fpt(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        max_duration: impl Into<f64>,
+        time_step: f64,
+    ) -> XResult<Option<f64>> {
         let fpt = FirstPassageTime::new(self, domain)?;
         fpt.simulate(max_duration, time_step)
     }
@@ -292,7 +297,12 @@ impl InvSubordinator {
     /// let params = 0.1;
     /// let (t, x) = inv_subordinator.simulate(params).unwrap();
     /// ```
-    pub fn occupation_time(&self, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>, time_step: f64) -> XResult<f64> {
+    pub fn occupation_time(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        duration: impl Into<f64>,
+        time_step: f64,
+    ) -> XResult<f64> {
         let ot = OccupationTime::new(self, domain, duration)?;
         ot.simulate(time_step)
     }
@@ -360,23 +370,32 @@ pub fn simulate_invsubordinator(
     // 构建均匀的时间网格
     let num_steps = (duration / time_step).ceil() as usize;
     let inv_times: Vec<f64> = (0..=num_steps)
-        .map(|i| if i == num_steps { duration } else { i as f64 * time_step })
+        .map(|i| {
+            if i == num_steps {
+                duration
+            } else {
+                i as f64 * time_step
+            }
+        })
         .collect();
 
     // 对每个时间点找到对应的路径值
     let mut inv_path = Vec::with_capacity(inv_times.len());
-    
+
     for &target_time in &inv_times {
         // 使用二分查找找到第一个大于等于目标时间的位置
         let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {
-            Ok(idx) => idx,                    // 找到精确匹配
-            Err(idx) => if idx >= s.len() {    // 如果超出范围，使用最后一个位置
-                s.len() - 1
-            } else {
-                idx                            // 插入位置就是第一个大于目标值的位置
+            Ok(idx) => idx, // 找到精确匹配
+            Err(idx) => {
+                if idx >= s.len() {
+                    // 如果超出范围，使用最后一个位置
+                    s.len() - 1
+                } else {
+                    idx // 插入位置就是第一个大于目标值的位置
+                }
             }
         };
-        
+
         // 取该位置对应的时间
         inv_path.push(t[pos]);
     }
@@ -427,14 +446,14 @@ mod tests {
         let alpha = 0.7;
         let duration = 5.0;
         let time_step = 0.1;
-        
+
         let (inv_times, inv_path) = simulate_invsubordinator(alpha, duration, time_step).unwrap();
         println!("inv_times: {:?}", inv_times);
         println!("inv_path: {:?}", inv_path);
-        
+
         // 验证单调性
         assert!(inv_path.windows(2).all(|w| w[0] <= w[1]));
-        
+
         // 验证边界条件
         assert_eq!(inv_times[0], 0.0);
         assert_eq!(inv_path[0], 0.0);

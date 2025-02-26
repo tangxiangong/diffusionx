@@ -1,7 +1,7 @@
 use ndarray::Array1;
-use rustfft::{FftPlanner, num_complex::Complex};
-use rand_distr::{Normal, Distribution};
 use rand::rng;
+use rand_distr::{Distribution, Normal};
+use rustfft::{FftPlanner, num_complex::Complex};
 
 /// Circulant embedding method for generating stationary Gaussian random fields with given correlation functions
 pub struct CirculantEmbedding {
@@ -13,12 +13,12 @@ pub struct CirculantEmbedding {
 
 impl CirculantEmbedding {
     /// Create a new circulant embedding instance
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// * `size` - Number of grid points per dimension
     /// * `correlation_fn` - Correlation function, takes distance as input and returns correlation
-    pub fn new<F>(size: usize, correlation_fn: F) -> Self 
+    pub fn new<F>(size: usize, correlation_fn: F) -> Self
     where
         F: Fn(f64) -> f64 + 'static,
     {
@@ -32,49 +32,51 @@ impl CirculantEmbedding {
     pub fn generate(&self) -> Array1<f64> {
         let n = self.size;
         let m = 2 * n;
-        
+
         // Build the first row of the circulant embedding matrix (values of the correlation function at different distances)
         let mut first_row = Array1::zeros(m);
         for i in 0..m {
-            let dist = if i <= m/2 { i as f64 } else { (m - i) as f64 };
+            let dist = if i <= m / 2 { i as f64 } else { (m - i) as f64 };
             first_row[i] = (self.correlation_fn)(dist);
         }
-        
+
         // Calculate the eigenvalues (using FFT)
         let mut planner = FftPlanner::new();
         let fft = planner.plan_fft_forward(m);
-        
-        let mut complex_data: Vec<Complex<f64>> = first_row.iter()
-            .map(|&x| Complex::new(x, 0.0))
-            .collect();
-        
+
+        let mut complex_data: Vec<Complex<f64>> =
+            first_row.iter().map(|&x| Complex::new(x, 0.0)).collect();
+
         fft.process(&mut complex_data);
-        
+
         // Check if all eigenvalues are positive
         for val in &complex_data {
             if val.re < -1e-10 {
-                panic!("Circulant embedding matrix is not positive definite, eigenvalue: {}", val.re);
+                panic!(
+                    "Circulant embedding matrix is not positive definite, eigenvalue: {}",
+                    val.re
+                );
             }
         }
-        
+
         // Generate a random Gaussian vector
         let mut rng = rng();
-        
+
         let normal = Normal::new(0.0, 1.0).unwrap();
         let mut z_real = Vec::with_capacity(m);
         let mut z_imag = Vec::with_capacity(m);
-        
+
         for _ in 0..m {
             z_real.push(normal.sample(&mut rng));
             z_imag.push(normal.sample(&mut rng));
         }
-        
+
         // Special handling to ensure real output
         z_imag[0] = 0.0;
         if m % 2 == 0 {
-            z_imag[m/2] = 0.0;
+            z_imag[m / 2] = 0.0;
         }
-        
+
         // Build the complex vector and multiply by the square root of the eigenvalues
         let mut complex_result = Vec::with_capacity(m);
         for i in 0..m {
@@ -83,19 +85,15 @@ impl CirculantEmbedding {
             let imag_part = sqrt_lambda * z_imag[i];
             complex_result.push(Complex::new(real_part, imag_part));
         }
-        
+
         // Perform inverse FFT
         let ifft = planner.plan_fft_inverse(m);
         ifft.process(&mut complex_result);
-        
+
         // Extract the result and scale
         let scale = 1.0 / (m as f64).sqrt();
-        let result = Array1::from_iter(
-            complex_result.iter()
-                .take(n)
-                .map(|c| c.re * scale)
-        );
-        
+        let result = Array1::from_iter(complex_result.iter().take(n).map(|c| c.re * scale));
+
         result
     }
 }
@@ -150,30 +148,30 @@ mod tests {
         let length_scale = 10.0;
         let corr_fn = gaussian_correlation(length_scale);
         let embedding = CirculantEmbedding::new(size, corr_fn);
-        
+
         let field = embedding.generate();
-        
+
         // Check the size of the generated field
         assert_eq!(field.len(), size);
-        
+
         // Calculate the sample mean (should be close to 0)
         let mean = field.sum() / size as f64;
         assert!(mean.abs() < 0.5); // Allow some statistical fluctuations
-        
+
         // Calculate the sample variance (should be close to 1)
         let variance = field.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / size as f64;
         assert!((variance - 1.0).abs() < 0.5); // Allow some statistical fluctuations
     }
-    
+
     #[test]
     fn test_correlation_functions() {
         let length_scale = 2.0;
-        
+
         // Test the exponential correlation function
         let exp_corr = exponential_correlation(length_scale);
         assert_eq!(exp_corr(0.0), 1.0);
-        assert_eq!(exp_corr(length_scale), 1.0/E);
-        
+        assert_eq!(exp_corr(length_scale), 1.0 / E);
+
         // Test the Gaussian correlation function
         let gauss_corr = gaussian_correlation(length_scale);
         assert_eq!(gauss_corr(0.0), 1.0);
