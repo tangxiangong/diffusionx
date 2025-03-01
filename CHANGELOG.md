@@ -2,7 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Python-0.1.2] - 2025-02-22
+## [Rust-v0.1.5] - 2025-03-01
+
+### 🚀 Features
+
+- *(Rust)* Add Circulant Embedding Method for Gaussian Random Fields
+- *(Simulation)* Implement Fractional Brownian Motion (fBm) simulation
+
+### 🚜 Refactor
+
+- *(Simulation)* Improve code formatting and import organization
+- *(circulant_embedding.rs)* Enhance performance and add variance normalization
+- *(circulant_embedding.rs)* Remove variance normalization code
+- *(utils)* Reorganize utility functions and add circulant embedding module
+
+### ⚙️ Miscellaneous Tasks
+
+- *(Dependencies)* Upgrade Rust dependencies for advanced numerical computing
+- *(Dependencies)* Remove ndarray dependency from project
+
+## [Rust-v0.1.4] - 2025-02-24
+
+### 🚀 Features
+
+- *(Rust)* Add Langevin equation simulation module
+- *(Simulation)* Add Generalized Langevin Equation Simulation
+- *(Simulation)* Add Subordinated Langevin Equation Simulation
+
+### 🐛 Bug Fixes
+
+- *(Langevin)* Correct stochastic simulation noise scaling
+
+### 🚜 Refactor
+
+- *(Langevin)* Remove unnecessary start position validation
+
+### 📚 Documentation
+
+- *(CHANGELOG)* Update changelog for Python version 0.1.2
+- Update benchmark results with new hardware and software configuration
+- *(Rust)* Update README and documentation for Langevin equation implementations
+
+### ⚙️ Miscellaneous Tasks
+
+- Update project dependencies and benchmark performance
+- Bump package version to 0.1.4
+
+## [Python-v0.1.2] - 2025-02-22
 
 ### 🚀 Features
 
@@ -49,12 +95,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Rust-v0.1.2] - 2025-02-19
 
-### ⚙️ Miscellaneous Tasks
-
-- Prepare Rust release v0.1.2
-
-## [Rust-0.1.2] - 2025-02-19
-
 ### 🚀 Features
 
 - Add occupation time functionality
@@ -85,6 +125,7 @@ All notable changes to this project will be documented in this file.
 - Add changelog and git-cliff configuration
 - Update CHANGELOG.md with recent project developments
 - Bump project version to 0.1.2
+- Prepare Rust release v0.1.2
 
 ## [0.1.1-remove-test] - 2025-02-19
 
@@ -96,13 +137,6 @@ All notable changes to this project will be documented in this file.
 
 - Remove gamma function implementations from utils
 
-### ⚙️ Miscellaneous Tasks
-
-- Switch Rust toolchain from stable to beta in publish workflow
-- Remove test step from Python publish workflow
-
-## [0.1.1] - 2025-02-19
-
 ### 📚 Documentation
 
 - Add comprehensive README for Python package
@@ -110,6 +144,8 @@ All notable changes to this project will be documented in this file.
 ### ⚙️ Miscellaneous Tasks
 
 - Add PyPI publication workflow for Python package
+- Switch Rust toolchain from stable to beta in publish workflow
+- Remove test step from Python publish workflow
 
 ## [0.1.0] - 2025-02-19
 
