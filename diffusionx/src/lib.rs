@@ -25,7 +25,7 @@
 //! - [x] Alpha-stable Lévy process
 //! - [x] Subordinator
 //! - [x] Inverse Subordinator
-//! - [ ] Fractional Brownian motion
+//! - [x] Fractional Brownian motion
 //! - [x] Poisson process
 //! - [ ] Compound Poisson process
 //! - [x] Langevin equation

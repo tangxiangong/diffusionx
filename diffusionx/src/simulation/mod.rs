@@ -7,6 +7,7 @@
 //! - Poisson process
 //! - Generalized Langevin equation
 //! - Subordinated Langevin equation
+//! - Fractional Brownian motion
 
 pub mod prelude;
 
@@ -29,5 +30,8 @@ pub use langevin::*;
 
 mod generalized_langevin;
 pub use generalized_langevin::*;
+
+mod fbm;
+pub use fbm::*;
 
 pub mod functional;

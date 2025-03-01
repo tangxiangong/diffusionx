@@ -172,7 +172,7 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 - [x] Alpha-stable Lévy process
 - [x] Subordinator
 - [x] Inverse Subordinator
-- [ ] Fractional Brownian motion
+- [x] Fractional Brownian motion
 - [x] Poisson process
 - [ ] Compound Poisson process
 - [x] Langevin process
