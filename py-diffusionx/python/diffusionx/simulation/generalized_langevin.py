@@ -40,10 +40,10 @@ class GeneralizedLangevin(StochasticProcess):
         """
         start_position = check_transform(start_position)
         alpha = check_transform(alpha)
-        
+
         if alpha <= 0.0 or alpha > 2.0:
             raise ValueError("alpha must be in the range (0, 2]")
-        
+
         self.drift_func = drift_func
         self.diffusion_func = diffusion_func
         self.start_position = start_position
@@ -76,17 +76,19 @@ class GeneralizedLangevin(StochasticProcess):
         t = np.linspace(0, num * step_size, num + 1)
         x = np.zeros(num + 1)
         x[0] = self.start_position
-        
+
         # Generate symmetric alpha-stable random variables
         noise = _core.sym_stable_rands(self.alpha, num)
-        
+
         for i in range(1, num + 1):
             x[i] = (
                 x[i - 1]
                 + self.drift_func(x[i - 1], t[i - 1]) * step_size
-                + self.diffusion_func(x[i - 1], t[i - 1]) * noise[i - 1] * (step_size ** (1.0 / self.alpha))
+                + self.diffusion_func(x[i - 1], t[i - 1])
+                * noise[i - 1]
+                * (step_size ** (1.0 / self.alpha))
             )
-        
+
         return t, x
 
     def fpt(
@@ -111,22 +113,22 @@ class GeneralizedLangevin(StochasticProcess):
         upper = check_transform(upper)
         step_size = check_transform(step_size)
         max_duration = check_transform(max_duration)
-        
+
         if lower >= upper:
             raise ValueError("lower bound must be less than upper bound")
         if step_size <= 0:
             raise ValueError("step_size must be positive")
         if max_duration <= 0:
             raise ValueError("max_duration must be positive")
-        
+
         if not (lower <= self.start_position <= upper):
             return 0.0
-        
+
         t, x = self.simulate(max_duration, step_size)
         for i in range(len(t)):
             if x[i] <= lower or x[i] >= upper:
                 return t[i]
-        
+
         return None
 
     def raw_moment(
@@ -146,7 +148,7 @@ class GeneralizedLangevin(StochasticProcess):
         """
         duration = check_transform(duration)
         step_size = check_transform(step_size)
-        
+
         if duration <= 0:
             raise ValueError("duration must be positive")
         if order <= 0:
@@ -155,12 +157,12 @@ class GeneralizedLangevin(StochasticProcess):
             raise ValueError("particles must be positive")
         if step_size <= 0:
             raise ValueError("step_size must be positive")
-        
+
         result = 0.0
         for _ in range(particles):
             _, x = self.simulate(duration, step_size)
             result += x[-1] ** order
-        
+
         return result / particles
 
     def central_moment(
@@ -180,7 +182,7 @@ class GeneralizedLangevin(StochasticProcess):
         """
         duration = check_transform(duration)
         step_size = check_transform(step_size)
-        
+
         if duration <= 0:
             raise ValueError("duration must be positive")
         if order <= 0:
@@ -189,20 +191,20 @@ class GeneralizedLangevin(StochasticProcess):
             raise ValueError("particles must be positive")
         if step_size <= 0:
             raise ValueError("step_size must be positive")
-        
+
         # Calculate mean
         mean = 0.0
         for _ in range(particles):
             _, x = self.simulate(duration, step_size)
             mean += x[-1]
         mean /= particles
-        
+
         # Calculate central moment
         result = 0.0
         for _ in range(particles):
             _, x = self.simulate(duration, step_size)
             result += (x[-1] - mean) ** order
-        
+
         return result / particles
 
     def occupation_time(
@@ -227,21 +229,21 @@ class GeneralizedLangevin(StochasticProcess):
         upper = check_transform(upper)
         duration = check_transform(duration)
         step_size = check_transform(step_size)
-        
+
         if lower >= upper:
             raise ValueError("lower bound must be less than upper bound")
         if duration <= 0:
             raise ValueError("duration must be positive")
         if step_size <= 0:
             raise ValueError("step_size must be positive")
-        
+
         t, x = self.simulate(duration, step_size)
         occupation_time = 0.0
-        
+
         for i in range(1, len(t)):
             if lower <= x[i] <= upper:
                 occupation_time += t[i] - t[i - 1]
-        
+
         return occupation_time
 
 
@@ -275,10 +277,10 @@ class SubordinatedLangevin(StochasticProcess):
         """
         start_position = check_transform(start_position)
         alpha = check_transform(alpha)
-        
+
         if alpha <= 0.0 or alpha >= 1.0:
             raise ValueError("alpha must be in the range (0, 1)")
-        
+
         self.drift_func = drift_func
         self.diffusion_func = diffusion_func
         self.start_position = start_position
@@ -311,21 +313,23 @@ class SubordinatedLangevin(StochasticProcess):
         t = np.linspace(0, num * step_size, num + 1)
         x = np.zeros(num + 1)
         x[0] = self.start_position
-        
+
         # Generate subordinator process
         _, s = _core.subordinator(self.alpha, duration, step_size)
-        
+
         # Generate standard normal random variables
         noise = np.random.normal(0, 1, num)
-        
+
         for i in range(1, num + 1):
             delta_t = s[i] - s[i - 1]
             x[i] = (
                 x[i - 1]
                 + self.drift_func(x[i - 1], t[i - 1]) * delta_t
-                + self.diffusion_func(x[i - 1], t[i - 1]) * noise[i - 1] * np.sqrt(delta_t)
+                + self.diffusion_func(x[i - 1], t[i - 1])
+                * noise[i - 1]
+                * np.sqrt(delta_t)
             )
-        
+
         return t, x
 
     def fpt(
@@ -350,22 +354,22 @@ class SubordinatedLangevin(StochasticProcess):
         upper = check_transform(upper)
         step_size = check_transform(step_size)
         max_duration = check_transform(max_duration)
-        
+
         if lower >= upper:
             raise ValueError("lower bound must be less than upper bound")
         if step_size <= 0:
             raise ValueError("step_size must be positive")
         if max_duration <= 0:
             raise ValueError("max_duration must be positive")
-        
+
         if not (lower <= self.start_position <= upper):
             return 0.0
-        
+
         t, x = self.simulate(max_duration, step_size)
         for i in range(len(t)):
             if x[i] <= lower or x[i] >= upper:
                 return t[i]
-        
+
         return None
 
     def raw_moment(
@@ -385,7 +389,7 @@ class SubordinatedLangevin(StochasticProcess):
         """
         duration = check_transform(duration)
         step_size = check_transform(step_size)
-        
+
         if duration <= 0:
             raise ValueError("duration must be positive")
         if order <= 0:
@@ -394,12 +398,12 @@ class SubordinatedLangevin(StochasticProcess):
             raise ValueError("particles must be positive")
         if step_size <= 0:
             raise ValueError("step_size must be positive")
-        
+
         result = 0.0
         for _ in range(particles):
             _, x = self.simulate(duration, step_size)
             result += x[-1] ** order
-        
+
         return result / particles
 
     def central_moment(
@@ -419,7 +423,7 @@ class SubordinatedLangevin(StochasticProcess):
         """
         duration = check_transform(duration)
         step_size = check_transform(step_size)
-        
+
         if duration <= 0:
             raise ValueError("duration must be positive")
         if order <= 0:
@@ -428,20 +432,20 @@ class SubordinatedLangevin(StochasticProcess):
             raise ValueError("particles must be positive")
         if step_size <= 0:
             raise ValueError("step_size must be positive")
-        
+
         # Calculate mean
         mean = 0.0
         for _ in range(particles):
             _, x = self.simulate(duration, step_size)
             mean += x[-1]
         mean /= particles
-        
+
         # Calculate central moment
         result = 0.0
         for _ in range(particles):
             _, x = self.simulate(duration, step_size)
             result += (x[-1] - mean) ** order
-        
+
         return result / particles
 
     def occupation_time(
@@ -466,19 +470,19 @@ class SubordinatedLangevin(StochasticProcess):
         upper = check_transform(upper)
         duration = check_transform(duration)
         step_size = check_transform(step_size)
-        
+
         if lower >= upper:
             raise ValueError("lower bound must be less than upper bound")
         if duration <= 0:
             raise ValueError("duration must be positive")
         if step_size <= 0:
             raise ValueError("step_size must be positive")
-        
+
         t, x = self.simulate(duration, step_size)
         occupation_time = 0.0
-        
+
         for i in range(1, len(t)):
             if lower <= x[i] <= upper:
                 occupation_time += t[i] - t[i - 1]
-        
-        return occupation_time 
+
+        return occupation_time
