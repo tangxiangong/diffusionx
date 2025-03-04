@@ -1,7 +1,11 @@
 //! Fractional Brownian motion simulation
 
-
-use crate::{SimulationError, XResult, utils::{CirculantEmbedding, cumsum, fbm_correlation}, random::normal, simulation::prelude::*};
+use crate::{
+    SimulationError, XResult,
+    random::normal,
+    simulation::prelude::*,
+    utils::{CirculantEmbedding, cumsum, fbm_correlation},
+};
 use rayon::prelude::*;
 
 /// Fractional Brownian motion simulation
@@ -25,10 +29,7 @@ impl Fbm {
     ///
     /// * `start_position` - The starting position of the Fractional Brownian motion.
     /// * `hurst_exponent` - The Hurst exponent of the Fractional Brownian motion.
-    pub fn new(
-        start_position: impl Into<f64>,
-        hurst_exponent: f64,
-    ) -> XResult<Self> {
+    pub fn new(start_position: impl Into<f64>, hurst_exponent: f64) -> XResult<Self> {
         let start_position = start_position.into();
         if hurst_exponent <= 0.0 || hurst_exponent >= 1.0 {
             return Err(SimulationError::InvalidParameters(
@@ -267,23 +268,23 @@ pub fn simulate_fbm(
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    
+
     // 使用 fbm_correlation 函数创建相关函数
     let correlation_fn = fbm_correlation(hurst_exponent, time_step);
-    
+
     // 创建 CirculantEmbedding 实例
     let circulant = CirculantEmbedding::new(num_steps, correlation_fn);
-    
+
     // 生成噪声
     let noise = if hurst_exponent == 0.5 {
         normal::rands(0.0, 2.0 * time_step, num_steps)?
     } else {
         circulant.generate()
     };
-    
+
     // 计算累积和
     let x = cumsum(start_position, &noise);
-    
+
     Ok((t, x))
 }
 

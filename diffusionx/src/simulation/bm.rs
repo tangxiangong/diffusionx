@@ -71,6 +71,7 @@ impl Bm {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::Bm;
     /// let bm = Bm::new(10.0, 1.0).unwrap();
     /// let mean = bm.mean(1.0, 1000, 0.1).unwrap();
     /// ```
