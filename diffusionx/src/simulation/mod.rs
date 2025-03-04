@@ -34,4 +34,7 @@ pub use generalized_langevin::*;
 mod fbm;
 pub use fbm::*;
 
+mod ctrw;
+pub use ctrw::*;
+
 pub mod functional;
