@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### 🚜 Refactor
+
+- Format
+
+## [Python-v0.1.3] - 2025-03-04
+
+### 🚀 Features
+
+- *(py-diffusionx)* Add support for FBM, CTRW and Langevin processes
+
+## [Rust-v0.1.6] - 2025-03-04
+
+### 🚀 Features
+
+- *(CTRW)* Add continuous-time random walk model
+
+### 💼 Other
+
+- Bump Rust crate version 0.1.6
+
+### 📚 Documentation
+
+- *(CHANGELOG)* Update changelog for Rust v0.1.5 release
+- *(bm,fbm)* Improve documentation and code formatting
+
 ## [Rust-v0.1.5] - 2025-03-01
 
 ### 🚀 Features
