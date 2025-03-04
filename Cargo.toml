@@ -1,12 +1,12 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = ["diffusionx", "py-diffusionx"]
 default-members = ["diffusionx"]
 
 [workspace.package]
 authors = ["xiangong tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.1.5"
+version = "0.1.6"
 
 [profile.release]
 lto = true

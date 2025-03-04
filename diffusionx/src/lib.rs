@@ -26,6 +26,7 @@
 //! - [x] Subordinator
 //! - [x] Inverse Subordinator
 //! - [x] Fractional Brownian motion
+//! - [x] Continuous time random walk
 //! - [x] Poisson process
 //! - [ ] Compound Poisson process
 //! - [x] Langevin equation

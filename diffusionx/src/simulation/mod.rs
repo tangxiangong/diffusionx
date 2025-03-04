@@ -8,6 +8,7 @@
 //! - Generalized Langevin equation
 //! - Subordinated Langevin equation
 //! - Fractional Brownian motion
+//! - Continuous time random walk
 
 pub mod prelude;
 

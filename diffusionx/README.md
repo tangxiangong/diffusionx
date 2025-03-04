@@ -151,7 +151,8 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 - [x] Subordinator
 - [x] Inverse subordinator
 - [x] Poisson process
-- [ ] Fractional Brownian motion
+- [x] Fractional Brownian motion
+- [x] Continuous time random walk
 - [ ] Compound Poisson process
 - [x] Langevin equation
 - [x] Generalized Langevin equation
