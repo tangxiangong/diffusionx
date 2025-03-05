@@ -1,19 +1,29 @@
 # DiffusionX
 
-> Development is in progress. DiffusionX is a multi-threaded high-performance Rust library for random number/stochastic process simulation.
+> Development is in progress. DiffusionX is a multi-threaded high-performance Rust library for random number generation and stochastic process simulation.
 
-## Usage
+## Features
 
-### Getting Started
+- **High Performance**: Optimized for speed with multi-threading support
+- **Comprehensive**: Wide range of random distributions and stochastic processes
+- **Extensible**: Trait-based design for easy extension
+- **Well-documented**: Clear examples and API documentation
+- **Type-safe**: Leverages Rust's type system for safety and correctness
+
+## Installation
+
 Add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
 diffusionx = "*"
 ```
+
 Or use the following command to install:
 ```bash
 cargo add diffusionx
 ```
+
+## Usage
 
 ### Random Number Generation
 
@@ -50,7 +60,7 @@ let stable_sample = stable::standard_rand(1.5, 0.5)?; // Generate a standard sta
 let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?; // Generate 1000 standard stable random numbers
 
 // General α-stable distribution
-let stable_sample = stable::rand(1.5, 0.5, 1.0, 0.0)?; // Generate a stable random   number with α=1.5, β=0.5, σ=1.0, μ=0.0
+let stable_sample = stable::rand(1.5, 0.5, 1.0, 0.0)?; // Generate a stable random number with α=1.5, β=0.5, σ=1.0, μ=0.0
 let stable_samples = stable::rands(1.5, 0.5, 1.0, 0.0, 1000)?; // Generate 1000 stable random numbers
 
 // Special cases of α-stable distribution
@@ -88,7 +98,8 @@ let fpt = bm.fpt(0.01, (-1.0, 1.0), max_duration)?;
 let fpt = FirstPassageTime::new(&bm, (-1.0, 1.0))?;
 let fpt_result = fpt.simulate(max_duration, 0.01)?;
 ```
-## Extensibility
+
+## Architecture and Extensibility
 
 DiffusionX is designed with a trait-based system for high extensibility:
 
@@ -98,9 +109,9 @@ DiffusionX is designed with a trait-based system for high extensibility:
 - `PointProcess`: Base trait for point processes
 - `Moment`: Trait for statistical moments calculation, including raw and central moments
 
-### Feature Extension
+### Extending with Custom Processes
 
-1. Adding New Continuous Process:
+1. Adding a New Continuous Process:
    ```rust
    #[derive(Clone)]
    struct MyProcess {
@@ -117,8 +128,8 @@ DiffusionX is designed with a trait-based system for high extensibility:
    ```
 
 2. Automatic Feature Acquisition:
-   - Get `ContinuousTrajectoryTrait` functionality automatically by implementing `ContinuousProcess` trait
-   - Get `Moment` trait functionality through `ContinuousTrajectory`
+   - Implementing `ContinuousProcess` trait automatically provides `ContinuousTrajectoryTrait` functionality
+   - `ContinuousTrajectory` provides access to the `Moment` trait functionality
    - Built-in support for moment statistics calculation
 
 Example:
@@ -131,11 +142,11 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 ```
 
 3. Parallel Computing Support:
-   - Automatic parallel computation support for moment calculations
+   - Automatic parallel computation for moment calculations
    - Default parallel strategy for statistical calculations
 
+## Implemented Features
 
-## Progress
 ### Random Number Generation
 
 - [x] Normal distribution
@@ -157,7 +168,8 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 - [x] Langevin equation
 - [x] Generalized Langevin equation
 - [x] Subordinated Langevin equation
-- [x] Fractional Brownian motion 
+- [x] Fractional Brownian motion
+- [x] Levy walk
 
 ## Benchmark
 

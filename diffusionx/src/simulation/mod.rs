@@ -9,6 +9,7 @@
 //! - Subordinated Langevin equation
 //! - Fractional Brownian motion
 //! - Continuous time random walk
+//! - Levy walk
 
 pub mod prelude;
 
@@ -37,5 +38,8 @@ pub use fbm::*;
 
 mod ctrw;
 pub use ctrw::*;
+
+mod levy_walk;
+pub use levy_walk::*;
 
 pub mod functional;
