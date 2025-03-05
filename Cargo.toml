@@ -6,7 +6,7 @@ default-members = ["diffusionx"]
 [workspace.package]
 authors = ["xiangong tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.1.6"
+version = "0.1.7"
 
 [profile.release]
 lto = true

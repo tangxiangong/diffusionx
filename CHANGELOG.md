@@ -2,11 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [Rust-v0.1.7] - 2025-03-05
+
+### 🚀 Features
+
+- *(levy_walk)* Add Levy walk simulation module
 
 ### 🚜 Refactor
 
 - Format
+
+### 📚 Documentation
+
+- *(changelog)* Add entries for Python-v0.1.3 and Rust-v0.1.6 releases
 
 ## [Python-v0.1.3] - 2025-03-04
 
