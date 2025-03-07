@@ -1,25 +1,35 @@
 # DiffusionX
 
-[English](README.md) | [简体中文](README-zh.md)
+[English](README.md) | [简体中文]
 
 > [!NOTE]
-> DiffusionX 是一个多线程高性能的 Rust 随机数/随机过程模拟库
+> DiffusionX 是一个多线程高性能的 Rust 随机数和随机过程模拟库
 
 [![文档](https://img.shields.io/badge/文档-最新-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
 [![crates.io](https://img.shields.io/crates/v/diffusionx.svg)](https://crates.io/crates/diffusionx)
 
-## 使用示例
+## 特性
 
-### 开始使用
+- **高性能**：针对速度进行优化，支持多线程
+- **全面**：广泛的随机分布和随机过程
+- **可扩展**：基于 trait 的设计，易于扩展
+- **文档完善**：清晰的示例和 API 文档
+- **类型安全**：利用 Rust 的类型系统确保安全和正确性
+
+## 安装
+
 添加以下内容到您的 `Cargo.toml`:
 ```toml
 [dependencies]
 diffusionx = "*"
 ```
+
 或者使用以下命令安装:
 ```bash
 cargo add diffusionx
 ```
+
+## 使用
 
 ### 随机数生成
 
@@ -94,23 +104,25 @@ let fpt = bm.fpt(0.01, (-1.0, 1.0), max_duration)?;
 let fpt = FirstPassageTime::new(&bm, (-1.0, 1.0))?;
 let fpt_result = fpt.simulate(max_duration, 0.01)?;
 ```
-## 可扩展性
 
-DiffusionX 采用 trait 系统设计，具有高度的可扩展性：
+## 架构与可扩展性
+
+DiffusionX 采用基于 trait 的系统设计，具有高度的可扩展性：
 
 ### 核心 Trait
 
-- `ContinuousProcess`: 连续随机过程的基本特征 trait
-- `PointProcess`: 点过程的基本特征 trait
-- `Moment`: 随机过程的统计量计算 trait，包括原点矩和中心矩
+- `ContinuousProcess`: 连续随机过程的基本 trait
+- `PointProcess`: 点过程的基本 trait
+- `Moment`: 统计矩计算的 trait，包括原点矩和中心矩
 
-### 功能扩展
+### 扩展自定义过程
 
 1. 添加新的连续随机过程：
    ```rust
    #[derive(Clone)]
    struct MyProcess {
        // 您的参数
+       // 应该是 `Send + Sync`
    }
    
    impl ContinuousProcess for MyProcess {
@@ -123,10 +135,10 @@ DiffusionX 采用 trait 系统设计，具有高度的可扩展性：
 
 2. 自动获得功能：
    - 实现 `ContinuousProcess` trait 后自动获得 `ContinuousTrajectoryTrait` 功能
-   - 通过 `ContinuousTrajectory` 获得 `Moment` 功能
-   - 支持矩统计量计算
+   - `ContinuousTrajectory` 提供对 `Moment` trait 功能的访问
+   - 内置支持矩统计量计算
 
-代码示例：
+示例：
 ```rust
 let myprocess = MyProcess::default();
 let traj = myprocess.duration(10)?;
@@ -139,33 +151,31 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
    - 矩计算自动支持并行计算
    - 统计量计算默认使用并行策略
 
+## 已实现功能
 
-## 进展
 ### 随机数生成
 
 - [x] 正态分布
 - [x] 均匀分布
 - [x] 指数分布
 - [x] 泊松分布
-- [x] alpha 稳定分布
+- [x] Alpha-稳定分布
 
 ### 随机过程
 
 - [x] 布朗运动
-- [x] alpha 稳定 Levy 过程
+- [x] Alpha-稳定 Lévy 过程
 - [x] 从属过程
 - [x] 逆从属过程
-- [x] 分数布朗运动
 - [x] 泊松过程
+- [x] 分数布朗运动
+- [x] 连续时间随机游走
 - [ ] 复合泊松过程
 - [x] Langevin 方程
 - [x] 广义 Langevin 方程
 - [x] 从属 Langevin 方程
-
-### 泛函分布
-
-- [x] 首次通过时间
-- [x] 停留时间
+- [x] 分数布朗运动
+- [x] Lévy 游走
 
 ## Benchmark
 
@@ -173,18 +183,19 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 
 生成长度为 `10_000_000` 的随机数组
 
-|                          | 标准正态分布 | `[0, 1]` 均匀分布 |  稳定分布  |
-| :----------------------: | :----------: | :---------------: | :--------: |
-|  DiffusionX (Rust)  |  17.576 ms   |     15.131 ms     | 133.85 ms  |
-|          Julia           |  27.671 ms   |     12.755 ms      | 570.260 ms |
-|      NumPy / SciPy       |    199 ms    |      66.6 ms      |   1.67 s   |
-|          Numba           |      -       |         -         |   1.15 s   |
+|               | 标准正态分布 | 均匀分布 [0, 1] |  稳定分布  |
+| :-----------: | :----------: | :-------------: | :--------: |
+|  DiffusionX   |  17.576 ms   |    15.131 ms    | 133.85 ms  |
+|     Julia     |  27.671 ms   |    12.755 ms    | 570.260 ms |
+| NumPy / SciPy |    199 ms    |     66.6 ms     |   1.67 s   |
+|     Numba     |      -       |        -        |   1.15 s   |
+
 
 ### 测试环境
 
 #### 硬件配置
 - 设备型号：MacBook Air 13-inch (2024)
-- 处理器：Apple M3 芯片
+- 处理器：Apple M3
 - 内存：16GB
 
 #### 软件环境
