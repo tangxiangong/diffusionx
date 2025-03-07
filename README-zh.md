@@ -1,32 +1,14 @@
 # DiffusionX
 
-[English](README.md) | 简体中文
+[English](README.md) | [简体中文](README-zh.md)
 
 > [!NOTE]
-> 开发进行中。DiffusionX 是一个多线程高性能的 Rust 随机数/随机过程模拟库，并利用 [PyO3](https://github.com/PyO3/pyo3) 提供 Python 封装。 Julia 版本正在同步开发中，可见 [DiffusionX.jl](https://github.com/tangxiangong/DiffusionX.jl)。
+> DiffusionX 是一个多线程高性能的 Rust 随机数/随机过程模拟库
 
-[![文档](https://img.shields.io/badge/文档-最新-blue.svg)](https://docs.rs/diffusionx/0.1.0/diffusionx/)
+[![文档](https://img.shields.io/badge/文档-最新-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
+[![crates.io](https://img.shields.io/crates/v/diffusionx.svg)](https://crates.io/crates/diffusionx)
 
 ## 使用示例
-### Python
-
-```python
-from diffusionx.simulation import Bm
-
-# 布朗运动模拟
-bm = Bm() 
-traj = bm(10)
-times, positions = traj.simulate(step_size=0.01)  # 模拟布朗运动轨迹，返回 ndarray 数组
-
-# 蒙特卡罗模拟布朗运动的统计量
-raw_moment = traj.raw_moment(order=1, particles=1000)  # 一阶原点矩
-central_moment = traj.central_moment(order=2, particles=1000)  # 二阶中心矩
-
-# 布朗运动首次通过时间
-fpt = bm.fpt((-1, 1))
-```
-
-### Rust
 
 ### 开始使用
 添加以下内容到您的 `Cargo.toml`:
@@ -193,8 +175,7 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 
 |                          | 标准正态分布 | `[0, 1]` 均匀分布 |  稳定分布  |
 | :----------------------: | :----------: | :---------------: | :--------: |
-|  DiffusionX (Rust 版本)  |  17.576 ms   |     15.131 ms     | 133.85 ms  |
-| DiffusionX (Python 版本) |   41.2 ms    |     34.3 ms     |  293 ms  |
+|  DiffusionX (Rust)  |  17.576 ms   |     15.131 ms     | 133.85 ms  |
 |          Julia           |  27.671 ms   |     12.755 ms      | 570.260 ms |
 |      NumPy / SciPy       |    199 ms    |      66.6 ms      |   1.67 s   |
 |          Numba           |      -       |         -         |   1.15 s   |
@@ -213,14 +194,6 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 - Julia：1.11
 - NumPy：2
 - SciPy：1.15.1
-
-## 技术栈 & 特性
-
-- 🦀 Rust 2024 Edition
-- 🔄 PyO3：Rust/Python 绑定
-- 🔢 NumPy：零开销数组转换
-- 🚀 高性能 
-- 🔄 零开销 NumPy 兼容：所有随机数生成函数直接返回 NumPy 数组，无需额外转换
 
 ## 许可证
 

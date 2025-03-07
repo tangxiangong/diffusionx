@@ -1,25 +1,35 @@
-[workspace]
-resolver = "3"
-members = ["diffusionx", "py-diffusionx"]
-default-members = ["diffusionx"]
-
-[workspace.package]
+[package]
+name = "diffusionx"
 authors = ["xiangong tang <tangxiangong@gmail.com>"]
 edition = "2024"
 version = "0.1.7"
+description = "A library for random number/stochastic process simulation with high performance."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tangxiangong/diffusionx"
+readme = "README.md"
+
+[[bench]]
+name = "random_generation"
+harness = false
+
+[lib]
+name = "diffusionx"
+crate-type = ["cdylib", "lib"]
+doctest = false
+
+[dev-dependencies]
+criterion = "0.5.1"
 
 [profile.release]
 lto = true
 codegen-units = 1
 panic = "abort"
 
-[workspace.dependencies]
+[dependencies]
 rand_distr = { version = "0.5.0", features = ["std_math"] }
 rand = "0.9.0"
 rayon = "1.10.0"
 thiserror = "2.0.11"
-pyo3 = { version = "0.23.5", features = ["extension-module", "abi3-py39"] }
-numpy = "0.23.0"
 num-traits = "0.2.19"
 rustfft = "6.2.0"
 num-complex = "0.4.6"

@@ -1,43 +1,34 @@
 # DiffusionX
 
-English | [简体中文](README-zh.md)
+[English](README.md) | [简体中文](README-zh.md)
+> DiffusionX is a multi-threaded high-performance Rust library for random number generation and stochastic process simulation.
 
-> [!NOTE]
-> Development is in progress. DiffusionX is a multi-threaded high-performance Rust library for random number/stochastic process simulation, with Python bindings provided via [PyO3](https://github.com/PyO3/pyo3). Julia version is also being developed, see [DiffusionX.jl](https://github.com/tangxiangong/DiffusionX.jl).
+[![docs.rs](https://img.shields.io/badge/docs.rs-latest-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
+[![crates.io](https://img.shields.io/crates/v/diffusionx.svg)](https://crates.io/crates/diffusionx)
 
-[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
 
-## Usage
-### Python
+## Features
 
-```python
-from diffusionx.simulation import Bm
+- **High Performance**: Optimized for speed with multi-threading support
+- **Comprehensive**: Wide range of random distributions and stochastic processes
+- **Extensible**: Trait-based design for easy extension
+- **Well-documented**: Clear examples and API documentation
+- **Type-safe**: Leverages Rust's type system for safety and correctness
 
-# Brownian motion simulation
-bm = Bm()
-traj = bm(10)
-times, positions = traj.simulate(step_size=0.01)  # Simulate Brownian motion trajectory, returns ndarray
+## Installation
 
-# Monte Carlo simulation of Brownian motion statistics
-raw_moment = traj.raw_moment(order=1, particles=1000)  # First-order raw moment
-central_moment = traj.central_moment(order=2, particles=1000)  # Second-order central moment
-
-# First passage time of Brownian motion
-fpt = bm.fpt((-1, 1))
-```
-
-### Rust
-
-### Getting Started
 Add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
 diffusionx = "*"
 ```
+
 Or use the following command to install:
 ```bash
 cargo add diffusionx
 ```
+
+## Usage
 
 ### Random Number Generation
 
@@ -74,7 +65,7 @@ let stable_sample = stable::standard_rand(1.5, 0.5)?; // Generate a standard sta
 let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?; // Generate 1000 standard stable random numbers
 
 // General α-stable distribution
-let stable_sample = stable::rand(1.5, 0.5, 1.0, 0.0)?; // Generate a stable random   number with α=1.5, β=0.5, σ=1.0, μ=0.0
+let stable_sample = stable::rand(1.5, 0.5, 1.0, 0.0)?; // Generate a stable random number with α=1.5, β=0.5, σ=1.0, μ=0.0
 let stable_samples = stable::rands(1.5, 0.5, 1.0, 0.0, 1000)?; // Generate 1000 stable random numbers
 
 // Special cases of α-stable distribution
@@ -112,7 +103,8 @@ let fpt = bm.fpt(0.01, (-1.0, 1.0), max_duration)?;
 let fpt = FirstPassageTime::new(&bm, (-1.0, 1.0))?;
 let fpt_result = fpt.simulate(max_duration, 0.01)?;
 ```
-## Extensibility
+
+## Architecture and Extensibility
 
 DiffusionX is designed with a trait-based system for high extensibility:
 
@@ -122,13 +114,14 @@ DiffusionX is designed with a trait-based system for high extensibility:
 - `PointProcess`: Base trait for point processes
 - `Moment`: Trait for statistical moments calculation, including raw and central moments
 
-### Feature Extension
+### Extending with Custom Processes
 
-1. Adding New Continuous Process:
+1. Adding a New Continuous Process:
    ```rust
    #[derive(Clone)]
    struct MyProcess {
        // Your parameters
+       // Should be `Send + Sync`
    }
    
    impl ContinuousProcess for MyProcess {
@@ -140,8 +133,8 @@ DiffusionX is designed with a trait-based system for high extensibility:
    ```
 
 2. Automatic Feature Acquisition:
-   - Get `ContinuousTrajectoryTrait` functionality automatically by implementing `ContinuousProcess` trait
-   - Get `Moment` trait functionality through `ContinuousTrajectory`
+   - Implementing `ContinuousProcess` trait automatically provides `ContinuousTrajectoryTrait` functionality
+   - `ContinuousTrajectory` provides access to the `Moment` trait functionality
    - Built-in support for moment statistics calculation
 
 Example:
@@ -154,10 +147,11 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 ```
 
 3. Parallel Computing Support:
-   - Automatic parallel computation support for moment calculations
+   - Automatic parallel computation for moment calculations
    - Default parallel strategy for statistical calculations
 
-## Progress
+## Implemented Features
+
 ### Random Number Generation
 
 - [x] Normal distribution
@@ -171,39 +165,36 @@ let msd = traj.central_moment(2, 1000, 0.01)?;
 - [x] Brownian motion
 - [x] Alpha-stable Lévy process
 - [x] Subordinator
-- [x] Inverse Subordinator
-- [x] Fractional Brownian motion
+- [x] Inverse subordinator
 - [x] Poisson process
+- [x] Fractional Brownian motion
+- [x] Continuous time random walk
 - [ ] Compound Poisson process
-- [x] Langevin process
+- [x] Langevin equation
 - [x] Generalized Langevin equation
 - [x] Subordinated Langevin equation
-  
-### Functional
-
-- [x] First passage time
-- [x] Occupation time
+- [x] Fractional Brownian motion
+- [x] Levy walk
 
 ## Benchmark
 
 ### Test Results
 
-
 Generating random array of length `10_000_000`
-|                          | Standard Normal | Uniform [0, 1] | Stable   |
-| :----------------------: | :----------: | :---------------: | :--------: |
-|  DiffusionX (Rust ver.)  |  17.576 ms   |     15.131 ms     | 133.85 ms  |
-| DiffusionX (Python ver.) |   41.2 ms    |     34.3 ms     |  293 ms  |
-|          Julia           |  27.671 ms   |     12.755 ms      | 570.260 ms |
-|      NumPy / SciPy       |    199 ms    |      66.6 ms      |   1.67 s   |
-|          Numba           |      -       |         -         |   1.15 s   |
+
+|               | Standard Normal | Uniform [0, 1] |   Stable   |
+| :-----------: | :-------------: | :------------: | :--------: |
+|  DiffusionX   |    17.576 ms   |     15.131 ms     | 133.85 ms  |
+|     Julia     |    27.671 ms   |     12.755 ms      | 570.260 ms |
+| NumPy / SciPy |     199 ms    |      66.6 ms      |   1.67 s   |
+|     Numba     |        -        |       -        |   1.15 s   |
 
 
 ### Test Environment
 
 #### Hardware Configuration
 - Device Model: MacBook Air 13-inch (2024)
-- Processor: Apple M3 
+- Processor: Apple M3
 - Memory: 16GB
 
 #### Software Environment
@@ -213,14 +204,6 @@ Generating random array of length `10_000_000`
 - Julia: 1.11
 - NumPy: 2
 - SciPy: 1.15.1
-
-## Tech Stack & Features
-
-- 🦀 Rust 2024 Edition
-- 🔄 PyO3: Rust/Python bindings
-- 🔢 NumPy: Zero-cost array conversion
-- 🚀 High performance
-- 🔄 Zero-cost NumPy compatibility: All random number generation functions return NumPy arrays directly
 
 ## License
 
