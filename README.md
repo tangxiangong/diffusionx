@@ -1,6 +1,6 @@
 # DiffusionX
 
-[English] | [简体中文](README-zh.md)
+English | [简体中文](README-zh.md)
 > DiffusionX is a multi-threaded high-performance Rust library for random number generation and stochastic process simulation.
 
 [![docs.rs](https://img.shields.io/badge/docs.rs-latest-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)

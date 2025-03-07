@@ -1,6 +1,6 @@
 # DiffusionX
 
-[English](README.md) | [简体中文]
+[English](README.md) | 简体中文
 
 > [!NOTE]
 > DiffusionX 是一个多线程高性能的 Rust 随机数和随机过程模拟库
