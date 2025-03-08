@@ -2,11 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.8] - 2025-03-08
+
+### 🚀 Features
+
+- *(simulation)* Add Ornstein-Uhlenbeck process simulation module
+
+### 💼 Other
+
+- *(rust-ver 0.1.7)* Bump version to 0.1.7 and update changelog
+
+### 🚜 Refactor
+
+- Restructure project and remove Python bindings to a new repo
+- *(simulation)* Generalize Langevin and Generalized Langevin structs with generic function types
+
+### 📚 Documentation
+
+- Refactor README for improved clarity and content
+- Update README language links and formatting
+- *(readme)* Enhance README with comprehensive library overview and refined examples
+
+### 🧪 Testing
+
+- Refactor test suites for simulation modules
+- Modify Langevin test case to remove strict assertion
+
 ## [Rust-v0.1.7] - 2025-03-05
 
 ### 🚀 Features
 
 - *(levy_walk)* Add Levy walk simulation module
+
+## [diffusionx(Py)-0.1.3] - 2025-03-04
 
 ### 🚜 Refactor
 

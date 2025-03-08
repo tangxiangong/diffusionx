@@ -10,6 +10,7 @@
 //! - Fractional Brownian motion
 //! - Continuous time random walk
 //! - Levy walk
+//! - Ornstein-Uhlenbeck process
 
 pub mod prelude;
 
@@ -41,5 +42,8 @@ pub use ctrw::*;
 
 mod levy_walk;
 pub use levy_walk::*;
+
+mod ou;
+pub use ou::*;
 
 pub mod functional;
