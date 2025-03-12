@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.9] - 2025-03-12
+
+### 🚀 Features
+
+- *(simulation)* Add Birth-death process simulation module
+
+### 📚 Documentation
+
+- *(readme)* Update roadmap with Birth-death process feature
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update CHANGELOG.md for version 0.1.8
+- *(version)* Bump library version to 0.1.9 in Cargo.toml
+
 ## [0.1.8] - 2025-03-08
 
 ### 🚀 Features
@@ -32,9 +47,8 @@ All notable changes to this project will be documented in this file.
 
 ### 🚀 Features
 
+- *(py-diffusionx)* Add support for FBM, CTRW and Langevin processes
 - *(levy_walk)* Add Levy walk simulation module
-
-## [diffusionx(Py)-0.1.3] - 2025-03-04
 
 ### 🚜 Refactor
 
@@ -43,12 +57,6 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - *(changelog)* Add entries for Python-v0.1.3 and Rust-v0.1.6 releases
-
-## [Python-v0.1.3] - 2025-03-04
-
-### 🚀 Features
-
-- *(py-diffusionx)* Add support for FBM, CTRW and Langevin processes
 
 ## [Rust-v0.1.6] - 2025-03-04
 
@@ -88,6 +96,9 @@ All notable changes to this project will be documented in this file.
 
 ### 🚀 Features
 
+- *(Rust)* Add occupation time for inverse subordinator
+- *(Python)* Add functional simulation methods for first passage time and occupation time
+- *(Python)* Add Poisson, Subordinator, and Inverse Subordinator simulation classes
 - *(Rust)* Add Langevin equation simulation module
 - *(Simulation)* Add Generalized Langevin Equation Simulation
 - *(Simulation)* Add Subordinated Langevin Equation Simulation
@@ -96,12 +107,18 @@ All notable changes to this project will be documented in this file.
 
 - *(Langevin)* Correct stochastic simulation noise scaling
 
+### 💼 Other
+
+- Release Rust version 0.1.3
+- Bump Python package version to 0.1.2
+
 ### 🚜 Refactor
 
 - *(Langevin)* Remove unnecessary start position validation
 
 ### 📚 Documentation
 
+- *(Rust)* Update CHANGELOG for version 0.1.3
 - *(CHANGELOG)* Update changelog for Python version 0.1.2
 - Update benchmark results with new hardware and software configuration
 - *(Rust)* Update README and documentation for Langevin equation implementations
@@ -110,23 +127,6 @@ All notable changes to this project will be documented in this file.
 
 - Update project dependencies and benchmark performance
 - Bump package version to 0.1.4
-
-## [Python-v0.1.2] - 2025-02-22
-
-### 🚀 Features
-
-- *(Rust)* Add occupation time for inverse subordinator
-- *(Python)* Add functional simulation methods for first passage time and occupation time
-- *(Python)* Add Poisson, Subordinator, and Inverse Subordinator simulation classes
-
-### 💼 Other
-
-- Release Rust version 0.1.3
-- Bump Python package version to 0.1.2
-
-### 📚 Documentation
-
-- *(Rust)* Update CHANGELOG for version 0.1.3
 
 ## [Rust-0.1.3] - 2025-02-21
 
@@ -168,8 +168,13 @@ All notable changes to this project will be documented in this file.
 
 - *(Python)* Add input validation for Brownian motion and Lévy process methods
 
+### 💼 Other
+
+- Lower Python version requirement to 3.9
+
 ### 🚜 Refactor
 
+- Remove gamma function implementations from utils
 - Enhance simulation traits with continuous and point process abstractions
 - Update Brownian motion and Lévy process simulation traits
 - Optimize occupation time calculation using iterator methods
@@ -179,36 +184,20 @@ All notable changes to this project will be documented in this file.
 
 ### 📚 Documentation
 
+- Add comprehensive README for Python package
 - Update README with new features and progress
 - Update project roadmap and feature tracking
 - Update README files with comprehensive random number generation and simulation examples
 
 ### ⚙️ Miscellaneous Tasks
 
+- Add PyPI publication workflow for Python package
+- Switch Rust toolchain from stable to beta in publish workflow
+- Remove test step from Python publish workflow
 - Add changelog and git-cliff configuration
 - Update CHANGELOG.md with recent project developments
 - Bump project version to 0.1.2
 - Prepare Rust release v0.1.2
-
-## [0.1.1-remove-test] - 2025-02-19
-
-### 💼 Other
-
-- Lower Python version requirement to 3.9
-
-### 🚜 Refactor
-
-- Remove gamma function implementations from utils
-
-### 📚 Documentation
-
-- Add comprehensive README for Python package
-
-### ⚙️ Miscellaneous Tasks
-
-- Add PyPI publication workflow for Python package
-- Switch Rust toolchain from stable to beta in publish workflow
-- Remove test step from Python publish workflow
 
 ## [0.1.0] - 2025-02-19
 
