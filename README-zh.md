@@ -168,6 +168,7 @@ let mean = traj.raw_moment(1, 1000, 0.01)?; // 使用 1000 个粒子计算均值
 - [x] 广义 Langevin 方程 - 具有记忆效应的扩展模型
 - [x] 从属 Langevin 方程 - 时间变换的 Langevin 过程
 - [x] Lévy 游走 - 具有耦合跳跃长度和等待时间的超扩散过程
+- [x] 生灭过程 - 具有出生和死亡率的离散状态过程
 
 ## Benchmark
 

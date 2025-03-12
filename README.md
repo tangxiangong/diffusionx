@@ -21,7 +21,7 @@ English | [简体中文](README-zh.md)
 Add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
-diffusionx = "0.1.8"  # Replace with the latest version
+diffusionx = "0.1.9"  # Replace with the latest version
 ```
 
 Or use the following command to install:
@@ -167,7 +167,7 @@ let mean = traj.raw_moment(1, 1000, 0.01)?; // Calculate mean with 1000 particle
 - [x] Generalized Langevin equation - Extended models with memory effects
 - [x] Subordinated Langevin equation - Time-changed Langevin processes
 - [x] Levy walk - Superdiffusive processes with coupled jump lengths and waiting times
-
+- [x] Birth-death process - Discrete-state processes with birth and death rates
 ## Benchmark
 
 ### Test Results

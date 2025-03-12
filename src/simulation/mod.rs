@@ -11,6 +11,7 @@
 //! - Continuous time random walk
 //! - Levy walk
 //! - Ornstein-Uhlenbeck process
+//! - Birth-death process
 
 pub mod prelude;
 
@@ -45,5 +46,8 @@ pub use levy_walk::*;
 
 mod ou;
 pub use ou::*;
+
+mod birth_death;
+pub use birth_death::*;
 
 pub mod functional;
