@@ -18,7 +18,7 @@ crate-type = ["cdylib", "lib"]
 doctest = false
 
 [features]
-visualize = ["plotters"]
+visualize = ["plotters", "derive_builder"]
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -37,3 +37,5 @@ num-traits = "0.2.19"
 rustfft = "6.2.0"
 num-complex = "0.4.6"
 plotters = { version = "0.3.7", optional = true }
+plotters-backend = { version = "0.3.5", optional = true }
+derive_builder = { version = "0.20.2", optional = true }
