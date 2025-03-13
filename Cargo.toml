@@ -17,6 +17,9 @@ name = "diffusionx"
 crate-type = ["cdylib", "lib"]
 doctest = false
 
+[features]
+visualize = ["plotters"]
+
 [dev-dependencies]
 criterion = "0.5.1"
 
@@ -29,7 +32,8 @@ panic = "abort"
 rand_distr = { version = "0.5.0", features = ["std_math"] }
 rand = "0.9.0"
 rayon = "1.10.0"
-thiserror = "2.0.11"
+thiserror = "2"
 num-traits = "0.2.19"
 rustfft = "6.2.0"
 num-complex = "0.4.6"
+plotters = { version = "0.3.7", optional = true }
