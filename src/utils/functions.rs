@@ -10,17 +10,12 @@
 //! - `approx_eq`: Check if two numbers are approximately equal.
 //! - `float_eq`: Check if two numbers are equal.
 //! - `eval_poly`: Evaluate a polynomial.
-//! - `sinpi`: Calculate the sine of pi times a number.
-//! - `cospi`: Calculate the cosine of pi times a number.
-//! - `sincospi`: Calculate the sine and cosine of pi times a number.
-//! - `tanpi`: Calculate the tangent of pi times a number.
 //! - `minmax`: Find the minimum and maximum values in a vector.
 //! - `calculate_stats`: Calculate the mean and variance of a vector, using in test.
 //! - `calculate_int_stats`: Calculate the mean and variance of an integer vector, using in test.
 //! - `calculate_bool_mean`: Calculate the mean of a boolean vector, using in test.
 
 use num_traits::Num;
-use std::f64::consts::PI;
 
 /// Calculate the cumulative sum of a vector
 ///
@@ -143,174 +138,6 @@ pub fn eval_poly(x: f64, arr: &[f64]) -> f64 {
     arr.iter().fold(0.0, |acc, &a| acc * x + a)
 }
 
-/// Calculate sin(pi * x) using the best uniform approximation polynomial, pi * x in [0, 1/4]
-pub(crate) fn sinpi_kernel(x: f64) -> f64 {
-    let x_square = x * x;
-    let x_forth = x_square * x_square;
-    let r = eval_poly(
-        x,
-        &[
-            -2.1717412523382308e-5,
-            4.662827319453555e-4,
-            -7.370429884921779e-3,
-            0.08214588658006512,
-            -0.5992645293202981,
-            2.5501640398773415,
-        ],
-    );
-    let tmp = (-5.16771278004997f64).mul_add(x_square, x_forth.mul_add(r, 1.2245907532225998e-16));
-    PI.mul_add(x, x * tmp)
-}
-
-/// Calculate cos(pi * x) using the best uniform approximation polynomial, pi * x in [0, 1/4]
-pub(crate) fn cospi_kernel(x: f64) -> f64 {
-    let x_square = x * x;
-    let r = x_square
-        * eval_poly(
-            x_square,
-            &[
-                -1.0368935675474665e-4,
-                1.9294917136379183e-3,
-                -0.025806887811869204,
-                0.23533063027900392,
-                -1.3352627688537357,
-                4.058712126416765,
-            ],
-        );
-    let a_x_square = 4.934802200544679 * x_square;
-    let a_x_square_lo = 3.109686485461973e-16f64.mul_add(
-        x_square,
-        4.934802200544679f64.mul_add(x_square, -a_x_square),
-    );
-    let w = 1.0 - a_x_square;
-    w + x_square.mul_add(r, ((1.0 - w) - a_x_square) - a_x_square_lo)
-}
-
-/// Calculate sin(pi * x)
-///
-/// More accurate than calculating sin(pi * x), especially when x is large
-///
-/// If both sine and cosine values are needed, see [sincospi]
-///
-/// # Panic
-///
-/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
-///
-/// # Panic
-///
-/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
-pub fn sinpi(_x: f64) -> f64 {
-    if _x.is_nan() {
-        return f64::NAN;
-    }
-    if _x.is_infinite() {
-        panic!("function `sinpi` only accepts finite values");
-    }
-    let x = _x.abs();
-    // 对于特别大的 x, 返回 0
-    if x >= f64::MAX.floor() {
-        return 0.0f64.copysign(_x);
-    }
-
-    // 根据正弦函数的周期性，将 x 转化为 [0, 1/2]
-    let n = (2. * x).round();
-    let rx = (-0.5f64).mul_add(n, x);
-    let n = n as i64 & 3i64;
-    let res = match n {
-        0 => sinpi_kernel(rx),
-        1 => cospi_kernel(rx),
-        2 => 0.0f64 - sinpi_kernel(rx),
-        _ => 0.0f64 - cospi_kernel(rx),
-    };
-    res.copysign(_x)
-}
-
-/// Calculate cos(pi * x)
-///
-/// More accurate than calculating cos(pi * x), especially when x is large
-///
-/// If both sine and cosine values are needed, see [sincospi]
-///
-/// # Panic
-///
-/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
-///
-/// # Panic
-///
-/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
-pub fn cospi(_x: f64) -> f64 {
-    if _x.is_nan() {
-        return f64::NAN;
-    }
-    if _x.is_infinite() {
-        panic!("function `cospi` only accepts finite values");
-    }
-    let x = _x.abs();
-    // 对于特别大的 x, 返回 1
-    if x >= f64::MAX.floor() {
-        return 1.0f64.copysign(_x);
-    }
-
-    let n = (2. * x).round();
-    let rx = (-0.5f64).mul_add(n, x);
-    let n = n as i64 & 3i64;
-    match n {
-        0 => cospi_kernel(rx),
-        1 => 0.0f64 - sinpi_kernel(rx),
-        2 => 0.0f64 - cospi_kernel(rx),
-        _ => sinpi_kernel(rx),
-    }
-}
-
-/// Calculate sin(pi * x) and cos(pi * x)
-///
-/// Return a tuple
-///
-/// If only sine or cosine value is needed, see [sinpi] and [cospi]
-///
-/// # Panic
-///
-/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
-pub fn sincospi(_x: f64) -> (f64, f64) {
-    if _x.is_nan() {
-        return (f64::NAN, f64::NAN);
-    }
-    if _x.is_infinite() {
-        panic!("function `sincospi` only accepts finite values");
-    }
-    let x = _x.abs();
-
-    if x >= f64::MAX.floor() {
-        return (0.0f64.copysign(_x), 1.0f64.copysign(_x));
-    }
-
-    let n = (2. * x).round();
-    let rx = (-0.5f64).mul_add(n, x);
-    let n = n as i64 & 3i64;
-    let si = sinpi_kernel(rx);
-    let co = cospi_kernel(rx);
-    match n {
-        0 => (si.copysign(_x), co),
-        1 => (co.copysign(_x), 0.0f64 - si),
-        2 => ((0.0f64 - si).copysign(_x), 0.0f64 - co),
-        _ => ((0.0f64 - co).copysign(_x), si),
-    }
-}
-
-/// Calculate tan(pi * x)
-///
-/// More accurate than calculating tan(pi * x), especially when x is large
-///
-/// Similar functions: [sinpi], [cospi], [sincospi]
-///
-/// # Panic
-///
-/// When `x` is `f64::INFINITY` or `f64::NEG_INFINITY`, panic
-pub fn tanpi(_x: f64) -> f64 {
-    let (si, co) = sincospi(_x);
-    si / co
-}
-
 /// find max value and min value in a &\[f64\]
 pub fn minmax(arr: &[f64]) -> (f64, f64) {
     arr.iter()
@@ -416,20 +243,6 @@ mod tests {
         let v = vec![1.0, -2.0, 3.0, -4.0, 5.0];
         let result = cumsum(0.0, &v);
         assert_eq!(result, vec![0.0, 1.0, -1.0, 2.0, -2.0, 3.0]);
-    }
-
-    #[test]
-    fn test_sinpi() {
-        let tol = 1.0e-3;
-        assert!(approx_eq(sinpi(1.0), 0.0, tol));
-        assert!(approx_eq(sinpi(1.0 / 6.0), 0.5, tol));
-    }
-
-    #[test]
-    fn test_cospi() {
-        let tol = 1.0e-3;
-        assert!(approx_eq(cospi(1.0), -1.0, tol));
-        assert!(approx_eq(cospi(1.0 / 3.0), 0.5, tol));
     }
 
     #[test]
