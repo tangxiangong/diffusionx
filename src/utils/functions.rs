@@ -5,8 +5,6 @@
 //! ## Functions
 //!
 //! - `cumsum`: Calculate the cumulative sum of a vector.
-//! - `gamma`: Calculate the gamma function of a number.
-//! - `gammaf`: Calculate the gamma function of a number (f32 version).
 //! - `approx_eq`: Check if two numbers are approximately equal.
 //! - `float_eq`: Check if two numbers are equal.
 //! - `eval_poly`: Evaluate a polynomial.
