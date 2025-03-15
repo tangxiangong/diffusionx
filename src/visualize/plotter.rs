@@ -1161,7 +1161,7 @@ pub fn plot_point_data(times: &[f64], positions: &[i64], config: &PlotConfig) ->
                 .iter()
                 .zip(positions_f64.iter())
                 .map(|(&x, &y)| Circle::new((x, y), config.point_size, style))
-                    .collect::<Vec<_>>(),
+                .collect::<Vec<_>>(),
         )?;
     }
 

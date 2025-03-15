@@ -17,6 +17,10 @@ pub struct PlotConfig {
     #[builder(default = "String::from(\"Position\")", setter(into))]
     pub y_label: String,
 
+    /// Time step
+    #[builder(default = "0.01", setter(into))]
+    pub time_step: f64,
+
     /// Width of the plot (pixels)
     #[builder(default = "800", setter(into))]
     pub width: i32,
