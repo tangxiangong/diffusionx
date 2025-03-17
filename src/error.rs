@@ -84,4 +84,7 @@ pub enum PlotterError {
     /// Error for invalid configuration
     #[error("Config Error: {0}")]
     ConfigError(String),
+    /// Error for invalid color
+    #[error("Invalid color: {0}")]
+    InvalidColor(String),
 }
