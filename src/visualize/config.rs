@@ -38,14 +38,14 @@ pub enum Color {
 impl From<Color> for RGBColor {
     fn from(color: Color) -> Self {
         match color {
-            Color::Red => RED.into(),
-            Color::Blue => BLUE.into(),
-            Color::Green => GREEN.into(),
-            Color::Black => BLACK.into(),
-            Color::White => WHITE.into(),
-            Color::Yellow => YELLOW.into(),
-            Color::Cyan => CYAN.into(),
-            Color::Magenta => MAGENTA.into(),
+            Color::Red => RED,
+            Color::Blue => BLUE,
+            Color::Green => GREEN,
+            Color::Black => BLACK,
+            Color::White => WHITE,
+            Color::Yellow => YELLOW,
+            Color::Cyan => CYAN,
+            Color::Magenta => MAGENTA,
             Color::RGB(r, g, b) => RGBColor(r, g, b),
         }
     }
