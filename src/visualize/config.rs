@@ -1,69 +1,152 @@
 use derive_builder::Builder;
-use std::path::PathBuf;
+use plotters::prelude::*;
+use std::{ops::Range, path::PathBuf};
 
+/// Backend of the plotters
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum PlotterBackend {
+    /// Bitmap backend
+    #[default]
+    BitMap,
+    /// SVG backend
+    SVG,
+}
+
+/// Color
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Color {
+    /// Red
+    Red,
+    /// Blue
+    Blue,
+    /// Green
+    Green,
+    /// Black
+    Black,
+    /// White
+    White,
+    /// Yellow
+    Yellow,
+    /// Cyan
+    Cyan,
+    /// Magenta
+    Magenta,
+    /// RGB color
+    RGB(u8, u8, u8),
+}
+
+impl From<Color> for RGBColor {
+    fn from(color: Color) -> Self {
+        match color {
+            Color::Red => RED.into(),
+            Color::Blue => BLUE.into(),
+            Color::Green => GREEN.into(),
+            Color::Black => BLACK.into(),
+            Color::White => WHITE.into(),
+            Color::Yellow => YELLOW.into(),
+            Color::Cyan => CYAN.into(),
+            Color::Magenta => MAGENTA.into(),
+            Color::RGB(r, g, b) => RGBColor(r, g, b),
+        }
+    }
+}
+
+#[allow(dead_code)]
 /// Configuration for plotting
-#[derive(Builder, Clone, Debug)]
-#[builder(setter(into))]
-pub struct PlotConfig {
-    /// Title of the plot
+#[derive(Builder, Clone)]
+#[builder(pattern = "mutable")]
+pub struct PlotConfig<'a> {
+    /// Backend of the plotters
+    #[builder(default = "PlotterBackend::BitMap")]
+    pub(crate) backend: PlotterBackend,
+
+    /// Background color
+    #[builder(default = "Color::White")]
+    pub(crate) background_color: Color,
+
+    /// Caption
+    #[builder(default = "\"\".into()", setter(into))]
+    pub(crate) caption: String,
+
+    /// Font
+    #[builder(default = "(\"sans-serif\", 10).into_font()", setter(into))]
+    pub(crate) font: FontDesc<'a>,
+
+    /// The desired size of the four chart margins in backend units (pixels).
+    #[builder(default = "5", setter(into))]
+    pub(crate) margin: u32,
+
+    /// Title
     #[builder(default = "String::from(\"Random Process Simulation\")", setter(into))]
-    pub title: String,
+    pub(crate) title: String,
+
+    /// The desired size of the X label area in backend units (pixels). If set to 0, the X label area is removed.
+    #[builder(default = "30", setter(into))]
+    pub(crate) x_label_area_size: u32,
+
+    /// The desired size of the Y label area in backend units (pixels). If set to 0, the Y label area is removed.
+    #[builder(default = "30", setter(into))]
+    pub(crate) y_label_area_size: u32,
+
+    /// Specifies the X axis range and data properties
+    #[builder(setter(into, strip_option), default)]
+    pub(crate) x_spec: Option<Range<f64>>,
+
+    /// Specifies the Y axis range and data properties
+    #[builder(setter(into, strip_option), default)]
+    pub(crate) y_spec: Option<Range<f64>>,
 
     /// X-axis label
     #[builder(default = "String::from(\"Time\")", setter(into))]
-    pub x_label: String,
+    pub(crate) x_label: String,
 
     /// Y-axis label
     #[builder(default = "String::from(\"Position\")", setter(into))]
-    pub y_label: String,
+    pub(crate) y_label: String,
 
     /// Time step
     #[builder(default = "0.01", setter(into))]
-    pub time_step: f64,
+    pub(crate) time_step: f64,
 
-    /// Width of the plot (pixels)
-    #[builder(default = "800", setter(into))]
-    pub width: i32,
-
-    /// Height of the plot (pixels)
-    #[builder(default = "600", setter(into))]
-    pub height: i32,
+    /// Size (width, height) of the plot (pixels)
+    #[builder(default = "(800, 600)", setter(into))]
+    pub(crate) size: (usize, usize),
 
     /// Output file path
-    #[builder(default = "PathBuf::from(\"output.png\")", setter(into))]
-    pub output_path: PathBuf,
+    #[builder(default = "PathBuf::from(\"result.png\")", setter(into))]
+    pub(crate) output_path: PathBuf,
 
     /// Whether to show grid lines
     #[builder(default = "true")]
-    pub show_grid: bool,
+    pub(crate) show_grid: bool,
 
     /// Line width
     #[builder(default = "1.5", setter(into))]
-    pub line_width: f64,
+    pub(crate) line_width: f64,
 
-    /// Line color (RGB format, e.g. "#FF0000" for red, or color name like "red", "blue", etc.)
-    #[builder(default = "String::from(\"#0072BD\")", setter(into))]
-    pub line_color: String,
+    /// Line color
+    #[builder(default = "Color::Blue")]
+    pub(crate) line_color: Color,
 
     /// Whether to use step plot (suitable for CTRW, Poisson, etc.)
     #[builder(default = "false")]
-    pub use_step_plot: bool,
+    pub(crate) stairs: bool,
 
     /// Whether to show legend
     #[builder(default = "true")]
-    pub show_legend: bool,
+    pub(crate) show_legend: bool,
 
     /// Legend title
-    #[builder(default = "String::from(\"Trajectory\")", setter(into))]
-    pub legend_label: String,
+    #[builder(default = "\"Trajectory\".into()", setter(into))]
+    pub(crate) legend: String,
 
     /// Whether to show points
     #[builder(default = "false")]
-    pub show_points: bool,
+    pub(crate) show_points: bool,
 
     /// Size of the points
-    #[builder(default = "3.0")]
-    pub point_size: f64,
+    #[builder(default = "3.0", setter(into))]
+    pub(crate) point_size: f64,
 }
 
 #[cfg(test)]
@@ -76,8 +159,7 @@ mod tests {
             .title("Test Plot")
             .x_label("Time")
             .y_label("Position")
-            .width(800)
-            .height(600)
+            .size((800, 600))
             .output_path("test_plot.png")
             .build()
             .unwrap();
@@ -85,8 +167,7 @@ mod tests {
         assert_eq!(config.title, "Test Plot");
         assert_eq!(config.x_label, "Time");
         assert_eq!(config.y_label, "Position");
-        assert_eq!(config.width, 800);
-        assert_eq!(config.height, 600);
+        assert_eq!(config.size, (800, 600));
         assert_eq!(config.output_path, PathBuf::from("test_plot.png"));
     }
 }
