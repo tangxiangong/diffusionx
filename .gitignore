@@ -3,3 +3,5 @@ Cargo.lock
 .mypy_cache
 
 **/.DS_Store
+
+*.rs.bak
