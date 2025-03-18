@@ -36,6 +36,9 @@ pub enum XError {
     /// Error for simulating the process
     #[error("Simulate Error: {0}")]
     SimulateError(#[from] SimulationError),
+    /// Error for visualization
+    #[error("Visualization Error: {0}")]
+    VisualizationError(#[from] PlotterError),
 }
 
 /// Error for sampling from the stable distribution
@@ -73,4 +76,26 @@ pub enum SimulationError {
     /// Error for unknown error
     #[error("Unknown error, simulation failed")]
     Unknown,
+}
+
+/// Error wrapper for `plotters` crate
+#[derive(Error, Debug, PartialEq, Eq, Clone)]
+pub enum PlotterError {
+    /// Error for invalid configuration
+    #[error("Config Error: {0}")]
+    ConfigError(String),
+    /// Error for invalid color
+    #[error("Invalid color: {0}")]
+    InvalidColor(String),
+    /// Error from Plotters DrawingAreaErrorKind
+    #[error("Plotter Error: {0}")]
+    DrawingError(String),
+}
+
+impl<E: std::error::Error + Send + Sync> From<plotters::drawing::DrawingAreaErrorKind<E>>
+    for XError
+{
+    fn from(err: plotters::drawing::DrawingAreaErrorKind<E>) -> Self {
+        PlotterError::DrawingError(err.to_string()).into()
+    }
 }

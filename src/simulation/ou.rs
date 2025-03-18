@@ -195,6 +195,6 @@ mod tests {
     fn test_occupation_time() {
         let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
         let occupation_time = ou.occupation_time((-1.0, 1.0), 1.0, 0.01).unwrap();
-        assert!(occupation_time >= 0.0 && occupation_time <= 1.0);
+        assert!((0.0..=1.0).contains(&occupation_time));
     }
 }
