@@ -39,6 +39,8 @@ pub enum XError {
     /// Error for visualization
     #[error("Visualization Error: {0}")]
     VisualizationError(#[from] PlotterError),
+    #[error("Invalid parameters: {0}")]
+    InvalidParameters(String),
 }
 
 /// Error for sampling from the stable distribution
