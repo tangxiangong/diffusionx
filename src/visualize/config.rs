@@ -1,14 +1,13 @@
+use crate::{XResult, simulation::prelude::*, utils::minmax};
 use derive_builder::Builder;
 use plotters::prelude::*;
 use std::{ops::Range, path::PathBuf};
 
-/// Backend of the plotters
+/// Plotters Backend
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum PlotterBackend {
-    /// Bitmap backend
     #[default]
     BitMap,
-    /// SVG backend
     SVG,
 }
 
@@ -56,8 +55,8 @@ impl From<Color> for RGBColor {
 #[derive(Builder, Clone)]
 #[builder(pattern = "mutable")]
 pub struct PlotConfig<'a> {
-    /// Backend of the plotters
-    #[builder(default = "PlotterBackend::BitMap")]
+    /// Backend
+    #[builder(default)]
     pub(crate) backend: PlotterBackend,
 
     /// Background color
@@ -110,7 +109,7 @@ pub struct PlotConfig<'a> {
 
     /// Size (width, height) of the plot (pixels)
     #[builder(default = "(800, 600)", setter(into))]
-    pub(crate) size: (usize, usize),
+    pub(crate) size: (u32, u32),
 
     /// Output file path
     #[builder(default = "PathBuf::from(\"result.png\")", setter(into))]
@@ -128,10 +127,6 @@ pub struct PlotConfig<'a> {
     #[builder(default = "Color::Blue")]
     pub(crate) line_color: Color,
 
-    /// Whether to use step plot (suitable for CTRW, Poisson, etc.)
-    #[builder(default = "false")]
-    pub(crate) stairs: bool,
-
     /// Whether to show legend
     #[builder(default = "true")]
     pub(crate) show_legend: bool,
@@ -147,6 +142,71 @@ pub struct PlotConfig<'a> {
     /// Size of the points
     #[builder(default = "3.0", setter(into))]
     pub(crate) point_size: f64,
+}
+
+impl PlotConfig<'_> {
+    pub(crate) fn plot<Backend: DrawingBackend, Process: ContinuousProcess>(
+        &self,
+        backend: Backend,
+        traj: &ContinuousTrajectory<Process>,
+    ) -> XResult<()> {
+        let (times, positions) = traj.simulate(self.time_step)?;
+        let max_time = *times.last().unwrap();
+        let (min_x, max_x) = minmax(&positions);
+
+        let x_spec = match self.x_spec.clone() {
+            Some(x_spec) => x_spec,
+            None => 0.0..max_time,
+        };
+
+        let y_spec = match self.y_spec.clone() {
+            Some(y_spec) => y_spec,
+            None => {
+                let min_x = min_x * 1.25;
+                let max_x = max_x * 1.25;
+                min_x..max_x
+            }
+        };
+
+        let root = backend.into_drawing_area();
+        let background_color: RGBColor = self.background_color.clone().into();
+        root.fill(&background_color)?;
+        let mut chart = ChartBuilder::on(&root)
+            .caption(&self.caption, self.font.clone().into_font())
+            .margin(self.margin)
+            .x_label_area_size(self.x_label_area_size)
+            .y_label_area_size(self.y_label_area_size)
+            .build_cartesian_2d(x_spec, y_spec)?;
+
+        chart.configure_mesh().draw()?;
+
+        chart
+            .draw_series(LineSeries::new(
+                times.iter().zip(positions).map(|(t, x)| (*t, x)),
+                &RED,
+            ))?
+            .label(&self.caption)
+            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], RED));
+
+        chart
+            .configure_series_labels()
+            .background_style(background_color)
+            .border_style(BLACK)
+            .draw()?;
+
+        root.present()?;
+
+        Ok(())
+    }
+
+    // pub(crate) fn stairs<Backend: DrawingBackend, Process: PointProcess>(
+    //     &self,
+    //     backend: Backend,
+    //     _traj: &PointTrajectory<Process>,
+    // ) -> XResult<()> {
+    //     let _root = backend.into_drawing_area();
+    //     todo!()
+    // }
 }
 
 #[cfg(test)]

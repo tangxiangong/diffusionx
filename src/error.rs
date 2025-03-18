@@ -87,4 +87,15 @@ pub enum PlotterError {
     /// Error for invalid color
     #[error("Invalid color: {0}")]
     InvalidColor(String),
+    /// Error from Plotters DrawingAreaErrorKind
+    #[error("Plotter Error: {0}")]
+    DrawingError(String),
+}
+
+impl<E: std::error::Error + Send + Sync> From<plotters::drawing::DrawingAreaErrorKind<E>>
+    for XError
+{
+    fn from(err: plotters::drawing::DrawingAreaErrorKind<E>) -> Self {
+        PlotterError::DrawingError(err.to_string()).into()
+    }
 }
