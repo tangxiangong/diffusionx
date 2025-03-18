@@ -452,7 +452,7 @@ mod tests {
     fn test_occupation_time() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
         let ot = levy_walk.occupation_time((-1.0, 1.0), 1000.0).unwrap();
-        assert!(ot >= 0.0 && ot <= 1000.0);
+        assert!((0.0..=1000.0).contains(&ot));
     }
 
     #[test]
