@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2025-03-18
+
+### 🚀 Features
+
+- *(visualization)* Add optional visualization feature with Plotters integration
+- *(visualization)* Enhance visualization capabilities with new PlotConfig and plotter modules
+- *(error)* Add VisualizationError and PlotterError enums for enhanced error handling in visualization
+- *(visualization)* Add time_step field and drawing trait for visualization
+- *(error)* Add InvalidColor variant to PlotterError enum for enhanced error reporting
+- *(visualization)* Enhance PlotConfig with new fields and color handling
+- *(visualization)* Enhance PlotConfig and Visualize trait for improved plotting
+- Update version to 0.2.0 and add visualization feature
+
+### 🐛 Bug Fixes
+
+- *(visualization)* Update PlotConfig struct for improved type handling
+- *(tests)* Update occupation time assertions for stability
+
+### 🚜 Refactor
+
+- *(functions)* Remove sine and cosine functions for pi calculations
+- *(functions)* Remove gamma function documentation
+- *(visualization)* Update .gitignore and remove plotter module
+- *(visualization)* Simplify RGBColor conversion in Color enum
+- *(visualization)* Remove visualization module and related dependencies
+
+### 📚 Documentation
+
+- *(changelog)* Update CHANGELOG.md for version 0.1.9
+
+### ⚙️ Miscellaneous Tasks
+
+- *(dependencies)* Simplify Cargo.toml by removing features section and updating optional dependencies to required
+- *(visualization)* Comment out plotter module and its usage
+- *(workflow)* Update GitHub Actions to include 'plot' branch for CI
+
 ## [0.1.9] - 2025-03-12
 
 ### 🚀 Features
