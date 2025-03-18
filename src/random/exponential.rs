@@ -1,9 +1,49 @@
 //! Exponential distribution random number generation
 
-use crate::XResult;
+use crate::{XError, XResult};
 use rand::{prelude::*, rng};
 use rand_distr::{Exp, Exp1};
 use rayon::prelude::*;
+
+/// Exponential distribution
+pub struct Exponential {
+    /// rate parameter, must be greater than 0
+    lambda: f64,
+}
+
+impl Default for Exponential {
+    fn default() -> Self {
+        Self { lambda: 1.0 }
+    }
+}
+
+impl Exponential {
+    /// Create a new exponential distribution
+    pub fn new(lambda: impl Into<f64>) -> XResult<Self> {
+        let lambda = lambda.into();
+        if lambda <= 0.0 {
+            return Err(XError::InvalidParameters(format!(
+                "lambda must be greater than 0, got {}",
+                lambda
+            )));
+        }
+        Ok(Self { lambda })
+    }
+
+    /// Get the rate parameter
+    pub fn lambda(&self) -> f64 {
+        self.lambda
+    }
+
+    /// Generate a vector of exponential random numbers
+    pub fn samples(&self, n: usize) -> Vec<f64> {
+        if self.lambda == 1.0 {
+            standard_rands(n)
+        } else {
+            rands(self.lambda, n).unwrap()
+        }
+    }
+}
 
 /// Generate a standard exponential random number
 ///

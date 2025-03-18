@@ -1,9 +1,44 @@
 //! Poisson distribution random number generation
 
-use crate::XResult;
+use crate::{XError, XResult};
 use rand::{prelude::*, rng};
-use rand_distr::Poisson;
 use rayon::prelude::*;
+
+/// Poisson distribution
+pub struct Poisson {
+    /// rate parameter, must be greater than 0
+    lambda: f64,
+}
+
+impl Default for Poisson {
+    fn default() -> Self {
+        Self { lambda: 1.0 }
+    }
+}
+
+impl Poisson {
+    /// Create a new Poisson distribution
+    pub fn new(lambda: impl Into<f64>) -> XResult<Self> {
+        let lambda = lambda.into();
+        if lambda <= 0.0 {
+            return Err(XError::InvalidParameters(format!(
+                "lambda must be greater than 0, got {}",
+                lambda
+            )));
+        }
+        Ok(Self { lambda })
+    }
+
+    /// Get the rate parameter
+    pub fn lambda(&self) -> f64 {
+        self.lambda
+    }
+
+    /// Generate a vector of Poisson random numbers
+    pub fn samples(&self, n: usize) -> Vec<u64> {
+        rands(self.lambda, n).unwrap()
+    }
+}
 
 /// Generate a Poisson random number
 ///
@@ -21,7 +56,7 @@ use rayon::prelude::*;
 /// ```
 pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
     let lambda = lambda.into();
-    let poisson = Poisson::new(lambda)?;
+    let poisson = rand_distr::Poisson::new(lambda)?;
     Ok(rng().sample(poisson) as u64)
 }
 
@@ -41,7 +76,7 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
 /// ```
 pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<u64>> {
     let lambda = lambda.into();
-    let poisson = Poisson::new(lambda)?;
+    let poisson = rand_distr::Poisson::new(lambda)?;
     Ok((0..n)
         .into_par_iter()
         .map_init(rng, |r, _| r.sample(poisson) as u64)
