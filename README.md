@@ -16,12 +16,48 @@ English | [简体中文](README-zh.md)
 - **Type-safe**: Leverages Rust's type system for compile-time safety and correctness
 - **Zero-cost abstractions**: Efficient abstractions with minimal runtime overhead
 
+## Visualization
+
+DiffusionX provides built-in visualization capabilities using the [plotters](https://crates.io/crates/plotters) crate:
+
+- **Process Trajectories**: Easily visualize continuous process trajectories
+- **Customizable Plots**: Configure plot appearance including colors, dimensions, and line styles
+- **Multiple Backends**: Support for both BitMap and SVG output formats
+- **Simple API**: Intuitive trait-based API for visualizing simulation results
+
+## Implemented
+
+### Random Number Generation
+
+- [x] Normal distribution - Gaussian random variables with specified mean and variance
+- [x] Uniform distribution - Uniform random variables in specified ranges
+- [x] Exponential distribution - Exponential waiting times with specified rate
+- [x] Poisson distribution - Discrete count distribution with specified mean
+- [x] Alpha-stable distribution - Heavy-tailed distributions with specified stability, skewness, scale, and location
+
+### Stochastic Processes
+
+- [x] Brownian motion - Standard and generalized with drift and diffusion
+- [x] Alpha-stable Lévy process - Non-Gaussian processes with heavy tails
+- [x] Subordinator - Time-changed processes
+- [x] Inverse subordinator - Processes for modeling waiting times
+- [x] Poisson process - Counting processes with independent increments
+- [x] Fractional Brownian motion - Long-range dependent processes
+- [x] Continuous time random walk - Jump processes with random waiting times
+- [x] Ornstein-Uhlenbeck process - Mean-reverting processes
+- [x] Langevin equation - Physical models with friction and noise
+- [x] Generalized Langevin equation - Extended models with memory effects
+- [x] Subordinated Langevin equation - Time-changed Langevin processes
+- [x] Levy walk - Superdiffusive processes with coupled jump lengths and waiting times
+- [x] Birth-death process - Discrete-state processes with birth and death rates
+
+
 ## Installation
 
 Add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
-diffusionx = "0.1.9"  # Replace with the latest version
+diffusionx = "0.2.1"  # Replace with the latest version
 ```
 
 Or use the following command to install:
@@ -143,31 +179,24 @@ let mean = traj.raw_moment(1, 1000, 0.01)?; // Calculate mean with 1000 particle
    - Default parallel strategy for statistical calculations
    - Configurable parallelism for optimal performance
 
-## Implemented Features
+4. Visualization Support:
+   - Easy trajectory visualization with minimal code
+   - Highly customizable plot configuration
 
-### Random Number Generation
+Example:
+```rust
+// Visualize a Brownian motion trajectory
+use diffusionx::visualize::PlotConfigBuilder;
 
-- [x] Normal distribution - Gaussian random variables with specified mean and variance
-- [x] Uniform distribution - Uniform random variables in specified ranges
-- [x] Exponential distribution - Exponential waiting times with specified rate
-- [x] Poisson distribution - Discrete count distribution with specified mean
-- [x] Alpha-stable distribution - Heavy-tailed distributions with specified stability, skewness, scale, and location
+let bm = Bm::default().duration(10)?;
+let config = PlotConfigBuilder::default()
+    .title("Brownian Motion")
+    .output_path("brownian_motion.png")
+    .build()?;
+    
+bm.plot(&config)?; // Generates a plot with the specified configuration
+```
 
-### Stochastic Processes
-
-- [x] Brownian motion - Standard and generalized with drift and diffusion
-- [x] Alpha-stable Lévy process - Non-Gaussian processes with heavy tails
-- [x] Subordinator - Time-changed processes
-- [x] Inverse subordinator - Processes for modeling waiting times
-- [x] Poisson process - Counting processes with independent increments
-- [x] Fractional Brownian motion - Long-range dependent processes
-- [x] Continuous time random walk - Jump processes with random waiting times
-- [x] Ornstein-Uhlenbeck process - Mean-reverting processes
-- [x] Langevin equation - Physical models with friction and noise
-- [x] Generalized Langevin equation - Extended models with memory effects
-- [x] Subordinated Langevin equation - Time-changed Langevin processes
-- [x] Levy walk - Superdiffusive processes with coupled jump lengths and waiting times
-- [x] Birth-death process - Discrete-state processes with birth and death rates
 ## Benchmark
 
 ### Test Results
@@ -176,9 +205,9 @@ Generating random array of length `10_000_000`
 
 |               | Standard Normal | Uniform [0, 1] |   Stable   |
 | :-----------: | :-------------: | :------------: | :--------: |
-|  DiffusionX   |    17.576 ms    |    15.131 ms   | 133.85 ms  |
-|     Julia     |    27.671 ms    |    12.755 ms   | 570.260 ms |
-| NumPy / SciPy |     199 ms      |     66.6 ms    |   1.67 s   |
+|  DiffusionX   |    17.576 ms    |   15.131 ms    | 133.85 ms  |
+|     Julia     |    27.671 ms    |   12.755 ms    | 570.260 ms |
+| NumPy / SciPy |     199 ms      |    66.6 ms     |   1.67 s   |
 |     Numba     |        -        |       -        |   1.15 s   |
 
 
