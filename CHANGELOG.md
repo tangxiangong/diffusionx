@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2025-03-18
+
+### 🚀 Features
+
+- Add visualization feature and enhance error handling
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.2.1 and update dependencies
+
 ## [0.2.0] - 2025-03-18
 
 ### 🚀 Features
