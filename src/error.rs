@@ -92,7 +92,6 @@ pub enum PlotterError {
     DrawingError(String),
 }
 
-#[cfg(feature = "visualize")]
 impl<E: std::error::Error + Send + Sync> From<plotters::drawing::DrawingAreaErrorKind<E>>
     for XError
 {

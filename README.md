@@ -57,7 +57,7 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 Add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
-diffusionx = "0.1.9"  # Replace with the latest version
+diffusionx = "0.2.1"  # Replace with the latest version
 ```
 
 Or use the following command to install:
