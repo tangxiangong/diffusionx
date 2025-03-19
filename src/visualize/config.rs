@@ -172,21 +172,28 @@ impl PlotConfig<'_> {
         let background_color: RGBColor = self.background_color.clone().into();
         root.fill(&background_color)?;
         let mut chart = ChartBuilder::on(&root)
-            .caption(&self.caption, self.font.clone().into_font())
+            .caption(&self.title, self.font.clone().into_font())
             .margin(self.margin)
             .x_label_area_size(self.x_label_area_size)
             .y_label_area_size(self.y_label_area_size)
             .build_cartesian_2d(x_spec, y_spec)?;
 
-        chart.configure_mesh().draw()?;
+        if self.show_grid {
+            chart.configure_mesh().draw()?;
+        } else {
+            chart.configure_mesh().disable_mesh().draw()?;
+        }
+
+        let line_color: RGBColor = self.line_color.clone().into();
+        let legend_color = line_color;
 
         chart
             .draw_series(LineSeries::new(
                 times.iter().zip(positions).map(|(t, x)| (*t, x)),
-                &RED,
+                &line_color,
             ))?
             .label(&self.caption)
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], RED));
+            .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], legend_color));
 
         chart
             .configure_series_labels()

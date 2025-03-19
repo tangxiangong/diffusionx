@@ -42,17 +42,24 @@ impl<CP: ContinuousProcess> Visualize for ContinuousTrajectory<CP> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{simulation::Bm, visualize::PlotConfigBuilder};
+    use crate::{simulation::OrnsteinUhlenbeck, visualize::PlotConfigBuilder};
 
     #[test]
     fn test_plot() {
-        let bm = Bm::default().duration(10).unwrap();
+        let duration = 100.0;
+        let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0)
+            .unwrap()
+            .duration(duration)
+            .unwrap();
         let config = PlotConfigBuilder::default()
             .time_step(0.01)
-            .output_path("bm.png")
-            .backend(PlotterBackend::BitMap)
+            .backend(PlotterBackend::SVG)
+            .output_path("tmp/ou.svg")
+            .caption("OU")
+            .show_grid(false)
+            .title("Ornstein-Uhlenbeck Process")
             .build()
             .unwrap();
-        bm.plot(&config).unwrap()
+        ou.plot(&config).unwrap()
     }
 }
