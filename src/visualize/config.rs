@@ -1,7 +1,10 @@
 use crate::{XResult, simulation::prelude::*, utils::minmax};
 use derive_builder::Builder;
-use plotters::prelude::*;
+pub use plotters::prelude::FontStyle;
+use plotters::{prelude::*, style::Color as _};
 use std::{ops::Range, path::PathBuf};
+
+// TODO add line style: DashedLineSeries, DottedLineSeries
 
 /// Plotters Backend
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -54,7 +57,7 @@ impl From<Color> for RGBColor {
 /// Configuration for plotting
 #[derive(Builder, Clone)]
 #[builder(pattern = "mutable")]
-pub struct PlotConfig<'a> {
+pub struct PlotConfig {
     /// Backend
     #[builder(default)]
     pub(crate) backend: PlotterBackend,
@@ -63,21 +66,41 @@ pub struct PlotConfig<'a> {
     #[builder(default = "Color::White")]
     pub(crate) background_color: Color,
 
+    /// Title
+    #[builder(default = "\"Trajectory\".into()", setter(into))]
+    pub(crate) title: String,
+
+    /// Font family of the title
+    #[builder(default = "sans-serif".into(), setter(into))]
+    pub(crate) title_font_family: String,
+
+    /// Font size of the title
+    #[builder(default = "50.0", setter(into))]
+    pub(crate) title_font_size: f64,
+
+    /// Font style of the title
+    #[builder(default = "FontStyle::Normal")]
+    pub(crate) title_font_style: FontStyle,
+
     /// Caption
     #[builder(default = "\"\".into()", setter(into))]
     pub(crate) caption: String,
 
-    /// Font
-    #[builder(default = "(\"sans-serif\", 10).into_font()", setter(into))]
-    pub(crate) font: FontDesc<'a>,
+    /// Font family of the caption
+    #[builder(default = "sans-serif".into(), setter(into))]
+    pub(crate) caption_font_family: String,
+
+    /// Font size of the caption
+    #[builder(default = "30.0", setter(into))]
+    pub(crate) caption_font_size: f64,
+
+    /// Font style of the caption
+    #[builder(default = "FontStyle::Normal")]
+    pub(crate) caption_font_style: FontStyle,
 
     /// The desired size of the four chart margins in backend units (pixels).
     #[builder(default = "5", setter(into))]
     pub(crate) margin: u32,
-
-    /// Title
-    #[builder(default = "String::from(\"Random Process Simulation\")", setter(into))]
-    pub(crate) title: String,
 
     /// The desired size of the X label area in backend units (pixels). If set to 0, the X label area is removed.
     #[builder(default = "30", setter(into))]
@@ -119,10 +142,6 @@ pub struct PlotConfig<'a> {
     #[builder(default = "true")]
     pub(crate) show_grid: bool,
 
-    /// Line width
-    #[builder(default = "1.5", setter(into))]
-    pub(crate) line_width: f64,
-
     /// Line color
     #[builder(default = "Color::Blue")]
     pub(crate) line_color: Color,
@@ -140,11 +159,15 @@ pub struct PlotConfig<'a> {
     pub(crate) show_points: bool,
 
     /// Size of the points
-    #[builder(default = "3.0", setter(into))]
-    pub(crate) point_size: f64,
+    #[builder(default = "3", setter(into))]
+    pub(crate) point_size: u32,
+
+    /// Whether to fill the points with color
+    #[builder(default = "false")]
+    pub(crate) filled: bool,
 }
 
-impl PlotConfig<'_> {
+impl PlotConfig {
     pub(crate) fn plot<Backend: DrawingBackend, Process: ContinuousProcess>(
         &self,
         backend: Backend,
@@ -153,67 +176,129 @@ impl PlotConfig<'_> {
         let (times, positions) = traj.simulate(self.time_step)?;
         let max_time = *times.last().unwrap();
         let (min_x, max_x) = minmax(&positions);
-
-        let x_spec = match self.x_spec.clone() {
-            Some(x_spec) => x_spec,
-            None => 0.0..max_time,
-        };
-
-        let y_spec = match self.y_spec.clone() {
-            Some(y_spec) => y_spec,
-            None => {
-                let min_x = min_x * 1.25;
-                let max_x = max_x * 1.25;
-                min_x..max_x
-            }
-        };
-
-        let root = backend.into_drawing_area();
-        let background_color: RGBColor = self.background_color.clone().into();
-        root.fill(&background_color)?;
-        let mut chart = ChartBuilder::on(&root)
-            .caption(&self.title, self.font.clone().into_font())
-            .margin(self.margin)
-            .x_label_area_size(self.x_label_area_size)
-            .y_label_area_size(self.y_label_area_size)
-            .build_cartesian_2d(x_spec, y_spec)?;
-
-        if self.show_grid {
-            chart.configure_mesh().draw()?;
-        } else {
-            chart.configure_mesh().disable_mesh().draw()?;
-        }
-
-        let line_color: RGBColor = self.line_color.clone().into();
-        let legend_color = line_color;
-
-        chart
-            .draw_series(LineSeries::new(
-                times.iter().zip(positions).map(|(t, x)| (*t, x)),
-                &line_color,
-            ))?
-            .label(&self.caption)
-            .legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], legend_color));
-
-        chart
-            .configure_series_labels()
-            .background_style(background_color)
-            .border_style(BLACK)
-            .draw()?;
-
-        root.present()?;
-
-        Ok(())
+        let meta = (max_time, min_x, max_x);
+        let points: Vec<(f64, f64)> = times.iter().zip(positions).map(|(&t, x)| (t, x)).collect();
+        set_config(self, backend, points, meta)
     }
 
-    // pub(crate) fn stairs<Backend: DrawingBackend, Process: PointProcess>(
-    //     &self,
-    //     backend: Backend,
-    //     _traj: &PointTrajectory<Process>,
-    // ) -> XResult<()> {
-    //     let _root = backend.into_drawing_area();
-    //     todo!()
-    // }
+    pub(crate) fn stair<Backend: DrawingBackend, Process: PointProcess>(
+        &self,
+        backend: Backend,
+        traj: &PointTrajectory<Process>,
+    ) -> XResult<()> {
+        let (times, positions) = traj.simulate_with_duration()?;
+        let max_time = *times.last().unwrap();
+        let min_x = *positions.iter().min().unwrap() as f64;
+        let max_x = *positions.iter().max().unwrap() as f64;
+        let meta = (max_time, min_x, max_x);
+        let points: Vec<(f64, f64)> = times
+            .iter()
+            .zip(positions)
+            .enumerate()
+            .flat_map(|(i, (&t, y))| {
+                if i == times.len() - 1 {
+                    vec![(t, y as f64)]
+                } else {
+                    vec![(t, y as f64), (times[i + 1], y as f64)]
+                }
+            })
+            .collect();
+        set_config(self, backend, points, meta)
+    }
+}
+
+fn set_config<Backend: DrawingBackend>(
+    config: &PlotConfig,
+    backend: Backend,
+    data: Vec<(f64, f64)>,
+    meta: (f64, f64, f64),
+) -> XResult<()> {
+    let (max_time, min_x, max_x) = meta;
+
+    let x_spec = match config.x_spec.clone() {
+        Some(x_spec) => x_spec,
+        None => 0.0..max_time,
+    };
+
+    let y_spec = match config.y_spec.clone() {
+        Some(y_spec) => y_spec,
+        None => {
+            let min_x = min_x * 1.25;
+            let max_x = max_x * 1.25;
+            min_x..max_x
+        }
+    };
+
+    // Title font
+    let title_font_familiy = config.title_font_family.as_str().into();
+    let title_font = FontDesc::new(
+        title_font_familiy,
+        config.title_font_size,
+        config.title_font_style,
+    );
+    let root = backend.into_drawing_area();
+    let root = root.titled(&config.title, title_font)?;
+
+    // Background color
+    let background_color: RGBColor = config.background_color.clone().into();
+    root.fill(&background_color)?;
+
+    // Caption font
+    let caption_font_familiy = config.caption_font_family.as_str().into();
+    let caption_font = FontDesc::new(
+        caption_font_familiy,
+        config.caption_font_size,
+        config.caption_font_style,
+    );
+    let mut chart = ChartBuilder::on(&root)
+        .caption(&config.caption, caption_font)
+        .margin(config.margin)
+        .x_label_area_size(config.x_label_area_size)
+        .y_label_area_size(config.y_label_area_size)
+        .build_cartesian_2d(x_spec, y_spec)?;
+
+    if config.show_grid {
+        chart
+            .configure_mesh()
+            .x_desc(&config.x_label)
+            .y_desc(&config.y_label)
+            .draw()?;
+    } else {
+        chart
+            .configure_mesh()
+            .disable_mesh()
+            .x_desc(&config.x_label)
+            .y_desc(&config.y_label)
+            .draw()?;
+    };
+
+    let line_color: RGBColor = config.line_color.clone().into();
+    let legend_color = line_color;
+
+    let line = if config.show_points {
+        if config.filled {
+            LineSeries::new(data, line_color.filled()).point_size(config.point_size)
+        } else {
+            LineSeries::new(data, line_color).point_size(config.point_size)
+        }
+    } else {
+        LineSeries::new(data, line_color)
+    };
+
+    let tmp = chart.draw_series(line)?;
+    if config.show_legend {
+        tmp.legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], legend_color));
+    }
+
+    chart
+        .configure_series_labels()
+        .background_style(background_color)
+        .border_style(BLACK)
+        .draw()?;
+
+    root.present()?;
+
+    Ok(())
 }
 
 #[cfg(test)]
