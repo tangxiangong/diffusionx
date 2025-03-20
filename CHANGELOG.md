@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2025-03-20
+
+### 🚀 Features
+
+- Implement Exponential, Normal, and Poisson distributions with error handling
+- Add InvalidParameters error variant to XError enum
+- Enhance visualization of Ornstein-Uhlenbeck process
+- Enhance PlotConfig and visualization functionality
+- Update version and add visualization feature
+
+### 💼 Other
+
+- Add examples for various stochastic processes
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.2.1
+- Update GitHub Actions workflow to limit branches for push and pull requests
+- Update .gitignore to include tmp directory
+
 ## [0.2.1] - 2025-03-18
 
 ### 🚀 Features
