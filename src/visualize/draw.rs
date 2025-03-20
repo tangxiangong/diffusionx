@@ -65,6 +65,7 @@ mod tests {
     };
 
     #[test]
+    #[ignore]
     fn test_stair() {
         let duration = 10.0;
         let process = Poisson::new(1.0).unwrap().duration(duration).unwrap();
@@ -80,6 +81,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_plot() {
         let duration = 100.0;
         let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0)

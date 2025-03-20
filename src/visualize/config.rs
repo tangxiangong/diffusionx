@@ -1,10 +1,21 @@
 use crate::{XResult, simulation::prelude::*, utils::minmax};
 use derive_builder::Builder;
-pub use plotters::prelude::FontStyle;
 use plotters::{prelude::*, style::Color as _};
 use std::{ops::Range, path::PathBuf};
 
-// TODO add line style: DashedLineSeries, DottedLineSeries
+pub use plotters::prelude::FontStyle;
+
+/// Line Style
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum LineStyle {
+    /// Solid
+    #[default]
+    Solid,
+    /// Dashed
+    Dashed,
+    /// Dotted
+    Dotted,
+}
 
 /// Plotters Backend
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -146,6 +157,10 @@ pub struct PlotConfig {
     #[builder(default = "Color::Blue")]
     pub(crate) line_color: Color,
 
+    /// Line style
+    #[builder(default)]
+    pub(crate) line_style: LineStyle,
+
     /// Whether to show legend
     #[builder(default = "true")]
     pub(crate) show_legend: bool,
@@ -165,6 +180,16 @@ pub struct PlotConfig {
     /// Whether to fill the points with color
     #[builder(default = "false")]
     pub(crate) filled: bool,
+
+    /// Dash style pattern [dash_length, spacing, stroke_width]
+    #[builder(default = "[5, 10, 1]", setter(into))]
+    pub(crate) dash_style: [u32; 3],
+
+    /// Dot style pattern
+    /// size/stroke_width: The size/stroke_width of the marker
+    /// spacing: The spacing between markers
+    #[builder(default = "[1, 1]", setter(into))]
+    pub(crate) dot_style: [u32; 2],
 }
 
 impl PlotConfig {
@@ -207,7 +232,7 @@ impl PlotConfig {
     }
 }
 
-fn set_config<Backend: DrawingBackend>(
+pub(crate) fn set_config<Backend: DrawingBackend>(
     config: &PlotConfig,
     backend: Backend,
     data: Vec<(f64, f64)>,
@@ -275,17 +300,51 @@ fn set_config<Backend: DrawingBackend>(
     let line_color: RGBColor = config.line_color.clone().into();
     let legend_color = line_color;
 
-    let line = if config.show_points {
-        if config.filled {
-            LineSeries::new(data, line_color.filled()).point_size(config.point_size)
-        } else {
-            LineSeries::new(data, line_color).point_size(config.point_size)
-        }
-    } else {
-        LineSeries::new(data, line_color)
+    let dash_shape_style = ShapeStyle {
+        color: line_color.into(),
+        filled: config.filled,
+        stroke_width: config.dash_style[2],
     };
 
-    let tmp = chart.draw_series(line)?;
+    let dot_shape_style = ShapeStyle {
+        color: line_color.into(),
+        filled: config.filled,
+        stroke_width: config.dot_style[0],
+    };
+
+    let tmp = match config.line_style {
+        LineStyle::Solid => {
+            let line = if config.show_points {
+                if config.filled {
+                    LineSeries::new(data, line_color.filled()).point_size(config.point_size)
+                } else {
+                    LineSeries::new(data, line_color).point_size(config.point_size)
+                }
+            } else {
+                LineSeries::new(data, line_color)
+            };
+            chart.draw_series(line)?
+        }
+        LineStyle::Dashed => {
+            let line = DashedLineSeries::new(
+                data,
+                config.dash_style[0],
+                config.dash_style[1],
+                dash_shape_style,
+            );
+            chart.draw_series(line)?
+        }
+        LineStyle::Dotted => {
+            let line = DashedLineSeries::new(
+                data,
+                config.dot_style[0],
+                config.dot_style[1],
+                dot_shape_style,
+            );
+            chart.draw_series(line)?
+        }
+    };
+
     if config.show_legend {
         tmp.legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], legend_color));
     }

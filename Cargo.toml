@@ -2,7 +2,7 @@
 name = "diffusionx"
 authors = ["xiangong tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.2.1"
+version = "0.2.2"
 description = "A library for random number/stochastic process simulation with high performance."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
@@ -25,6 +25,10 @@ lto = true
 codegen-units = 1
 panic = "abort"
 
+[features]
+default = ["visualize"]
+visualize = ["plotters", "derive_builder", "plotters-backend"]
+
 [dependencies]
 rand_distr = { version = "0.5.0", features = ["std_math"] }
 rand = "0.9.0"
@@ -33,6 +37,6 @@ thiserror = "2"
 num-traits = "0.2.19"
 rustfft = "6.2.0"
 num-complex = "0.4.6"
-plotters = "0.3.7"
-plotters-backend = "0.3.5"
-derive_builder = "0.20.2"
+plotters = { version = "0.3.7", optional = true }
+plotters-backend = { version = "0.3.5", optional = true }
+derive_builder = { version = "0.20.2", optional = true }
