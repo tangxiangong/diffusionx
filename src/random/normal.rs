@@ -1,10 +1,60 @@
 //! Normal random number generation
 //! For other stable distributions, see [crate::random::stable].
 
-use crate::XResult;
+use crate::{XError, XResult};
 use rand::{prelude::*, rng};
-use rand_distr::{Normal, StandardNormal};
 use rayon::prelude::*;
+
+/// Normal distribution
+pub struct Normal {
+    /// mean
+    mu: f64,
+    /// standard deviation
+    sigma: f64,
+}
+
+impl Default for Normal {
+    fn default() -> Self {
+        Self {
+            mu: 0.0,
+            sigma: 1.0,
+        }
+    }
+}
+
+impl Normal {
+    /// Create a new Gaussian distribution
+    pub fn new(mu: impl Into<f64>, sigma: impl Into<f64>) -> XResult<Self> {
+        let mu = mu.into();
+        let sigma = sigma.into();
+        if sigma <= 0.0 {
+            return Err(XError::InvalidParameters(format!(
+                "sigma must be greater than 0, got {}",
+                sigma
+            )));
+        }
+        Ok(Self { mu, sigma })
+    }
+
+    /// Get the mean
+    pub fn mu(&self) -> f64 {
+        self.mu
+    }
+
+    /// Get the standard deviation
+    pub fn sigma(&self) -> f64 {
+        self.sigma
+    }
+
+    /// Generate a vector of Gaussian random numbers
+    pub fn samples(&self, n: usize) -> Vec<f64> {
+        if self.sigma == 1.0 && self.mu == 0.0 {
+            standard_rands(n)
+        } else {
+            rands(self.mu, self.sigma, n).unwrap()
+        }
+    }
+}
 
 /// Generate a standard normal random number
 ///
@@ -21,7 +71,7 @@ use rayon::prelude::*;
 /// let random = standard_rand();
 /// ```
 pub fn standard_rand() -> f64 {
-    rng().sample(StandardNormal)
+    rng().sample(rand_distr::StandardNormal)
 }
 
 /// Generate a vector of standard normal random numbers
@@ -39,7 +89,7 @@ pub fn standard_rand() -> f64 {
 /// let randoms = standard_rands(10);
 /// ```
 pub fn standard_rands(n: usize) -> Vec<f64> {
-    let dist = StandardNormal;
+    let dist = rand_distr::StandardNormal;
     (0..n)
         .into_par_iter()
         .map_init(rng, |r, _| r.sample(dist))
@@ -63,7 +113,7 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
     let mean = mean.into();
     let std_dev = std_dev.into();
-    let normal = Normal::new(mean, std_dev)?;
+    let normal = rand_distr::Normal::new(mean, std_dev)?;
     Ok(rng().sample(normal))
 }
 
@@ -84,7 +134,7 @@ pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
 pub fn rands(mean: impl Into<f64>, std_dev: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
     let mean = mean.into();
     let std_dev = std_dev.into();
-    let normal = Normal::new(mean, std_dev)?;
+    let normal = rand_distr::Normal::new(mean, std_dev)?;
     Ok((0..n)
         .into_par_iter()
         .map_init(rng, |r, _| r.sample(normal))
