@@ -1,5 +1,5 @@
 //! Simulation module
-//! Now implemented:
+//!
 //! - Brownian motion
 //! - Levy process
 //! - Subordinator
@@ -17,37 +17,8 @@ pub mod prelude;
 
 pub mod traits;
 
-mod bm;
-pub use bm::*;
+pub mod continuous;
 
-mod levy;
-pub use levy::*;
-
-mod subordinator;
-pub use subordinator::*;
-
-mod poisson;
-pub use poisson::*;
-
-mod langevin;
-pub use langevin::*;
-
-mod generalized_langevin;
-pub use generalized_langevin::*;
-
-mod fbm;
-pub use fbm::*;
-
-mod ctrw;
-pub use ctrw::*;
-
-mod levy_walk;
-pub use levy_walk::*;
-
-mod ou;
-pub use ou::*;
-
-mod birth_death;
-pub use birth_death::*;
+pub mod jump;
 
 pub mod functional;

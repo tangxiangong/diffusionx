@@ -141,7 +141,7 @@ fn ensure_output_dir(path: &Path) -> XResult<()> {
 mod tests {
     use super::*;
     use crate::{
-        simulation::{OrnsteinUhlenbeck, Poisson},
+        simulation::{continuous::OrnsteinUhlenbeck, jump::Poisson},
         visualize::PlotConfigBuilder,
     };
 
