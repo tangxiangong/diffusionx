@@ -1,17 +1,17 @@
-//! Levy process simulation
+//! Lévy process simulation
 //! For Brownian motion, see [`crate::simulation::bm`].
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
-/// Levy process simulation
+/// Lévy process simulation
 ///
-/// This struct represents a Levy process simulation.
+/// This struct represents a Lévy process simulation.
 ///
 /// # Fields
 ///
-/// * `start_position` - The starting position of the Levy process.
-/// * `alpha` - The stability index of the Levy process.
+/// * `start_position` - The starting position of the Lévy process.
+/// * `alpha` - The stability index of the Lévy process.
 #[derive(Debug, Clone)]
 pub struct Levy {
     start_position: f64,
@@ -19,12 +19,12 @@ pub struct Levy {
 }
 
 impl Levy {
-    /// Create a new Levy process simulation
+    /// Create a new Lévy process simulation
     ///
     /// # Arguments
     ///
-    /// * `start_position` - The starting position of the Levy process.
-    /// * `alpha` - The stability index of the Levy process.
+    /// * `start_position` - The starting position of the Lévy process.
+    /// * `alpha` - The stability index of the Lévy process.
     pub fn new(start_position: impl Into<f64>, alpha: impl Into<f64>) -> XResult<Self> {
         let start_position = start_position.into();
         let alpha = alpha.into();
@@ -40,23 +40,23 @@ impl Levy {
         })
     }
 
-    /// Get the starting position of the Levy process simulation
+    /// Get the starting position of the Lévy process simulation
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
-    /// Get the stability index of the Levy process simulation
+    /// Get the stability index of the Lévy process simulation
     pub fn index(&self) -> f64 {
         self.alpha
     }
 
-    /// Get the first passage time of the Levy process simulation
+    /// Get the first passage time of the Lévy process simulation
     ///
     /// # Arguments
     ///
-    /// * `domain` - The domain of the Levy process simulation.
-    /// * `max_duration` - The maximum duration of the Levy process simulation.
-    /// * `time_step` - The time step of the Levy process simulation.
+    /// * `domain` - The domain of the Lévy process simulation.
+    /// * `max_duration` - The maximum duration of the Lévy process simulation.
+    /// * `time_step` - The time step of the Lévy process simulation.
     ///
     /// # Returns
     ///
@@ -81,17 +81,17 @@ impl Levy {
         fpt.simulate(max_duration, time_step)
     }
 
-    /// Get the occupation time of the Levy process simulation
+    /// Get the occupation time of the Lévy process simulation
     ///
     /// # Arguments
     ///
-    /// * `domain` - The domain of the Levy process simulation.
-    /// * `duration` - The duration of the Levy process simulation.
-    /// * `time_step` - The time step of the Levy process simulation.
+    /// * `domain` - The domain of the Lévy process simulation.
+    /// * `duration` - The duration of the Lévy process simulation.
+    /// * `time_step` - The time step of the Lévy process simulation.
     ///
     /// # Returns
     ///
-    /// A f64 representing the occupation time of the Levy process simulation.
+    /// A f64 representing the occupation time of the Lévy process simulation.
     ///
     /// # Example
     ///
@@ -112,16 +112,16 @@ impl Levy {
 
 /// impl `ContinuousProcess` trait for Levy process
 impl ContinuousProcess for Levy {
-    /// Simulate Levy process
+    /// Simulate Lévy process
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the Levy process simulation.
-    /// * `time_step` - The time step of the Levy process simulation.
+    /// * `duration` - The duration of the Lévy process simulation.
+    /// * `time_step` - The time step of the Lévy process simulation.
     ///
     /// # Returns
     ///
-    /// A tuple containing the time and the position of the Levy process simulation.
+    /// A tuple containing the time and the position of the Lévy process simulation.
     ///
     /// # Example
     ///
@@ -148,20 +148,20 @@ impl ContinuousProcess for Levy {
     }
 }
 
-/// Simulate Levy process
+/// Simulate Lévy process
 ///
-/// This function simulates Levy process.
+/// This function simulates Lévy process.
 ///
 /// # Arguments
 ///
-/// * `start_position` - The starting position of the Levy process.  
-/// * `alpha` - The stability index of the Levy process.
-/// * `duration` - The duration of the Levy process.
-/// * `time_step` - The time step of the Levy process.
+/// * `start_position` - The starting position of the Lévy process.  
+/// * `alpha` - The stability index of the Lévy process.
+/// * `duration` - The duration of the Lévy process.
+/// * `time_step` - The time step of the Lévy process.
 ///
 /// # Returns
 ///
-/// A tuple containing the time and the position of the Levy process simulation.   
+/// A tuple containing the time and the position of the Lévy process simulation.   
 ///
 /// # Example
 ///

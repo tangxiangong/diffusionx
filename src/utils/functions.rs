@@ -1,6 +1,6 @@
-//! # Utils
+//! # Auxiliary functions
 //!
-//! This module provides utility functions.
+//! This module provides auxiliary functions.
 //!
 //! ## Functions
 //!
@@ -9,9 +9,9 @@
 //! - `float_eq`: Check if two numbers are equal.
 //! - `eval_poly`: Evaluate a polynomial.
 //! - `minmax`: Find the minimum and maximum values in a vector.
-//! - `calculate_stats`: Calculate the mean and variance of a vector, using in test.
-//! - `calculate_int_stats`: Calculate the mean and variance of an integer vector, using in test.
-//! - `calculate_bool_mean`: Calculate the mean of a boolean vector, using in test.
+//! - `calculate_stats`: Calculate the mean and variance of an array.
+//! - `calculate_int_stats`: Calculate the mean and variance of an integer array.
+//! - `calculate_bool_mean`: Calculate the mean of a boolean array.
 
 use num_traits::Num;
 

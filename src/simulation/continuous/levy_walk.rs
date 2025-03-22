@@ -7,7 +7,7 @@ use crate::{
 use rand::{prelude::*, rng};
 use rayon::prelude::*;
 
-/// Levy walk
+/// Lévy walk
 ///
 /// # Mathematical Formulation
 ///
@@ -96,11 +96,11 @@ impl LevyWalk {
         self.velocity
     }
 
-    /// Get the start position of the Levy walk
+    /// Get the start position of the Lévy walk
     ///
     /// # Returns
     ///
-    /// A f64 representing the start position of the Levy walk.
+    /// A f64 representing the start position of the Lévy walk.
     ///
     /// # Example
     ///
@@ -112,7 +112,7 @@ impl LevyWalk {
         self.start_position
     }
 
-    /// Simulate the Levy walk
+    /// Simulate the Lévy walk
     ///
     /// # Arguments
     ///
@@ -132,7 +132,7 @@ impl LevyWalk {
         simulate_levy_walk_with_duration(self.alpha, self.velocity, duration, self.start_position)
     }
 
-    /// Simulate the Levy walk
+    /// Simulate the Lévy walk
     ///
     /// # Arguments
     ///
@@ -152,7 +152,7 @@ impl LevyWalk {
         simulate_levy_walk_with_step(self.alpha, self.velocity, num_step, self.start_position)
     }
 
-    /// Get the mean of the Levy walk simulation
+    /// Get the mean of the Lévy walk simulation
     ///
     /// # Arguments
     ///
@@ -161,7 +161,7 @@ impl LevyWalk {
     ///
     /// # Returns
     ///
-    /// A f64 representing the mean of the Levy walk simulation.  
+    /// A f64 representing the mean of the Lévy walk simulation.
     ///
     /// # Example
     ///
@@ -174,7 +174,7 @@ impl LevyWalk {
         traj.raw_moment(1, particles, 0.1)
     }
 
-    /// Get the mean square displacement of the Levy walk simulation
+    /// Get the mean square displacement of the Lévy walk simulation
     ///
     /// # Arguments
     ///
@@ -183,7 +183,7 @@ impl LevyWalk {
     ///
     /// # Returns
     ///
-    /// A f64 representing the mean square displacement of the Levy walk simulation.
+    /// A f64 representing the mean square displacement of the Lévy walk simulation.
     ///
     /// # Example
     ///
@@ -196,17 +196,17 @@ impl LevyWalk {
         traj.central_moment(2, particles, 0.1)
     }
 
-    /// Get the raw moment of the Levy walk simulation
+    /// Get the raw moment of the Lévy walk simulation
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the Levy walk simulation.
+    /// * `duration` - The duration of the Lévy walk simulation.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     ///
     /// # Returns
     ///
-    /// A f64 representing the raw moment of the Levy walk simulation.
+    /// A f64 representing the raw moment of the Lévy walk simulation.
     ///
     /// # Example
     ///
@@ -224,17 +224,17 @@ impl LevyWalk {
         traj.raw_moment(order, particles, 0.1)
     }
 
-    /// Get the central moment of the Levy walk simulation
+    /// Get the central moment of the Lévy walk simulation
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the Levy walk simulation.
+    /// * `duration` - The duration of the Lévy walk simulation.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     ///
     /// # Returns
     ///
-    /// A f64 representing the central moment of the Levy walk simulation.
+    /// A f64 representing the central moment of the Lévy walk simulation.
     ///
     /// # Example
     ///
@@ -252,16 +252,16 @@ impl LevyWalk {
         traj.central_moment(order, particles, 0.1)
     }
 
-    /// Get the first passage time of the Levy walk simulation
+    /// Get the first passage time of the Lévy walk simulation
     ///
     /// # Arguments
     ///
-    /// * `domain` - The domain of the Levy walk simulation.
-    /// * `max_duration` - The maximum duration of the Levy walk simulation.
+    /// * `domain` - The domain of the Lévy walk simulation.
+    /// * `max_duration` - The maximum duration of the Lévy walk simulation.
     ///
     /// # Returns
     ///
-    /// A f64 representing the first passage time of the Levy walk simulation.
+    /// A f64 representing the first passage time of the Lévy walk simulation.
     ///
     /// # Example
     ///
@@ -278,16 +278,16 @@ impl LevyWalk {
         fpt.simulate(max_duration, 0.1)
     }
 
-    /// Get the occupation time of the Levy walk simulation
+    /// Get the occupation time of the Lévy walk simulation
     ///
     /// # Arguments
     ///
-    /// * `domain` - The domain of the Levy walk simulation.
-    /// * `duration` - The duration of the Levy walk simulation.
+    /// * `domain` - The domain of the Lévy walk simulation.
+    /// * `duration` - The duration of the Lévy walk simulation.
     ///
     /// # Returns
     ///
-    /// A f64 representing the occupation time of the Levy walk simulation.
+    /// A f64 representing the occupation time of the Lévy walk simulation.
     ///
     /// # Example
     ///
@@ -306,7 +306,7 @@ impl LevyWalk {
 }
 
 impl ContinuousProcess for LevyWalk {
-    /// Simulate the Levy walk
+    /// Simulate the Lévy walk
     ///
     /// # Arguments
     ///
@@ -329,6 +329,25 @@ impl ContinuousProcess for LevyWalk {
     }
 }
 
+/// Simulate the Lévy walk with step
+///
+/// # Arguments
+///
+/// * `alpha` - The alpha of the Lévy walk.
+/// * `velocity` - The velocity of the Lévy walk.
+/// * `num_step` - The number of steps of the Lévy walk.
+/// * `start_position` - The starting position of the Lévy walk.
+///
+/// # Returns
+///
+/// A tuple containing the time and the position of the simulation.
+///
+/// # Example
+///
+/// ```rust
+/// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
+/// let (t, x) = levy_walk.simulate_with_step(1000).unwrap();
+/// ```
 pub fn simulate_levy_walk_with_step(
     alpha: f64,
     velocity: f64,
@@ -360,6 +379,25 @@ pub fn simulate_levy_walk_with_step(
     Ok((t, x))
 }
 
+/// Simulate the Lévy walk with duration
+///
+/// # Arguments
+///
+/// * `alpha` - The alpha of the Lévy walk.
+/// * `velocity` - The velocity of the Lévy walk.
+/// * `duration` - The duration of the Lévy walk.
+/// * `start_position` - The starting position of the Lévy walk.
+///
+/// # Returns
+///
+/// A tuple containing the time and the position of the simulation.
+///
+/// # Example
+///
+/// ```rust
+/// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
+/// let (t, x) = simulate_levy_walk_with_duration(0.5, 1.0, 10.0, 0.0).unwrap();
+/// ```
 pub fn simulate_levy_walk_with_duration(
     alpha: f64,
     velocity: f64,

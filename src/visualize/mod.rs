@@ -1,8 +1,16 @@
-//! Visualization utilities for the simulation.
+//! Visualization module for stochastic process simulations
 //!
-//! This module visualizing the simulation by using the crate `[plotters](https://crates.io/crates/plotters)`.
+//! This module provides tools and utilities for visualizing simulation results
+//! from stochastic processes. It uses the [`plotters`](https://crates.io/crates/plotters)
+//! crate as the underlying plotting library.
 //!
-//! # Dependencies
+//! The module allows for creating publication-quality plots of time series,
+//! histograms, and other visualizations of stochastic processes with customizable
+//! styling options.
+//!
+//! # System Dependencies
+//!
+//! The visualization module requires certain system libraries for font rendering:
 //!
 //! ## Ubuntu Linux
 //!
@@ -10,6 +18,10 @@
 //! sudo apt install pkg-config libfreetype6-dev libfontconfig1-dev
 //! ```
 //!
+//! # Components
+//!
+//! - [Configuration](config) - Plot configuration options and styling settings
+//! - [Drawing functions](draw) - Functions for creating different types of plots
 
 pub mod config;
 pub use config::*;
