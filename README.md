@@ -153,9 +153,9 @@ DiffusionX is designed with a trait-based system for high extensibility and perf
 - `OccupationTime`: Trait for calculating occupation times in specified regions
 - `Visualize`: Trait for plotting process trajectories
 
-### Functional Analysis Tools
+### Functional Distribution Simulation
 
-DiffusionX provides powerful functional analysis tools for stochastic processes:
+DiffusionX provides powerful functional distribution simulation for stochastic processes:
 
 1. **First Passage Time (FPT)**: Calculate when a process first reaches a specified boundary
    ```rust
