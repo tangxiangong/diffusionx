@@ -48,7 +48,7 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 - [x] Langevin equation - Physical models with friction and noise
 - [x] Generalized Langevin equation - Extended models with memory effects
 - [x] Subordinated Langevin equation - Time-changed Langevin processes
-- [x] Levy walk - Superdiffusive processes with coupled jump lengths and waiting times
+- [x] Lévy walk - Superdiffusive processes with coupled jump lengths and waiting times
 - [x] Birth-death process - Discrete-state processes with birth and death rates
 
 
@@ -57,7 +57,7 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 Add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
-diffusionx = "0.2.2"  # Replace with the latest version
+diffusionx = "*"  # Replace with the latest version
 ```
 
 Or use the following command to install:
