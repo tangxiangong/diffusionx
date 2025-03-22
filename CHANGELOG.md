@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2025-03-22
+
+### 🚀 Features
+
+- Add plotting functions for continuous and point trajectories
+- Refactor simulation modules and add continuous processes
+- Update documentation for version 0.2.2 and add visualization examples
+
+### 🐛 Bug Fixes
+
+- Update documentation for functional distribution simulation
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.3.0 in Cargo.toml
+
 ## [0.2.2] - 2025-03-20
 
 ### 🚀 Features
