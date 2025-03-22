@@ -4,7 +4,7 @@
 use crate::{
     SimulationError, XResult,
     random::{normal, stable},
-    simulation::{Subordinator, prelude::*},
+    simulation::{continuous::Subordinator, prelude::*},
 };
 use rayon::prelude::*;
 

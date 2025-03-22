@@ -1,5 +1,5 @@
 use diffusionx::{
-    simulation::{OrnsteinUhlenbeck, prelude::*},
+    simulation::{continuous::OrnsteinUhlenbeck, prelude::*},
     visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
 };
 

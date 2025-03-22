@@ -57,7 +57,7 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 Add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
-diffusionx = "0.2.1"  # Replace with the latest version
+diffusionx = "0.2.2"  # Replace with the latest version
 ```
 
 Or use the following command to install:
@@ -98,7 +98,7 @@ let samples = stable.samples(1000)?; // Generate 1000 samples
 ### Stochastic Process Simulation
 
 ```rust
-use diffusionx::simulation::{prelude::*, Bm};
+use diffusionx::simulation::{prelude::*, continuous::Bm};
 
 // Brownian motion simulation
 let bm = Bm::default();  // Create standard Brownian motion object
@@ -113,6 +113,33 @@ let msd = traj.central_moment(2, 1000, 0.01)?;  // Second-order central moment w
 let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?; // Calculate FPT with boundaries at -1.0 and 1.0
 ```
 
+### Visualization Example
+
+```rust
+use diffusionx::{
+    simulation::{continuous::Bm, prelude::*},
+    visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
+};
+
+// Create Brownian motion trajectory
+let bm = Bm::default();
+let traj = bm.duration(10.0)?;
+
+// Configure and create visualization
+let config = PlotConfigBuilder::default()
+    .time_step(0.01)
+    .output_path("brownian_motion.png")
+    .title("Brownian Motion Trajectory")
+    .x_label("Time t")
+    .y_label("Position X(t)")
+    .size((800, 600))
+    .backend(PlotterBackend::BitMap)
+    .build()?;
+
+// Generate plot
+traj.plot(&config)?;
+```
+
 ## Architecture and Extensibility
 
 DiffusionX is designed with a trait-based system for high extensibility and performance:
@@ -124,10 +151,11 @@ DiffusionX is designed with a trait-based system for high extensibility and perf
 - `Moment`: Trait for statistical moments calculation, including raw and central moments
 - `FirstPassageTime`: Trait for calculating first passage times of stochastic processes
 - `OccupationTime`: Trait for calculating occupation times in specified regions
+- `Visualize`: Trait for plotting process trajectories
 
-### Functional Analysis Tools
+### Functional Distribution Simulation
 
-DiffusionX provides powerful functional analysis tools for stochastic processes:
+DiffusionX provides powerful functional distribution simulation for stochastic processes:
 
 1. **First Passage Time (FPT)**: Calculate when a process first reaches a specified boundary
    ```rust
@@ -186,7 +214,7 @@ let mean = traj.raw_moment(1, 1000, 0.01)?; // Calculate mean with 1000 particle
 Example:
 ```rust
 // Visualize a Brownian motion trajectory
-use diffusionx::visualize::PlotConfigBuilder;
+use diffusionx::visualize::{PlotConfigBuilder, Visualize};
 
 let bm = Bm::default().duration(10)?;
 let config = PlotConfigBuilder::default()

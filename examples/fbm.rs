@@ -1,5 +1,5 @@
 use diffusionx::{
-    simulation::{Fbm, prelude::*},
+    simulation::{continuous::Fbm, prelude::*},
     visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
 };
 
