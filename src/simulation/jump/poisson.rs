@@ -2,9 +2,9 @@
 
 use crate::{SimulationError, XResult, random::exponential, simulation::prelude::*, utils::cumsum};
 
-/// Poisson process simulation
+/// Poisson process
 ///
-/// This struct represents a Poisson process simulation.
+/// This struct represents a Poisson process.
 ///
 /// # Fields
 ///
@@ -155,11 +155,36 @@ impl Poisson {
 
 impl PointProcess for Poisson {
     fn simulate_with_step(&self, num_step: usize) -> XResult<PointPair> {
-        let durations = exponential::rands(self.lambda, num_step)?;
-        let t = cumsum(0.0, &durations);
-        let x = (0..=num_step as i64).collect::<Vec<_>>();
-        Ok((t, x))
+        simulate_poisson_with_step(self.lambda, num_step)
     }
+}
+
+/// Simulate the Poisson process with a given number of steps
+///
+/// # Arguments
+///
+/// * `lambda` - The rate of the Poisson process.
+/// * `num_step` - The number of steps of the simulation.
+pub fn simulate_poisson_with_step(lambda: impl Into<f64>, num_step: usize) -> XResult<PointPair> {
+    let lambda = lambda.into();
+    let durations = exponential::rands(lambda, num_step)?;
+    let t = cumsum(0.0, &durations);
+    let x = (0..=num_step as i64).collect::<Vec<_>>();
+    Ok((t, x))
+}
+
+/// Simulate the Poisson process with a given number of steps
+///
+/// # Arguments
+///
+/// * `lambda` - The rate of the Poisson process.
+/// * `duration` - The duration of the simulation.
+pub fn simulate_poisson_with_duration(
+    lambda: impl Into<f64>,
+    duration: impl Into<f64>,
+) -> XResult<PointPair> {
+    let poisson = Poisson::new(lambda)?;
+    poisson.simulate_with_duration(duration)
 }
 
 #[cfg(test)]

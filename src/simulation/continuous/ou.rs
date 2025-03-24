@@ -119,6 +119,21 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
     }
 }
 
+/// Simulate the Ornstein-Uhlenbeck process
+///
+/// # Mathematical Formulation
+///
+/// dx(t) = -theta x(t) dt + sigma dW(t), x(0) = x0
+///
+/// where W(t) is the Wiener process, also called Brownian motion.
+///
+/// # Fields
+///
+/// - `theta`: the drift coefficient of the Ornstein-Uhlenbeck process.
+/// - `sigma`: the diffusion coefficient of the Ornstein-Uhlenbeck process.
+/// - `start_position`: the starting position of the Ornstein-Uhlenbeck process.
+/// - `duration`: the duration of the simulation.
+/// - `time_step`: the time step of the simulation.
 pub fn simulate_ou(
     theta: f64,
     sigma: f64,

@@ -1,12 +1,15 @@
-//! Lévy process simulation
+//! Lévy process
+//!
+//! The Lévy process is a process with independent and stationary increments.
+//!
 //! For Brownian motion, see [`crate::simulation::bm`].
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
-/// Lévy process simulation
+/// Lévy process
 ///
-/// This struct represents a Lévy process simulation.
+/// This struct represents a Lévy process.
 ///
 /// # Fields
 ///

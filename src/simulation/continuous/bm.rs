@@ -4,9 +4,9 @@
 use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
-/// Brownian motion simulation
+/// Brownian motion
 ///
-/// This struct represents a Brownian motion simulation.
+/// This struct represents a Brownian motion.
 ///
 /// # Fields
 ///

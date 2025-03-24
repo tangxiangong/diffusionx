@@ -8,9 +8,9 @@ use crate::{
 };
 use rayon::prelude::*;
 
-/// Fractional Brownian motion simulation
+/// Fractional Brownian motion
 ///
-/// This struct represents a Fractional Brownian motion simulation.
+/// This struct represents a Fractional Brownian motion.
 ///
 /// # Fields
 ///

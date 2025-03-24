@@ -1,3 +1,10 @@
+//! Traits for stochastic processes
+//!
+//! - Continuous process [ContinuousProcess]
+//! - Point process [PointProcess]
+//! - Moment [Moment]
+//!
+
 use crate::{SimulationError, XResult};
 use rayon::prelude::*;
 

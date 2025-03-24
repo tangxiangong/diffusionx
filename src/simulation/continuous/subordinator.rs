@@ -1,14 +1,17 @@
 //! Subordinator simulation
 //!
-//! An alpha stable subordinator is an alpha stable Levy process that is non-negative and has a non-decreasing sample path.
 //! For Levy process, see [`crate::simulation::levy`].
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
-/// Subordinator simulation
+/// alpha-stable subordinator
 ///
-/// This struct represents a subordinator simulation.
+/// This struct represents an alpha-stable subordinator.
+///
+/// # Mathematical Formulation
+///
+/// A subordinator is a Lévy process that is non-negative and has a non-decreasing sample path.
 ///
 /// # Fields
 ///
@@ -176,9 +179,9 @@ pub fn simulate_subordinator(
     Ok((t, x))
 }
 
-/// Inverse subordinator simulation
+/// Inverse alpha-stable subordinator
 ///
-/// This struct represents an inverse subordinator simulation.
+/// This struct represents an inverse alpha-stable subordinator.
 ///
 /// # Fields
 ///
