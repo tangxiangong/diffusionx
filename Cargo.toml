@@ -8,17 +8,10 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 readme = "README.md"
 
-[[bench]]
-name = "random_generation"
-harness = false
-
 [lib]
 name = "diffusionx"
 crate-type = ["cdylib", "lib"]
 doctest = false
-
-[dev-dependencies]
-criterion = "0.5.1"
 
 [profile.release]
 lto = true
