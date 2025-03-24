@@ -228,14 +228,6 @@ bm.plot(&config)?; // 按照指定配置生成绘图
 ## Benchmark
 相关内容请见 [py-diffusionx](https://github.com/tangxiangong/py-diffusionx) 的 **Benchmark** 部分。
 
-#### 软件环境
-- 操作系统：macOS Sequoia 15.3
-- Rust：1.85.0
-- Python：3.12
-- Julia：1.11
-- NumPy：2
-- SciPy：1.15.1
-
 ## 许可证
 
 本项目采用双许可证模式：
