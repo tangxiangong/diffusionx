@@ -226,25 +226,7 @@ bm.plot(&config)?; // 按照指定配置生成绘图
 ```
 
 ## Benchmark
-
-### 测试结果
-
-生成长度为 `10_000_000` 的随机数组
-
-|               | 标准正态分布 | 均匀分布 [0, 1] |  稳定分布  |
-| :-----------: | :----------: | :-------------: | :--------: |
-|  DiffusionX   |  17.576 ms   |    15.131 ms    | 133.85 ms  |
-|     Julia     |  27.671 ms   |    12.755 ms    | 570.260 ms |
-| NumPy / SciPy |    199 ms    |     66.6 ms     |   1.67 s   |
-|     Numba     |      -       |        -        |   1.15 s   |
-
-
-### 测试环境
-
-#### 硬件配置
-- 设备型号：MacBook Air 13-inch (2024)
-- 处理器：Apple M3
-- 内存：16GB
+相关内容请见 [py-diffusionx](https://github.com/tangxiangong/py-diffusionx) 的 **Benchmark** 部分。
 
 #### 软件环境
 - 操作系统：macOS Sequoia 15.3

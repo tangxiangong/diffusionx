@@ -226,33 +226,7 @@ bm.plot(&config)?; // Generates a plot with the specified configuration
 ```
 
 ## Benchmark
-
-### Test Results
-
-Generating random array of length `10_000_000`
-
-|               | Standard Normal | Uniform [0, 1] |   Stable   |
-| :-----------: | :-------------: | :------------: | :--------: |
-|  DiffusionX   |    17.576 ms    |   15.131 ms    | 133.85 ms  |
-|     Julia     |    27.671 ms    |   12.755 ms    | 570.260 ms |
-| NumPy / SciPy |     199 ms      |    66.6 ms     |   1.67 s   |
-|     Numba     |        -        |       -        |   1.15 s   |
-
-
-### Test Environment
-
-#### Hardware Configuration
-- Device Model: MacBook Air 13-inch (2024)
-- Processor: Apple M3
-- Memory: 16GB
-
-#### Software Environment
-- Operating System: macOS Sequoia 15.3
-- Rust: 1.85.0
-- Python: 3.12
-- Julia: 1.11
-- NumPy: 2
-- SciPy: 1.15.1
+The related content can be found in the **Benchmark** section of [py-diffusionx](https://github.com/tangxiangong/py-diffusionx).
 
 ## License
 
