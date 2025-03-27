@@ -5,11 +5,11 @@
 //! - Poisson process in [Poisson]
 //!
 
-mod birth_death;
+pub mod birth_death;
 pub use birth_death::*;
 
-mod ctrw;
+pub mod ctrw;
 pub use ctrw::*;
 
-mod poisson;
+pub mod poisson;
 pub use poisson::*;

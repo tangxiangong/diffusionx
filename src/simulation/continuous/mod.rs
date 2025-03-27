@@ -11,26 +11,26 @@
 //! - Inverse subordinator in [InvSubordinator]
 //!
 
-mod bm;
+pub mod bm;
 pub use bm::*;
 
-mod fbm;
+pub mod fbm;
 pub use fbm::*;
 
-mod generalized_langevin;
+pub mod generalized_langevin;
 pub use generalized_langevin::*;
 
-mod langevin;
+pub mod langevin;
 pub use langevin::*;
 
-mod levy_walk;
+pub mod levy_walk;
 pub use levy_walk::*;
 
-mod levy;
+pub mod levy;
 pub use levy::*;
 
-mod ou;
+pub mod ou;
 pub use ou::*;
 
-mod subordinator;
+pub mod subordinator;
 pub use subordinator::*;
