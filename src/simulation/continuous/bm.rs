@@ -1,4 +1,5 @@
 //! Brownian motion simulation
+//!
 //! For Levy process, see [`crate::simulation::levy`].
 
 use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::cumsum};
