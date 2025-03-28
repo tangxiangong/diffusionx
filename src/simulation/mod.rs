@@ -35,4 +35,6 @@ pub mod continuous;
 
 pub mod jump;
 
+pub mod discrete;
+
 pub mod functional;
