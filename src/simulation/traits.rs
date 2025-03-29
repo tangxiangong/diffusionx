@@ -10,7 +10,7 @@ use rayon::prelude::*;
 
 pub type Pair = (Vec<f64>, Vec<f64>);
 pub type PointPair = (Vec<f64>, Vec<i64>);
-pub type DiscretePair = (Vec<u64>, Vec<f64>);
+pub type DiscretePair = (Vec<usize>, Vec<f64>);
 
 /// Continuous process trait
 pub trait ContinuousProcess: Clone + Send + Sync {
@@ -38,7 +38,7 @@ pub trait DiscreteProcess: Clone + Send + Sync {
     /// # Returns
     ///
     /// A tuple containing the time and the position of the simulation.
-    fn simulate(&self, num_step: u64) -> XResult<DiscretePair>;
+    fn simulate(&self, num_step: usize) -> XResult<DiscretePair>;
 }
 
 pub trait PointProcess: Clone + Send + Sync {
@@ -129,12 +129,11 @@ impl<SP: ContinuousProcess> ContinuousTrajectory<SP> {
 /// * `num_step` - The number of steps of the simulation.
 pub struct DiscreteTrajectory<SP: DiscreteProcess> {
     pub(crate) sp: SP,
-    pub(crate) num_step: u64,
+    pub(crate) num_step: usize,
 }
 
 impl<SP: DiscreteProcess> DiscreteTrajectory<SP> {
-    pub fn new(sp: SP, num_step: impl Into<u64>) -> XResult<Self> {
-        let num_step = num_step.into();
+    pub fn new(sp: SP, num_step: usize) -> XResult<Self> {
         if num_step == 0 {
             return Err(SimulationError::InvalidParameters(
                 "num_step must be positive".to_string(),
@@ -224,7 +223,7 @@ impl<SP: ContinuousProcess> ContinuousTrajectoryTrait for SP {}
 
 /// Discrete trajectory trait
 pub trait DiscreteTrajectoryTrait: DiscreteProcess {
-    fn step(&self, num_step: impl Into<u64>) -> XResult<DiscreteTrajectory<Self>> {
+    fn step(&self, num_step: usize) -> XResult<DiscreteTrajectory<Self>> {
         let traj = DiscreteTrajectory::new(self.clone(), num_step)?;
         Ok(traj)
     }
