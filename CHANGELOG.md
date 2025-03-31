@@ -2,10 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2025-03-31
+
+### 🚀 Features
+
+- Add TODO list for stochastic processes
+- Introduce discrete process and trajectory traits
+- Add discrete module for simulation
+- Add random walk module to discrete simulation
+- Implement LatticeRandomWalk for discrete simulation
+- Implement RandomWalk struct for discrete simulation
+
+### 🐛 Bug Fixes
+
+- Correct capitalization in Chinese and English README files
+
+### 🚜 Refactor
+
+- Change module visibility to public in simulation files
+- Update types in discrete simulation traits
+
+### 📚 Documentation
+
+- Enhance error handling documentation for diffusionx crate
+- Enhance documentation and structure for stochastic processes
+- Update benchmark section in README files
+- Remove software environment details from Chinese README
+- Improve comments in Brownian motion simulation
+- Update README files to include DiscreteProcess trait
+- Update README files to include Random Walk
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.3.0
+- Remove unused benchmark for random number generation
+- Bump version to 0.3.1 in Cargo.toml
+
 ## [0.3.0] - 2025-03-22
 
 ### 🚀 Features
 
+- Update CHANGELOG for version 0.2.2
 - Add plotting functions for continuous and point trajectories
 - Refactor simulation modules and add continuous processes
 - Update documentation for version 0.2.2 and add visualization examples
