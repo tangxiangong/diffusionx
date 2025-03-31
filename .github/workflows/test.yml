@@ -16,6 +16,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y pkg-config libfreetype6-dev libfontconfig1-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
