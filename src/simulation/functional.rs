@@ -1,10 +1,16 @@
+//! Functional distribution of stochastic processes
+//!
+//! - First passage time [FirstPassageTime]
+//! - Occupation time [OccupationTime]
+//!
+
 use crate::{
     SimulationError, XResult,
     simulation::prelude::{ContinuousProcess, PointProcess},
 };
 use rayon::prelude::*;
 
-/// Functional for first passage time
+/// First passage time
 ///
 /// # Fields
 ///
@@ -16,6 +22,7 @@ pub struct FirstPassageTime<SP> {
 }
 
 impl<SP: Send + Sync + Clone> FirstPassageTime<SP> {
+    /// Create a new first passage time
     pub fn new(sp: &SP, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<Self> {
         let domain = (domain.0.into(), domain.1.into());
         if domain.0 >= domain.1 {
@@ -221,7 +228,7 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
     }
 }
 
-/// Functional for occupation time
+/// Occupation time
 ///
 /// # Fields
 ///
@@ -236,6 +243,7 @@ pub struct OccupationTime<SP> {
 }
 
 impl<SP: Send + Sync + Clone> OccupationTime<SP> {
+    /// Create a new occupation time
     pub fn new(
         sp: &SP,
         domain: (impl Into<f64>, impl Into<f64>),

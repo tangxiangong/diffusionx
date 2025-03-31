@@ -1,15 +1,15 @@
 //! Jump processes
 //!
-//! - Birth-death process
-//! - Continuous-time random walk
-//! - Poisson process
+//! - Birth-death process in [BirthDeath]
+//! - Continuous-time random walk in [CTRW]
+//! - Poisson process in [Poisson]
 //!
 
-mod birth_death;
+pub mod birth_death;
 pub use birth_death::*;
 
-mod ctrw;
+pub mod ctrw;
 pub use ctrw::*;
 
-mod poisson;
+pub mod poisson;
 pub use poisson::*;

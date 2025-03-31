@@ -2,23 +2,16 @@
 name = "diffusionx"
 authors = ["xiangong tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.3.0"
+version = "0.3.1"
 description = "A library for random number/stochastic process simulation with high performance."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 readme = "README.md"
 
-[[bench]]
-name = "random_generation"
-harness = false
-
 [lib]
 name = "diffusionx"
 crate-type = ["cdylib", "lib"]
 doctest = false
-
-[dev-dependencies]
-criterion = "0.5.1"
 
 [profile.release]
 lto = true

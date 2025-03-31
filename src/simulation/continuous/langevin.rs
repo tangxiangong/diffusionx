@@ -131,6 +131,15 @@ where
     }
 }
 
+/// Simulate the Langevin equation
+///
+/// # Fields
+///
+/// - `drift`: the drift function of the Langevin equation.
+/// - `diffusion`: the diffusion function of the Langevin equation.
+/// - `start_position`: the starting position of the Langevin equation.
+/// - `duration`: the duration of the simulation.
+/// - `time_step`: the time step of the simulation.
 pub fn simulate_langevin<D, G>(
     drift: &D,
     diffusion: &G,

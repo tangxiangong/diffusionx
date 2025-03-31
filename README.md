@@ -48,16 +48,16 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 - [x] Langevin equation - Physical models with friction and noise
 - [x] Generalized Langevin equation - Extended models with memory effects
 - [x] Subordinated Langevin equation - Time-changed Langevin processes
-- [x] Levy walk - Superdiffusive processes with coupled jump lengths and waiting times
+- [x] Lévy walk - Superdiffusive processes with coupled jump lengths and waiting times
 - [x] Birth-death process - Discrete-state processes with birth and death rates
-
+- [x] Random walk - Discrete-time random walk
 
 ## Installation
 
 Add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
-diffusionx = "0.2.2"  # Replace with the latest version
+diffusionx = "*"  # Replace with the latest version
 ```
 
 Or use the following command to install:
@@ -148,9 +148,8 @@ DiffusionX is designed with a trait-based system for high extensibility and perf
 
 - `ContinuousProcess`: Base trait for continuous stochastic processes
 - `PointProcess`: Base trait for point processes
+- `DiscreteProcess`: Base trait for discrete stochastic processes
 - `Moment`: Trait for statistical moments calculation, including raw and central moments
-- `FirstPassageTime`: Trait for calculating first passage times of stochastic processes
-- `OccupationTime`: Trait for calculating occupation times in specified regions
 - `Visualize`: Trait for plotting process trajectories
 
 ### Functional Distribution Simulation
@@ -226,33 +225,7 @@ bm.plot(&config)?; // Generates a plot with the specified configuration
 ```
 
 ## Benchmark
-
-### Test Results
-
-Generating random array of length `10_000_000`
-
-|               | Standard Normal | Uniform [0, 1] |   Stable   |
-| :-----------: | :-------------: | :------------: | :--------: |
-|  DiffusionX   |    17.576 ms    |   15.131 ms    | 133.85 ms  |
-|     Julia     |    27.671 ms    |   12.755 ms    | 570.260 ms |
-| NumPy / SciPy |     199 ms      |    66.6 ms     |   1.67 s   |
-|     Numba     |        -        |       -        |   1.15 s   |
-
-
-### Test Environment
-
-#### Hardware Configuration
-- Device Model: MacBook Air 13-inch (2024)
-- Processor: Apple M3
-- Memory: 16GB
-
-#### Software Environment
-- Operating System: macOS Sequoia 15.3
-- Rust: 1.85.0
-- Python: 3.12
-- Julia: 1.11
-- NumPy: 2
-- SciPy: 1.15.1
+The related content can be found in the **Benchmark** section of [py-diffusionx](https://github.com/tangxiangong/py-diffusionx).
 
 ## License
 

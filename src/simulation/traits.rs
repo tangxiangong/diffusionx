@@ -1,8 +1,16 @@
+//! Traits for stochastic processes
+//!
+//! - Continuous process [ContinuousProcess]
+//! - Point process [PointProcess]
+//! - Moment [Moment]
+//!
+
 use crate::{SimulationError, XResult};
 use rayon::prelude::*;
 
 pub type Pair = (Vec<f64>, Vec<f64>);
 pub type PointPair = (Vec<f64>, Vec<i64>);
+pub type DiscretePair = (Vec<usize>, Vec<f64>);
 
 /// Continuous process trait
 pub trait ContinuousProcess: Clone + Send + Sync {
@@ -17,6 +25,20 @@ pub trait ContinuousProcess: Clone + Send + Sync {
     ///
     /// A tuple containing the time and the position of the simulation.
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair>;
+}
+
+/// Discrete process trait
+pub trait DiscreteProcess: Clone + Send + Sync {
+    /// Simulate the discrete process
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps of the simulation.
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing the time and the position of the simulation.
+    fn simulate(&self, num_step: usize) -> XResult<DiscretePair>;
 }
 
 pub trait PointProcess: Clone + Send + Sync {
@@ -99,6 +121,33 @@ impl<SP: ContinuousProcess> ContinuousTrajectory<SP> {
     }
 }
 
+/// Discrete trajectory
+///
+/// # Fields
+///
+/// * `sp` - The simulation object.
+/// * `num_step` - The number of steps of the simulation.
+pub struct DiscreteTrajectory<SP: DiscreteProcess> {
+    pub(crate) sp: SP,
+    pub(crate) num_step: usize,
+}
+
+impl<SP: DiscreteProcess> DiscreteTrajectory<SP> {
+    pub fn new(sp: SP, num_step: usize) -> XResult<Self> {
+        if num_step == 0 {
+            return Err(SimulationError::InvalidParameters(
+                "num_step must be positive".to_string(),
+            )
+            .into());
+        }
+        Ok(Self { sp, num_step })
+    }
+
+    pub fn simulate(&self) -> XResult<DiscretePair> {
+        self.sp.simulate(self.num_step)
+    }
+}
+
 /// Point process trajectory
 ///
 /// # Fields
@@ -162,7 +211,7 @@ impl<SP: PointProcess> PointTrajectory<SP> {
     }
 }
 
-/// Trajectory trait
+/// Continuous trajectory trait
 pub trait ContinuousTrajectoryTrait: ContinuousProcess {
     fn duration(&self, duration: impl Into<f64>) -> XResult<ContinuousTrajectory<Self>> {
         let traj = ContinuousTrajectory::new(self.clone(), duration)?;
@@ -172,6 +221,17 @@ pub trait ContinuousTrajectoryTrait: ContinuousProcess {
 
 impl<SP: ContinuousProcess> ContinuousTrajectoryTrait for SP {}
 
+/// Discrete trajectory trait
+pub trait DiscreteTrajectoryTrait: DiscreteProcess {
+    fn step(&self, num_step: usize) -> XResult<DiscreteTrajectory<Self>> {
+        let traj = DiscreteTrajectory::new(self.clone(), num_step)?;
+        Ok(traj)
+    }
+}
+
+impl<SP: DiscreteProcess> DiscreteTrajectoryTrait for SP {}
+
+/// Point trajectory trait
 pub trait PointTrajectoryTrait: PointProcess {
     fn duration(&self, duration: impl Into<f64>) -> XResult<PointTrajectory<Self>> {
         let traj = PointTrajectory::with_duration(self.clone(), duration)?;
@@ -259,6 +319,63 @@ impl<SP: ContinuousProcess> Moment for ContinuousTrajectory<SP> {
             .into_par_iter()
             .map(|_| -> XResult<f64> {
                 let (_, x) = sp.simulate(duration, time_step)?;
+                let end_position = x.last();
+                match end_position {
+                    Some(position) => Ok((position - mean).powi(order)),
+                    None => Err(SimulationError::Unknown.into()),
+                }
+            })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64;
+        Ok(result)
+    }
+}
+
+impl<SP: DiscreteProcess> Moment for DiscreteTrajectory<SP> {
+    fn raw_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(
+                "particles must be positive".to_string(),
+            )
+            .into());
+        }
+        if order < 0 {
+            return Err(SimulationError::InvalidParameters(
+                "order must be non-negative".to_string(),
+            )
+            .into());
+        }
+        if order == 0 {
+            return Ok(0.0);
+        }
+
+        let sp = self.sp.clone();
+        let num_step = self.num_step;
+
+        let result = (0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let (_, x) = sp.simulate(num_step)?;
+                let end_position = x.last();
+                match end_position {
+                    Some(position) => Ok(position.powi(order)),
+                    None => Err(SimulationError::Unknown.into()),
+                }
+            })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64;
+        Ok(result)
+    }
+    fn central_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
+        let mean = self.raw_moment(order, particles, 0.01)?;
+        let sp = self.sp.clone();
+        let num_step = self.num_step;
+        let result = (0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let (_, x) = sp.simulate(num_step)?;
                 let end_position = x.last();
                 match end_position {
                     Some(position) => Ok((position - mean).powi(order)),

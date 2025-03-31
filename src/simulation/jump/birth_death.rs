@@ -8,9 +8,13 @@ use crate::{
 };
 use rayon::prelude::*;
 
-/// Birth-death process simulation
+/// Birth-death process
 ///
-/// This struct represents a Birth-death process simulation.
+/// This struct represents a Birth-death process.
+///
+/// # Mathematical Formulation
+///
+/// The Birth-death process is a process that describes the number of particles in a system that can either birth or die.
 ///
 /// # Fields
 ///
@@ -210,15 +214,48 @@ impl BirthDeath {
 
 impl PointProcess for BirthDeath {
     fn simulate_with_step(&self, num_step: usize) -> XResult<PointPair> {
-        let durations = exponential::rands(self.lambda + self.mu, num_step)?;
-        let t = cumsum(0.0, &durations);
-        let directions = uniform::bool_rands(self.lambda / (self.lambda + self.mu), num_step)?
-            .into_par_iter()
-            .map(|b| if b { 1i64 } else { -1i64 })
-            .collect::<Vec<_>>();
-        let x = cumsum(0i64, &directions);
-        Ok((t, x))
+        simulate_birth_death_with_step(self.lambda, self.mu, num_step)
     }
+}
+
+/// Simulate the Birth-death process with a given number of steps
+///
+/// # Arguments
+///
+/// * `lambda` - The rate of birth.
+/// * `mu` - The rate of death.
+/// * `num_step` - The number of steps of the simulation.
+pub fn simulate_birth_death_with_step(
+    lambda: impl Into<f64>,
+    mu: impl Into<f64>,
+    num_step: usize,
+) -> XResult<PointPair> {
+    let lambda = lambda.into();
+    let mu = mu.into();
+    let durations = exponential::rands(lambda + mu, num_step)?;
+    let t = cumsum(0.0, &durations);
+    let directions = uniform::bool_rands(lambda / (lambda + mu), num_step)?
+        .into_par_iter()
+        .map(|b| if b { 1i64 } else { -1i64 })
+        .collect::<Vec<_>>();
+    let x = cumsum(0i64, &directions);
+    Ok((t, x))
+}
+
+/// Simulate the Birth-death process with a given duration
+///
+/// # Arguments
+///
+/// * `lambda` - The rate of birth.
+/// * `mu` - The rate of death.
+/// * `duration` - The duration of the simulation.
+pub fn simulate_birth_death_with_duration(
+    lambda: impl Into<f64>,
+    mu: impl Into<f64>,
+    duration: impl Into<f64>,
+) -> XResult<PointPair> {
+    let birth_death = BirthDeath::new(lambda, mu)?;
+    birth_death.simulate_with_duration(duration)
 }
 
 #[cfg(test)]

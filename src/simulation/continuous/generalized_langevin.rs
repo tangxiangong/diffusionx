@@ -334,6 +334,16 @@ where
     }
 }
 
+/// Simulate the subordinated Langevin equation
+///
+/// # Fields
+///
+/// - `drift`: the drift function of the subordinated Langevin equation.
+/// - `diffusion`: the diffusion function of the subordinated Langevin equation.
+/// - `start_position`: the starting position of the subordinated Langevin equation.
+/// - `alpha`: the stability index of the alpha-stable subordinator.
+/// - `duration`: the duration of the simulation.
+/// - `time_step`: the time step of the simulation.
 pub fn simulate_subordinated_langevin<D, G>(
     drift: &D,
     diffusion: &G,
