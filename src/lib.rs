@@ -142,9 +142,8 @@
 //!
 //! - `ContinuousProcess`: Base trait for continuous stochastic processes
 //! - `PointProcess`: Base trait for point processes
+//! - `DiscreteProcess`: Base trait for discrete stochastic processes
 //! - `Moment`: Trait for statistical moments calculation, including raw and central moments
-//! - `FirstPassageTime`: Trait for calculating first passage times of stochastic processes
-//! - `OccupationTime`: Trait for calculating occupation times in specified regions
 //! - `Visualize`: Trait for plotting process trajectories
 //!
 //! ### Functional Distribution Simulation
