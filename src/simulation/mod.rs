@@ -21,6 +21,10 @@
 //! - [Continuous time random walk](jump::CTRW) - Random walk with random waiting times
 //! - [Birth-death process](jump::BirthDeath) - Integer-valued Markov process modeling population dynamics
 //!
+//! # Discrete processes
+//!
+//! - [Random walk](discrete::RandomWalk) - Discrete-time random walk
+//!
 //! # Additional components
 //!
 //! - [Traits](traits) - Common traits for stochastic processes

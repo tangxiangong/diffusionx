@@ -45,6 +45,7 @@
 //! - [x] Subordinated Langevin equation - Time-changed Langevin processes
 //! - [x] Lévy walk - Superdiffusive processes with coupled jump lengths and waiting times
 //! - [x] Birth-death process - Discrete-state processes with birth and death rates
+//! - [x] Random walk - Discrete-time random walk
 //!
 //! ## Installation
 //!
