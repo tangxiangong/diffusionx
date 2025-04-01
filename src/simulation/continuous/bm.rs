@@ -231,8 +231,10 @@ impl ContinuousProcess for Bm {
     /// # Example
     ///
     /// ```rust
-    /// let bm = Bm::new(10.0, 1.0).unwrap();
-    /// let (t, x) = bm.simulate(0.1).unwrap();
+    /// let bm = Bm::default();
+    /// let time_step = 0.1;
+    /// let duration = 1.0;
+    /// let (t, x) = bm.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         simulate_bm(
@@ -262,9 +264,11 @@ impl ContinuousProcess for Bm {
 /// # Example
 ///
 /// ```rust
-/// let bm = Bm::new(10.0, 1.0).unwrap();
-/// let params = ParamsBuilder::default().time_step(0.1).duration(1).build().unwrap();
-/// let (t, x) = bm.simulate(params).unwrap();
+/// let start_position = 10.0;
+/// let diffusion_coefficient = 1.0;
+/// let time_step = 0.1;
+/// let duration = 1.0;
+/// let (t, x) = simulate_bm(start_position, diffusion_coefficient, duration, time_step).unwrap();
 /// ```
 pub fn simulate_bm(
     start_position: impl Into<f64>,
