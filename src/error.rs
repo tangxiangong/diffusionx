@@ -18,7 +18,7 @@ pub type XResult<T> = Result<T, XError>;
 /// This enum represents all possible errors that can occur within the crate.
 /// It handles errors from various sources, including random number generation,
 /// simulation processes, and visualization.
-#[derive(Error, Debug, PartialEq, Eq, Clone)]
+#[derive(Error, Debug, PartialEq, Clone)]
 pub enum XError {
     /// Error for sampling from the uniform distribution
     #[error("Sample Uniform Distribution Error: {0}")]
@@ -49,6 +49,9 @@ pub enum XError {
     /// Error for invalid parameters in various contexts
     #[error("Invalid parameters: {0}")]
     InvalidParameters(String),
+    /// Error for non-positive definite matrix
+    #[error("Circulant embedding matrix is not positive definite, eigenvalue: {0}")]
+    NotPositiveDefinite(f64),
 }
 
 /// Error type for stable distribution sampling
