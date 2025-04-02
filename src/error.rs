@@ -1,4 +1,4 @@
-//! Error handling for the diffusionx crate
+//! Error handling for this crate
 //!
 //! This module provides error types and result types used throughout the crate.
 //! It defines various error categories for different components such as random number
@@ -8,12 +8,12 @@ use rand::distr::uniform::Error as UniformError;
 use rand_distr::{ExpError, NormalError, PoissonError};
 use thiserror::Error;
 
-/// Result type for the diffusionx crate
+/// Result type for this crate
 ///
 /// This is a specialized Result type that uses XError as the error type.
 pub type XResult<T> = Result<T, XError>;
 
-/// Main error type for the diffusionx crate
+/// Main error type for this crate
 ///
 /// This enum represents all possible errors that can occur within the crate.
 /// It handles errors from various sources, including random number generation,
