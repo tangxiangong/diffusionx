@@ -36,8 +36,6 @@ pub enum XError {
     #[error("Sample Stable Distribution Error: {0}")]
     StableSampleError(#[from] StableError),
     /// Error for sampling from the boolean distribution
-    ///
-    /// This error occurs when a probability outside [0,1] is provided.
     #[error("Probability must be between 0 and 1")]
     BoolSampleError,
     /// Error for simulating the process
@@ -61,28 +59,18 @@ pub enum XError {
 #[derive(Error, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum StableError {
     /// Error for invalid index of stability
-    ///
-    /// The index of stability must be in the range (0, 2].
     #[error("Index of stability must be in the range (0, 2]")]
     InvalidIndex,
     /// Error for invalid skewness parameter
-    ///
-    /// The skewness parameter must be in the range [-1, 1].
     #[error("Skewness parameter must be in the range [-1, 1]")]
     InvalidSkewness,
     /// Error for invalid scale parameter
-    ///
-    /// The scale parameter must be positive.
     #[error("Scale parameter must be positive")]
     InvalidScale,
     /// Error for invalid location parameter
-    ///
-    /// The location parameter must be a real number.
     #[error("Location parameter must be a real number")]
     InvalidLocation,
     /// Error for invalid index of skewness
-    ///
-    /// The index of skewness must be in the range (0, 1).
     #[error("Index of skewness must be in the range (0, 1)")]
     InvalidSkewIndex,
 }
@@ -97,18 +85,12 @@ pub enum SimulationError {
     #[error("Invalid parameters: {0}")]
     InvalidParameters(String),
     /// Error for invalid time step in simulation
-    ///
-    /// Time steps must typically be positive and finite.
     #[error("Invalid time step: {0}")]
     InvalidTimeStep(String),
     /// Error for invalid time interval in simulation
-    ///
-    /// Time intervals must typically be positive and finite.
     #[error("Invalid time interval: {0}")]
     InvalidTimeInterval(String),
     /// Error for unknown simulation errors
-    ///
-    /// This is a catch-all for simulation errors that don't fit other categories.
     #[error("Unknown error, simulation failed")]
     Unknown,
 }
@@ -126,8 +108,6 @@ pub enum PlotterError {
     #[error("Invalid color: {0}")]
     InvalidColor(String),
     /// Error from Plotters DrawingAreaErrorKind
-    ///
-    /// This wraps errors from the underlying plotting library.
     #[error("Plotter Error: {0}")]
     DrawingError(String),
 }
