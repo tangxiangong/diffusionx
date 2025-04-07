@@ -34,7 +34,11 @@ pub struct LatticeRandomWalk {
 
 impl Default for LatticeRandomWalk {
     fn default() -> Self {
-        Self::new(1.0, 0.5, 0.0).unwrap()
+        Self {
+            step_size: 1.0,
+            probability: 0.5,
+            start_position: 0.0,
+        }
     }
 }
 
@@ -302,7 +306,11 @@ pub struct RandomWalk {
 
 impl Default for RandomWalk {
     fn default() -> Self {
-        Self::new(0.5, 2.0, 0.0).unwrap()
+        Self {
+            probability: 0.5,
+            alpha: 2.0,
+            start_position: 0.0,
+        }
     }
 }
 

@@ -39,7 +39,11 @@ pub struct CTRW {
 
 impl Default for CTRW {
     fn default() -> Self {
-        Self::new(1.0, 2.0, 0.0).unwrap()
+        Self {
+            alpha: 1.0,
+            beta: 2.0,
+            start_position: 0.0,
+        }
     }
 }
 

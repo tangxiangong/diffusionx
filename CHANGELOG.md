@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.2] - 2025-04-05
+
+### 🚀 Features
+
+- Enhance Fbm simulation and CirculantEmbedding functionality
+- Add error handling for non-positive definite matrices
+
+### 🚜 Refactor
+
+- Update default implementations for simulation structs
+- Clean up error messages in error.rs
+- Update error messages for clarity
+- Clean up error messages in error.rs
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.3.1
+- Update GitHub Actions workflow to install dependencies
+- Add optional dependency once_cell in Cargo.toml
+
 ## [0.3.1] - 2025-03-31
 
 ### 🚀 Features

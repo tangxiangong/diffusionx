@@ -1,4 +1,4 @@
-//! Error handling for the diffusionx crate
+//! Error handling for this crate
 //!
 //! This module provides error types and result types used throughout the crate.
 //! It defines various error categories for different components such as random number
@@ -8,17 +8,17 @@ use rand::distr::uniform::Error as UniformError;
 use rand_distr::{ExpError, NormalError, PoissonError};
 use thiserror::Error;
 
-/// Result type for the diffusionx crate
+/// Result type for this crate
 ///
 /// This is a specialized Result type that uses XError as the error type.
 pub type XResult<T> = Result<T, XError>;
 
-/// Main error type for the diffusionx crate
+/// Main error type for this crate
 ///
 /// This enum represents all possible errors that can occur within the crate.
 /// It handles errors from various sources, including random number generation,
 /// simulation processes, and visualization.
-#[derive(Error, Debug, PartialEq, Eq, Clone)]
+#[derive(Error, Debug, PartialEq, Clone)]
 pub enum XError {
     /// Error for sampling from the uniform distribution
     #[error("Sample Uniform Distribution Error: {0}")]
@@ -36,8 +36,6 @@ pub enum XError {
     #[error("Sample Stable Distribution Error: {0}")]
     StableSampleError(#[from] StableError),
     /// Error for sampling from the boolean distribution
-    ///
-    /// This error occurs when a probability outside [0,1] is provided.
     #[error("Probability must be between 0 and 1")]
     BoolSampleError,
     /// Error for simulating the process
@@ -49,6 +47,9 @@ pub enum XError {
     /// Error for invalid parameters in various contexts
     #[error("Invalid parameters: {0}")]
     InvalidParameters(String),
+    /// Error for non-positive definite matrix
+    #[error("Circulant embedding matrix is not positive definite, eigenvalue: {0}")]
+    NotPositiveDefinite(f64),
 }
 
 /// Error type for stable distribution sampling
@@ -58,28 +59,18 @@ pub enum XError {
 #[derive(Error, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum StableError {
     /// Error for invalid index of stability
-    ///
-    /// The index of stability must be in the range (0, 2].
     #[error("Index of stability must be in the range (0, 2]")]
     InvalidIndex,
     /// Error for invalid skewness parameter
-    ///
-    /// The skewness parameter must be in the range [-1, 1].
     #[error("Skewness parameter must be in the range [-1, 1]")]
     InvalidSkewness,
     /// Error for invalid scale parameter
-    ///
-    /// The scale parameter must be positive.
     #[error("Scale parameter must be positive")]
     InvalidScale,
     /// Error for invalid location parameter
-    ///
-    /// The location parameter must be a real number.
     #[error("Location parameter must be a real number")]
     InvalidLocation,
     /// Error for invalid index of skewness
-    ///
-    /// The index of skewness must be in the range (0, 1).
     #[error("Index of skewness must be in the range (0, 1)")]
     InvalidSkewIndex,
 }
@@ -94,18 +85,12 @@ pub enum SimulationError {
     #[error("Invalid parameters: {0}")]
     InvalidParameters(String),
     /// Error for invalid time step in simulation
-    ///
-    /// Time steps must typically be positive and finite.
     #[error("Invalid time step: {0}")]
     InvalidTimeStep(String),
     /// Error for invalid time interval in simulation
-    ///
-    /// Time intervals must typically be positive and finite.
     #[error("Invalid time interval: {0}")]
     InvalidTimeInterval(String),
     /// Error for unknown simulation errors
-    ///
-    /// This is a catch-all for simulation errors that don't fit other categories.
     #[error("Unknown error, simulation failed")]
     Unknown,
 }
@@ -123,8 +108,6 @@ pub enum PlotterError {
     #[error("Invalid color: {0}")]
     InvalidColor(String),
     /// Error from Plotters DrawingAreaErrorKind
-    ///
-    /// This wraps errors from the underlying plotting library.
     #[error("Plotter Error: {0}")]
     DrawingError(String),
 }

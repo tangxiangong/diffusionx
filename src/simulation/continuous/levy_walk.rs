@@ -30,7 +30,11 @@ pub struct LevyWalk {
 
 impl Default for LevyWalk {
     fn default() -> Self {
-        Self::new(1.0, 1.0, 0.0).unwrap()
+        Self {
+            alpha: 0.1,
+            velocity: 1.0,
+            start_position: 0.0,
+        }
     }
 }
 

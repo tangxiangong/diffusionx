@@ -220,14 +220,16 @@ impl ContinuousProcess for Fbm {
     /// # Example
     ///
     /// ```rust
-    /// let fbm = Fbm::new(10.0, 1.0).unwrap();
-    /// let (t, x) = fbm.simulate(0.1).unwrap();
+    /// let fbm = Fbm::new(10.0, 0.5).unwrap();
+    /// let duration = 1.0;
+    /// let time_step = 0.1;
+    /// let (t, x) = fbm.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         simulate_fbm(
             self.start_position,
             self.hurst_exponent,
-            duration.into(),
+            duration,
             time_step,
         )
     }
@@ -251,9 +253,11 @@ impl ContinuousProcess for Fbm {
 /// # Example
 ///
 /// ```rust
-/// let fbm = Fbm::new(10.0, 1.0).unwrap();
-/// let params = ParamsBuilder::default().time_step(0.1).duration(1).build().unwrap();
-/// let (t, x) = fbm.simulate(params).unwrap();
+/// let start_position = 10.0;
+/// let hurst_exponent = 0.5;
+/// let duration = 1.0;
+/// let time_step = 0.1;
+/// let (t, x) = simulate_fbm(start_position, hurst_exponent, duration, time_step).unwrap();
 /// ```
 pub fn simulate_fbm(
     start_position: impl Into<f64>,
@@ -279,7 +283,7 @@ pub fn simulate_fbm(
     let noise = if hurst_exponent == 0.5 {
         normal::rands(0.0, 2.0 * time_step, num_steps)?
     } else {
-        circulant.generate()
+        circulant.generate()?
     };
 
     // 计算累积和
