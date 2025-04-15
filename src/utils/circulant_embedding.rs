@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use rustfft::{FftPlanner, num_complex::Complex};
 use std::sync::Mutex;
 
-// 使用全局缓存的FFT计划器以避免重复创建
+// Use a global cached FFT planner to avoid repeated creation
 static FFT_PLANNER: Lazy<Mutex<FftPlanner<f64>>> = Lazy::new(|| Mutex::new(FftPlanner::new()));
 
 /// Circulant embedding method for generating stationary Gaussian random fields with given correlation functions
@@ -37,12 +37,12 @@ impl CirculantEmbedding {
         }
     }
 
-    /// 预计算并缓存循环嵌入矩阵的第一行
+    /// Precompute and cache the first row of the circulant embedding matrix
     pub fn precompute_correlation(&mut self) -> XResult<()> {
         let n = self.size;
         let m = 2 * n;
 
-        // 构建循环嵌入矩阵的第一行
+        // Build the first row of the circulant embedding matrix
         let first_row: Vec<f64> = (0..m)
             .into_par_iter()
             .map(|i| {
@@ -60,7 +60,7 @@ impl CirculantEmbedding {
         let n = self.size;
         let m = 2 * n;
 
-        // 使用缓存的相关函数值或重新计算
+        // Use cached correlation function values or recompute
         let first_row = if let Some(ref cache) = self.first_row_cache {
             cache.clone()
         } else {
@@ -73,49 +73,45 @@ impl CirculantEmbedding {
                 .collect()
         };
 
-        // 获取FFT计划器的锁并创建计划
+        // Get the lock of the FFT planner and create the plan
         let mut complex_data: Vec<Complex<f64>> = Vec::with_capacity(m);
         for &x in &first_row {
             complex_data.push(Complex::new(x, 0.0));
         }
 
-        // 计算特征值（使用FFT）
-        {
-            let mut planner = FFT_PLANNER.lock().expect("无法获取FFT计划器锁");
-            let fft = planner.plan_fft_forward(m);
-            fft.process(&mut complex_data);
-        }
+        // Calculate the eigenvalues (using FFT)
+        let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
+        let fft = planner.plan_fft_forward(m);
+        fft.process(&mut complex_data);
 
-        // 检查所有特征值是否为正
+        // Check if all eigenvalues are positive
         if let Some(negative_eigenvalue) = complex_data.iter().find(|val| val.re < -1e-10) {
             return Err(XError::NotPositiveDefinite(negative_eigenvalue.re));
         }
 
-        // 生成随机高斯向量
+        // Generate a random Gaussian vector
         let z_real = normal::standard_rands(m);
         let mut z_imag = normal::standard_rands(m);
 
-        // 特殊处理以确保输出是实数
+        // Special handling to ensure the output is a real number
         z_imag[0] = 0.0;
         if m % 2 == 0 {
             z_imag[m / 2] = 0.0;
         }
 
-        // 构建复向量并乘以特征值的平方根
-        // 避免创建临时向量
+        // Build the complex vector and multiply by the square root of the eigenvalues
+        // Avoid creating a temporary vector
         for i in 0..m {
             let sqrt_lambda = complex_data[i].re.max(0.0).sqrt();
             complex_data[i] = Complex::new(sqrt_lambda * z_real[i], sqrt_lambda * z_imag[i]);
         }
 
-        // 执行逆FFT
-        {
-            let mut planner = FFT_PLANNER.lock().expect("Failed to get FFT planner lock");
-            let ifft = planner.plan_fft_inverse(m);
-            ifft.process(&mut complex_data);
-        }
+        // Execute inverse FFT
+        let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
+        let ifft = planner.plan_fft_inverse(m);
+        ifft.process(&mut complex_data);
 
-        // 提取结果
+        // Extract the result
         let result = complex_data.into_iter().take(n).map(|c| c.re).collect();
 
         Ok(result)
@@ -126,7 +122,7 @@ impl CirculantEmbedding {
         let mut result = self.generate()?;
         let n = result.len();
 
-        // 归一化处理，确保均值为0和方差为1
+        // Normalize the result, ensuring the mean is 0 and the variance is 1
         let mut sum = 0.0;
         for &x in &result {
             sum += x;
@@ -230,20 +226,26 @@ mod tests {
         let corr_fn = gaussian_correlation(length_scale);
         let embedding = CirculantEmbedding::new(size, corr_fn);
 
-        let field = embedding.generate_normalized().expect("生成场失败");
+        let field = embedding
+            .generate_normalized()
+            .expect("Field generation failed");
 
         // Check the size of the generated field
         assert_eq!(field.len(), size);
 
         // Calculate the sample mean (should be close to 0)
         let mean = field.iter().sum::<f64>() / size as f64;
-        assert!(mean.abs() < 0.5, "均值 {} 不在预期范围内", mean);
+        assert!(
+            mean.abs() < 0.5,
+            "Mean {} is not in the expected range",
+            mean
+        );
 
         // Calculate the sample variance (should be close to 1)
         let variance = field.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / size as f64;
         assert!(
             (variance - 1.0).abs() < 1.0,
-            "方差 {} 不在预期范围内",
+            "Variance {} is not in the expected range",
             variance
         );
     }
@@ -255,9 +257,11 @@ mod tests {
         let corr_fn = gaussian_correlation(length_scale);
         let mut embedding = CirculantEmbedding::new(size, corr_fn);
 
-        embedding.precompute_correlation().expect("预计算失败");
-        let field1 = embedding.generate().expect("生成场失败");
-        let field2 = embedding.generate().expect("生成场失败");
+        embedding
+            .precompute_correlation()
+            .expect("Precompute failed");
+        let field1 = embedding.generate().expect("Field generation failed");
+        let field2 = embedding.generate().expect("Field generation failed");
 
         assert_eq!(field1.len(), size);
         assert_eq!(field2.len(), size);
@@ -287,7 +291,9 @@ mod tests {
         let embedding = CirculantEmbedding::new(size, corr_fn);
 
         let count = 5;
-        let fields = embedding.generate_multiple(count).expect("生成多个场失败");
+        let fields = embedding
+            .generate_multiple(count)
+            .expect("Generate multiple fields failed");
 
         assert_eq!(fields.len(), count);
         for field in &fields {
