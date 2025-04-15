@@ -1,5 +1,5 @@
 - [ ] BesselProcess
-- [ ] BrownianBridge
+- [x] BrownianBridge
 - [ ] BrownianExcursion
 - [ ] BrownianMeander
 - [ ] CauchyProcess
