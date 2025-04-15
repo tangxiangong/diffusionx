@@ -1,8 +1,8 @@
 use crate::{XError, XResult, random::normal};
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use rustfft::{FftPlanner, num_complex::Complex};
-use std::sync::Mutex;
+use rustfft::{Fft, FftPlanner, num_complex::Complex};
+use std::sync::{Arc, Mutex};
 
 // Use a global cached FFT planner to avoid repeated creation
 static FFT_PLANNER: Lazy<Mutex<FftPlanner<f64>>> = Lazy::new(|| Mutex::new(FftPlanner::new()));
@@ -17,6 +17,8 @@ pub struct CirculantEmbedding {
     size: usize,
     correlation_fn: Box<dyn Fn(f64) -> f64 + Send + Sync + 'static>,
     first_row_cache: Option<Vec<f64>>,
+    eigenvalues_cache: Option<Vec<Complex<f64>>>,
+    fft_inverse_plan: Option<Arc<dyn Fft<f64>>>,
 }
 
 impl CirculantEmbedding {
@@ -34,10 +36,13 @@ impl CirculantEmbedding {
             size,
             correlation_fn: Box::new(correlation_fn),
             first_row_cache: None,
+            eigenvalues_cache: None,
+            fft_inverse_plan: None,
         }
     }
 
-    /// Precompute and cache the first row of the circulant embedding matrix
+    /// Precompute and cache the first row of the circulant embedding matrix,
+    /// its eigenvalues (via FFT), and the inverse FFT plan.
     pub fn precompute_correlation(&mut self) -> XResult<()> {
         let n = self.size;
         let m = 2 * n;
@@ -51,7 +56,35 @@ impl CirculantEmbedding {
             })
             .collect();
 
-        self.first_row_cache = Some(first_row);
+        let mut eigenvalues: Vec<Complex<f64>> =
+            first_row.iter().map(|&x| Complex::new(x, 0.0)).collect();
+
+        // Plan and execute forward FFT to get eigenvalues
+        {
+            let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
+            let fft = planner.plan_fft_forward(m);
+            fft.process(&mut eigenvalues);
+        }
+
+        // Check if all eigenvalues are positive
+        if let Some(negative_eigenvalue) = eigenvalues.iter().find(|val| val.re < -1e-10) {
+            // Clear potentially invalid caches and return error
+            self.first_row_cache = Some(first_row); // Cache the row anyway
+            self.eigenvalues_cache = None;
+            self.fft_inverse_plan = None;
+            return Err(XError::NotPositiveDefinite(negative_eigenvalue.re));
+        }
+
+        // Plan and cache inverse FFT plan
+        {
+            let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?; // Lock again
+            self.fft_inverse_plan = Some(planner.plan_fft_inverse(m));
+        }
+
+        // Cache successful results
+        self.first_row_cache = Some(first_row); // Keep cached row
+        self.eigenvalues_cache = Some(eigenvalues); // Cache eigenvalues
+
         Ok(())
     }
 
@@ -60,63 +93,90 @@ impl CirculantEmbedding {
         let n = self.size;
         let m = 2 * n;
 
-        // Use cached correlation function values or recompute
-        let first_row = if let Some(ref cache) = self.first_row_cache {
-            cache.clone()
+        // Get eigenvalues and inverse FFT plan, either from cache or by computing on the fly
+        let (mut eigenvalues, ifft) = if let (Some(cached_eigenvalues), Some(cached_ifft_plan)) =
+            (&self.eigenvalues_cache, &self.fft_inverse_plan)
+        {
+            // Use cached eigenvalues and inverse plan
+            // Clone eigenvalues as they will be modified by subsequent steps
+            // Clone Arc for the plan (cheap)
+            (cached_eigenvalues.clone(), cached_ifft_plan.clone())
         } else {
-            (0..m)
-                .into_par_iter()
-                .map(|i| {
-                    let dist = if i <= m / 2 { i as f64 } else { (m - i) as f64 };
-                    (self.correlation_fn)(dist)
-                })
-                .collect()
+            // Compute on the fly if not precomputed or precomputation failed
+            let first_row = if let Some(ref cache) = self.first_row_cache {
+                // Use cached first row if available (e.g., from failed precomputation)
+                cache.clone()
+            } else {
+                // Compute first row if no cache exists
+                (0..m)
+                    .into_par_iter()
+                    .map(|i| {
+                        let dist = if i <= m / 2 { i as f64 } else { (m - i) as f64 };
+                        (self.correlation_fn)(dist)
+                    })
+                    .collect()
+            };
+
+            // Convert to complex for FFT
+            let mut complex_data: Vec<Complex<f64>> = first_row
+                .into_iter()
+                .map(|x| Complex::new(x, 0.0))
+                .collect();
+
+            // Calculate the eigenvalues (using FFT)
+            {
+                let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
+                let fft = planner.plan_fft_forward(m);
+                fft.process(&mut complex_data);
+            }
+
+            // Check if all eigenvalues are positive
+            if let Some(negative_eigenvalue) = complex_data.iter().find(|val| val.re < -1e-10) {
+                return Err(XError::NotPositiveDefinite(negative_eigenvalue.re));
+            }
+
+            // Get inverse FFT plan
+            let inverse_fft = {
+                let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?; // Lock again
+                planner.plan_fft_inverse(m)
+            };
+
+            // Return computed eigenvalues and inverse plan
+            (complex_data, inverse_fft)
         };
 
-        // Get the lock of the FFT planner and create the plan
-        let mut complex_data: Vec<Complex<f64>> = Vec::with_capacity(m);
-        for &x in &first_row {
-            complex_data.push(Complex::new(x, 0.0));
-        }
+        // --- Common logic starts here ---
 
-        // Calculate the eigenvalues (using FFT)
-        {
-            let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
-            let fft = planner.plan_fft_forward(m);
-            fft.process(&mut complex_data);
-        }
-
-        // Check if all eigenvalues are positive
-        if let Some(negative_eigenvalue) = complex_data.iter().find(|val| val.re < -1e-10) {
-            return Err(XError::NotPositiveDefinite(negative_eigenvalue.re));
-        }
-
-        // Generate a random Gaussian vector
+        // Generate a random Gaussian vector (components for complex noise)
         let z_real = normal::standard_rands(m);
         let mut z_imag = normal::standard_rands(m);
 
-        // Special handling to ensure the output is a real number
+        // Special handling for real output: Z_k = conj(Z_{m-k})
+        // This implies z_imag[0] = 0 and z_imag[m/2] = 0 (if m is even)
         z_imag[0] = 0.0;
         if m % 2 == 0 {
             z_imag[m / 2] = 0.0;
         }
 
-        // Build the complex vector and multiply by the square root of the eigenvalues
-        // Avoid creating a temporary vector
+        // Build the complex vector Y = sqrt(Lambda) * Z
+        // Modify 'eigenvalues' vector in place to store Y
         for i in 0..m {
-            let sqrt_lambda = complex_data[i].re.max(0.0).sqrt();
-            complex_data[i] = Complex::new(sqrt_lambda * z_real[i], sqrt_lambda * z_imag[i]);
+            // Ensure eigenvalue is non-negative before taking sqrt
+            let sqrt_lambda = eigenvalues[i].re.max(0.0).sqrt();
+            // Y_k = sqrt(lambda_k) * (z_real_k + i * z_imag_k)
+            eigenvalues[i] = Complex::new(sqrt_lambda * z_real[i], sqrt_lambda * z_imag[i]);
         }
 
-        // Execute inverse FFT
-        {
-            let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
-            let ifft = planner.plan_fft_inverse(m);
-            ifft.process(&mut complex_data);
-        }
+        // Execute inverse FFT (modifies 'eigenvalues' vector in place to store the result)
+        ifft.process(&mut eigenvalues);
 
-        // Extract the result
-        let result = complex_data.into_iter().take(n).map(|c| c.re).collect();
+        // Extract the real part of the result and normalize (IFFT result needs scaling by 1/m)
+        let scale = 1.0 / m as f64;
+        let result = eigenvalues
+            .into_iter()
+            .take(n)
+            .map(|c| c.re * scale)
+            .collect();
 
         Ok(result)
     }
