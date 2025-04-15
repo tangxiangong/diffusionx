@@ -9,6 +9,7 @@
 //! - Ornstein-Uhlenbeck process in [OrnsteinUhlenbeck]
 //! - Subordinator in [Subordinator]
 //! - Inverse subordinator in [InvSubordinator]
+//! - Brownian bridge in [BrownianBridge]
 //!
 
 pub mod bm;
@@ -34,3 +35,6 @@ pub use ou::*;
 
 pub mod subordinator;
 pub use subordinator::*;
+
+pub mod brownian_bridge;
+pub use brownian_bridge::*;
