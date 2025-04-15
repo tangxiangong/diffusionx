@@ -1,15 +1,15 @@
 //! Continuous processes
 //!
-//! - Brownian motion in [Bm]
-//! - Fractional Brownian motion in [Fbm]
-//! - Generalized Langevin equation in [GeneralizedLangevin]
-//! - Langevin equation in [Langevin]
-//! - Levy walk in [LevyWalk]
-//! - Levy process in [Levy]
-//! - Ornstein-Uhlenbeck process in [OrnsteinUhlenbeck]
-//! - Subordinator in [Subordinator]
-//! - Inverse subordinator in [InvSubordinator]
-//! - Brownian bridge in [BrownianBridge]
+//! - Brownian motion [Bm]
+//! - Fractional Brownian motion [Fbm]
+//! - Generalized Langevin equation [GeneralizedLangevin]
+//! - Langevin equation [Langevin]
+//! - Levy walk [LevyWalk]
+//! - Levy process [Levy]
+//! - Ornstein-Uhlenbeck process [OrnsteinUhlenbeck]
+//! - Subordinator [Subordinator]
+//! - Inverse subordinator [InvSubordinator]
+//! - Brownian bridge [BrownianBridge]
 //!
 
 pub mod bm;

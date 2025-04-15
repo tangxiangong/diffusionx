@@ -1,6 +1,6 @@
 //! Brownian bridge simulation
 //!
-//! For Brownian motion, see [`crate::simulation::bm`].
+//! For Brownian motion, see [`crate::simulation::continuous::bm`].
 
 use crate::{SimulationError, XResult, simulation::prelude::*};
 use rayon::prelude::*;

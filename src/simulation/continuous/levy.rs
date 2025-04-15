@@ -2,7 +2,7 @@
 //!
 //! The Lévy process is a process with independent and stationary increments.
 //!
-//! For Brownian motion, see [`crate::simulation::bm`].
+//! For Brownian motion, see [`crate::simulation::continuous::bm`].
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
@@ -157,14 +157,14 @@ impl ContinuousProcess for Levy {
 ///
 /// # Arguments
 ///
-/// * `start_position` - The starting position of the Lévy process.  
+/// * `start_position` - The starting position of the Lévy process.
 /// * `alpha` - The stability index of the Lévy process.
 /// * `duration` - The duration of the Lévy process.
 /// * `time_step` - The time step of the Lévy process.
 ///
 /// # Returns
 ///
-/// A tuple containing the time and the position of the Lévy process simulation.   
+/// A tuple containing the time and the position of the Lévy process simulation.
 ///
 /// # Example
 ///

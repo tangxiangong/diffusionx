@@ -1,6 +1,7 @@
 //! Discrete processes
 //!
-//! - Random walk
+//! - Lattice random walk [LatticeRandomWalk]
+//! - Random walk [RandomWalk]
 //!
 
 pub mod random_walk;
