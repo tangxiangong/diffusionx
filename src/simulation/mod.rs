@@ -14,6 +14,7 @@
 //! - [Fractional Brownian motion](continuous::Fbm) - Long-range dependent Gaussian process
 //! - [Lévy walk](continuous::LevyWalk) - Continuous-time random walk with correlated jump sizes and waiting times
 //! - [Ornstein-Uhlenbeck process](continuous::OrnsteinUhlenbeck) - Mean-reverting stochastic process
+//! - [Brownian bridge](continuous::BrownianBridge) - Brownian motion conditioned to hit origin at the end
 //!
 //! # Jump processes
 //!
