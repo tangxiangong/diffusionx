@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.3] - 2025-04-15
+
+### 🚀 Features
+
+- Add deny.toml configuration file for cargo-deny
+- Add pre-commit configuration for Rust and Python
+- Implement Brownian bridge simulation
+
+### 📚 Documentation
+
+- Update mod.rs to include Brownian bridge in the simulation module documentation
+- Update README files to include Brownian bridge in the list of processes
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.3.2 in Cargo.toml
+- Update CHANGELOG for version 0.3.2
+- Update GitHub Actions workflow to include specific file paths for Rust files
+- Comment out unused pre-commit hooks for Rust
+- Bump version to 0.3.3 in Cargo.toml
+
 ## [0.3.2] - 2025-04-05
 
 ### 🚀 Features
