@@ -51,6 +51,7 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 - [x] Lévy walk - Superdiffusive processes with coupled jump lengths and waiting times
 - [x] Birth-death process - Discrete-state processes with birth and death rates
 - [x] Random walk - Discrete-time random walk
+- [x] Brownian bridge - Brownian motion conditioned to hit origin at the end
 
 ## Installation
 
@@ -180,7 +181,7 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
        // Your parameters
        // Should be `Send + Sync` for parallel computation
    }
-   
+
    impl ContinuousProcess for MyProcess {
        fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
            // Implement your simulation logic
@@ -220,7 +221,7 @@ let config = PlotConfigBuilder::default()
     .title("Brownian Motion")
     .output_path("brownian_motion.png")
     .build()?;
-    
+
 bm.plot(&config)?; // Generates a plot with the specified configuration
 ```
 
@@ -234,4 +235,4 @@ This project is dual-licensed under:
 * [MIT License](https://opensource.org/licenses/MIT)
 * [Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
-You can choose to use either license. 
+You can choose to use either license.
