@@ -80,9 +80,11 @@ impl CirculantEmbedding {
         }
 
         // Calculate the eigenvalues (using FFT)
-        let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
-        let fft = planner.plan_fft_forward(m);
-        fft.process(&mut complex_data);
+        {
+            let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
+            let fft = planner.plan_fft_forward(m);
+            fft.process(&mut complex_data);
+        }
 
         // Check if all eigenvalues are positive
         if let Some(negative_eigenvalue) = complex_data.iter().find(|val| val.re < -1e-10) {
@@ -107,9 +109,11 @@ impl CirculantEmbedding {
         }
 
         // Execute inverse FFT
-        let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
-        let ifft = planner.plan_fft_inverse(m);
-        ifft.process(&mut complex_data);
+        {
+            let mut planner = FFT_PLANNER.lock().map_err(|_| XError::FFTPlannerLock)?;
+            let ifft = planner.plan_fft_inverse(m);
+            ifft.process(&mut complex_data);
+        }
 
         // Extract the result
         let result = complex_data.into_iter().take(n).map(|c| c.re).collect();
