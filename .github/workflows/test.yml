@@ -2,22 +2,22 @@ name: Rust
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: [ "dev", "stable" ]
     paths:
       - '**/*.rs'
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
       - '.cargo/**'
-      - '!README.md'
+      - '!**/*.md'
       - '!docs/**'
   pull_request:
-    branches: [ "dev" ]
+    branches: [ "dev", "stable" ]
     paths:
       - '**/*.rs'
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
       - '.cargo/**'
-      - '!README.md'
+      - '!**/*.md'
       - '!docs/**'
 
 env:
