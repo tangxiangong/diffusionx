@@ -174,7 +174,7 @@ impl CTRW {
     ///
     /// # Returns
     ///
-    /// A f64 representing the mean of the continuous time random walk simulation.  
+    /// A f64 representing the mean of the continuous time random walk simulation.
     ///
     /// # Example
     ///
@@ -183,7 +183,7 @@ impl CTRW {
     /// let mean = ctrw.mean(1.0, 1000).unwrap();
     /// ```
     pub fn mean(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.raw_moment(1, particles, 0.1)
     }
 
@@ -205,7 +205,7 @@ impl CTRW {
     /// let msd = ctrw.msd(1.0, 1000).unwrap();
     /// ```
     pub fn msd(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.central_moment(2, particles, 0.1)
     }
 
@@ -233,7 +233,7 @@ impl CTRW {
         order: i32,
         particles: usize,
     ) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.raw_moment(order, particles, 0.1)
     }
 
@@ -261,7 +261,7 @@ impl CTRW {
         order: i32,
         particles: usize,
     ) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.central_moment(order, particles, 0.1)
     }
 

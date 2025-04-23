@@ -154,7 +154,7 @@ impl LatticeRandomWalk {
     ///
     /// # Returns
     ///
-    /// A f64 representing the mean of the lattice random walk simulation.  
+    /// A f64 representing the mean of the lattice random walk simulation.
     ///
     /// # Example
     ///
@@ -163,7 +163,7 @@ impl LatticeRandomWalk {
     /// let mean = rw.mean(1000).unwrap();
     /// ```
     pub fn mean(&self, num_step: usize, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step).unwrap();
+        let traj = self.step(num_step)?;
         traj.raw_moment(1, particles, 0.1)
     }
 
@@ -185,7 +185,7 @@ impl LatticeRandomWalk {
     /// let msd = rw.msd(1000).unwrap();
     /// ```
     pub fn msd(&self, num_step: usize, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step).unwrap();
+        let traj = self.step(num_step)?;
         traj.central_moment(2, particles, 0.1)
     }
 
@@ -208,7 +208,7 @@ impl LatticeRandomWalk {
     /// let moment = rw.raw_moment(1.0, 1000).unwrap();
     /// ```
     pub fn raw_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step).unwrap();
+        let traj = self.step(num_step)?;
         traj.raw_moment(order, particles, 0.1)
     }
 
@@ -231,7 +231,7 @@ impl LatticeRandomWalk {
     /// let msd = rw.msd(1.0, 1000).unwrap();
     /// ```
     pub fn central_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step).unwrap();
+        let traj = self.step(num_step)?;
         traj.central_moment(order, particles, 0.1)
     }
 }
@@ -421,7 +421,7 @@ impl RandomWalk {
     ///
     /// # Returns
     ///
-    /// A f64 representing the mean of the random walk simulation.  
+    /// A f64 representing the mean of the random walk simulation.
     ///
     /// # Example
     ///
@@ -430,7 +430,7 @@ impl RandomWalk {
     /// let mean = rw.mean(1000).unwrap();
     /// ```
     pub fn mean(&self, num_step: usize, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step).unwrap();
+        let traj = self.step(num_step)?;
         traj.raw_moment(1, particles, 0.1)
     }
 
@@ -452,7 +452,7 @@ impl RandomWalk {
     /// let msd = rw.msd(1000).unwrap();
     /// ```
     pub fn msd(&self, num_step: usize, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step).unwrap();
+        let traj = self.step(num_step)?;
         traj.central_moment(2, particles, 0.1)
     }
 
@@ -475,7 +475,7 @@ impl RandomWalk {
     /// let moment = rw.raw_moment(1.0, 1000).unwrap();
     /// ```
     pub fn raw_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step).unwrap();
+        let traj = self.step(num_step)?;
         traj.raw_moment(order, particles, 0.1)
     }
 

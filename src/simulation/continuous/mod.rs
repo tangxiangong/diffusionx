@@ -38,3 +38,5 @@ pub use subordinator::*;
 
 pub mod brownian_bridge;
 pub use brownian_bridge::*;
+
+pub mod brownian_excursion;
