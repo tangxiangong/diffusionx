@@ -10,6 +10,7 @@
 //! - Subordinator [Subordinator]
 //! - Inverse subordinator [InvSubordinator]
 //! - Brownian bridge [BrownianBridge]
+//! - Brownian excursion [BrownianExcursion]
 //!
 
 pub mod bm;
@@ -40,3 +41,4 @@ pub mod brownian_bridge;
 pub use brownian_bridge::*;
 
 pub mod brownian_excursion;
+pub use brownian_excursion::*;
