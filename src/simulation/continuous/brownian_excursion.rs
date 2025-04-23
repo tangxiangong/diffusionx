@@ -363,7 +363,7 @@ mod tests {
     fn test_occupation_time() {
         let be = BrownianExcursion;
         let time_step = 0.1;
-        let ot = be.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
+        let ot = be.occupation_time((-1.0, 1.0), 1.0, time_step).unwrap();
         println!("ot: {:?}", ot);
     }
 
