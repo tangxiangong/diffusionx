@@ -422,7 +422,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
                 let (_, x) = sp.simulate_with_duration(duration)?;
                 let end_position = x.last();
                 match end_position {
-                    Some(position) => Ok((*position as f64).powi(order)),
+                    Some(position) => Ok(position.powi(order)),
                     None => Err(SimulationError::Unknown.into()),
                 }
             })
@@ -441,7 +441,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
                 let (_, x) = sp.simulate_with_duration(duration)?;
                 let end_position = x.last();
                 match end_position {
-                    Some(position) => Ok((*position as f64 - mean).powi(order)),
+                    Some(position) => Ok((position - mean).powi(order)),
                     None => Err(SimulationError::Unknown.into()),
                 }
             })
