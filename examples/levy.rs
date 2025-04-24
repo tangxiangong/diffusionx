@@ -28,15 +28,16 @@ fn main() {
     // Visualize trajectory
     let config = PlotConfigBuilder::default()
         .time_step(dt)
-        .output_path("levy_process.png")
-        .title("Lévy process trajectory")
-        .x_label("Time t")
-        .y_label("Position X(t)")
+        .output_path("tmp/levy.svg")
+        .caption("Lévy process trajectory")
+        .x_label("t")
+        .y_label("X(t)")
+        .legend("levy")
         .size((800, 600))
-        .backend(PlotterBackend::BitMap)
+        .backend(PlotterBackend::SVG)
         .build()
         .unwrap();
 
     traj.plot(&config).unwrap();
-    println!("Trajectory image saved to levy_process.png");
+    println!("Trajectory image saved to tmp/levy.svg");
 }

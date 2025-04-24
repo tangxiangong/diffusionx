@@ -28,15 +28,16 @@ fn main() {
     // Visualize trajectory
     let config = PlotConfigBuilder::default()
         .time_step(dt)
-        .output_path("brownian_motion.png")
-        .title("Brownian Motion Trajectory")
-        .x_label("Time t")
-        .y_label("Position X(t)")
+        .output_path("tmp/bm.svg")
+        .caption("Brownian Motion Trajectory")
+        .x_label("t")
+        .y_label("X(t)")
+        .legend("bm")
         .size((800, 600))
-        .backend(PlotterBackend::BitMap)
+        .backend(PlotterBackend::SVG)
         .build()
         .unwrap();
 
     traj.plot(&config).unwrap();
-    println!("Trajectory image saved to brownian_motion.png");
+    println!("Trajectory image saved to tmp/bm.svg");
 }

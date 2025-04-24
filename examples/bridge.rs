@@ -29,16 +29,16 @@ fn main() {
     let config = PlotConfigBuilder::default()
         .show_grid(false)
         .time_step(dt)
-        .output_path("tmp/brownian_bridge.eps")
-        .title("Brownian Bridge Trajectory")
-        .x_label("Time t")
-        .y_label("Position X(t)")
-        .legend("Brownian Bridge")
+        .output_path("tmp/bb.svg")
+        .caption("Brownian Bridge Trajectory")
+        .x_label("t")
+        .y_label("X(t)")
+        .legend("bb")
         .size((800, 600))
         .backend(PlotterBackend::SVG)
         .build()
         .unwrap();
 
     traj.plot(&config).unwrap();
-    println!("Trajectory image saved to tmp/brownian_bridge.eps");
+    println!("Trajectory image saved to tmp/bb.svg");
 }

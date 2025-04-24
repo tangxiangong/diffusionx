@@ -29,15 +29,16 @@ fn main() {
     // Visualize trajectory
     let config = PlotConfigBuilder::default()
         .time_step(dt)
-        .output_path("ornstein_uhlenbeck.png")
-        .title("Ornstein-Uhlenbeck process trajectory")
-        .x_label("Time t")
-        .y_label("Position X(t)")
+        .output_path("tmp/ou.svg")
+        .caption("Ornstein-Uhlenbeck process trajectory")
+        .x_label("t")
+        .y_label("X(t)")
+        .legend("ou")
         .size((800, 600))
-        .backend(PlotterBackend::BitMap)
+        .backend(PlotterBackend::SVG)
         .build()
         .unwrap();
 
     traj.plot(&config).unwrap();
-    println!("Trajectory image saved to ornstein_uhlenbeck.png");
+    println!("Trajectory image saved to tmp/ou.svg");
 }

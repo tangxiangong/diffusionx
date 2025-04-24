@@ -28,45 +28,48 @@ fn main() {
     // Visualize the first trajectory (H=0.3)
     let config1 = PlotConfigBuilder::default()
         .time_step(dt)
-        .output_path("fbm_h03.png")
-        .title("Fractional Brownian Motion (H=0.3)")
-        .x_label("Time t")
-        .y_label("Position X(t)")
+        .output_path("tmp/fbm_h03.svg")
+        .caption("Fractional Brownian Motion (H=0.3)")
+        .x_label("t")
+        .y_label("X(t)")
+        .legend("fbm_h03")
         .size((800, 600))
-        .backend(PlotterBackend::BitMap)
+        .backend(PlotterBackend::SVG)
         .build()
         .unwrap();
 
     traj1.plot(&config1).unwrap();
-    println!("Fractional Brownian Motion (H=0.3) trajectory saved to fbm_h03.png");
+    println!("Fractional Brownian Motion (H=0.3) trajectory saved to tmp/fbm_h03.svg");
 
     // Visualize the second trajectory (H=0.5)
     let config2 = PlotConfigBuilder::default()
         .time_step(dt)
-        .output_path("fbm_h05.png")
-        .title("Fractional Brownian Motion (H=0.5)")
-        .x_label("Time t")
-        .y_label("Position X(t)")
+        .output_path("tmp/fbm_h05.svg")
+        .caption("Fractional Brownian Motion (H=0.5)")
+        .x_label("t")
+        .y_label("X(t)")
+        .legend("fbm_h05")
         .size((800, 600))
-        .backend(PlotterBackend::BitMap)
+        .backend(PlotterBackend::SVG)
         .build()
         .unwrap();
 
     traj2.plot(&config2).unwrap();
-    println!("Fractional Brownian Motion (H=0.5) trajectory saved to fbm_h05.png");
+    println!("Fractional Brownian Motion (H=0.5) trajectory saved to tmp/fbm_h05.svg");
 
     // Visualize the third trajectory (H=0.7)
     let config3 = PlotConfigBuilder::default()
         .time_step(dt)
-        .output_path("fbm_h07.png")
-        .title("Fractional Brownian Motion (H=0.7)")
-        .x_label("Time t")
-        .y_label("Position X(t)")
+        .output_path("tmp/fbm_h07.svg")
+        .caption("Fractional Brownian Motion (H=0.7)")
+        .x_label("t")
+        .y_label("X(t)")
+        .legend("fbm_h07")
         .size((800, 600))
-        .backend(PlotterBackend::BitMap)
+        .backend(PlotterBackend::SVG)
         .build()
         .unwrap();
 
     traj3.plot(&config3).unwrap();
-    println!("Fractional Brownian Motion (H=0.7) trajectory saved to fbm_h07.png");
+    println!("Fractional Brownian Motion (H=0.7) trajectory saved to tmp/fbm_h07.svg");
 }
