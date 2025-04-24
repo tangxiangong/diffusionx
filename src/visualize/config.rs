@@ -78,7 +78,7 @@ pub struct PlotConfig {
     pub(crate) background_color: Color,
 
     /// Title
-    #[builder(default = "\"Trajectory\".into()", setter(into))]
+    #[builder(default = "\"\".into()", setter(into))]
     pub(crate) title: String,
 
     /// Font family of the title
@@ -94,7 +94,7 @@ pub struct PlotConfig {
     pub(crate) title_font_style: FontStyle,
 
     /// Caption
-    #[builder(default = "\"\".into()", setter(into))]
+    #[builder(default = "\"Trajectory\".into()", setter(into))]
     pub(crate) caption: String,
 
     /// Font family of the caption
@@ -213,8 +213,7 @@ impl PlotConfig {
     ) -> XResult<()> {
         let (times, positions) = traj.simulate_with_duration()?;
         let max_time = *times.last().unwrap();
-        let min_x = *positions.iter().min().unwrap() as f64;
-        let max_x = *positions.iter().max().unwrap() as f64;
+        let (min_x, max_x) = minmax(&positions);
         let meta = (max_time, min_x, max_x);
         let points: Vec<(f64, f64)> = times
             .iter()
@@ -222,9 +221,9 @@ impl PlotConfig {
             .enumerate()
             .flat_map(|(i, (&t, y))| {
                 if i == times.len() - 1 {
-                    vec![(t, y as f64)]
+                    vec![(t, y)]
                 } else {
-                    vec![(t, y as f64), (times[i + 1], y as f64)]
+                    vec![(t, y), (times[i + 1], y)]
                 }
             })
             .collect();
@@ -344,6 +343,8 @@ pub(crate) fn set_config<Backend: DrawingBackend>(
             chart.draw_series(line)?
         }
     };
+
+    tmp.label(&config.legend);
 
     if config.show_legend {
         tmp.legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], legend_color));
