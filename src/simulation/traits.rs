@@ -9,7 +9,6 @@ use crate::{SimulationError, XResult};
 use rayon::prelude::*;
 
 pub type Pair = (Vec<f64>, Vec<f64>);
-pub type PointPair = (Vec<f64>, Vec<i64>);
 pub type DiscretePair = (Vec<usize>, Vec<f64>);
 
 /// Continuous process trait
@@ -51,7 +50,7 @@ pub trait PointProcess: Clone + Send + Sync {
     /// # Returns
     ///
     /// A tuple containing the time and the position of the simulation.
-    fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<PointPair> {
+    fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<Pair> {
         let duration = duration.into();
         let mut num_step = duration.ceil() as usize;
         let (t, x) = loop {
@@ -67,7 +66,7 @@ pub trait PointProcess: Clone + Send + Sync {
         };
         let index = t.iter().position(|&time| time >= duration).unwrap();
         let mut t_ = vec![0.0; index + 1];
-        let mut x_ = vec![0i64; index + 1];
+        let mut x_ = vec![0.0; index + 1];
         t_[..index].copy_from_slice(&t[..index]);
         x_[..index].copy_from_slice(&x[..index]);
         if t[index] > duration {
@@ -90,7 +89,7 @@ pub trait PointProcess: Clone + Send + Sync {
     /// # Returns
     ///
     /// A tuple containing the time and the position of the simulation.
-    fn simulate_with_step(&self, num_step: usize) -> XResult<PointPair>;
+    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair>;
 }
 
 /// Continuous trajectory
@@ -190,7 +189,7 @@ impl<SP: PointProcess> PointTrajectory<SP> {
         })
     }
 
-    pub fn simulate_with_duration(&self) -> XResult<PointPair> {
+    pub fn simulate_with_duration(&self) -> XResult<Pair> {
         if self.duration.is_none() {
             return Err(SimulationError::InvalidParameters(
                 "duration must be provided".to_string(),
@@ -200,7 +199,7 @@ impl<SP: PointProcess> PointTrajectory<SP> {
         self.sp.simulate_with_duration(self.duration.unwrap())
     }
 
-    pub fn simulate_with_step(&self) -> XResult<PointPair> {
+    pub fn simulate_with_step(&self) -> XResult<Pair> {
         if self.num_step.is_none() {
             return Err(SimulationError::InvalidParameters(
                 "num_step must be provided".to_string(),
@@ -423,7 +422,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
                 let (_, x) = sp.simulate_with_duration(duration)?;
                 let end_position = x.last();
                 match end_position {
-                    Some(position) => Ok((*position as f64).powi(order)),
+                    Some(position) => Ok(position.powi(order)),
                     None => Err(SimulationError::Unknown.into()),
                 }
             })
@@ -442,7 +441,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
                 let (_, x) = sp.simulate_with_duration(duration)?;
                 let end_position = x.last();
                 match end_position {
-                    Some(position) => Ok((*position as f64 - mean).powi(order)),
+                    Some(position) => Ok((position - mean).powi(order)),
                     None => Err(SimulationError::Unknown.into()),
                 }
             })

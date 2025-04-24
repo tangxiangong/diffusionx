@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.4] - 2025-04-24
+
+### 🚀 Features
+
+- Add FFT planner lock error to XError enum
+- Enhance CirculantEmbedding with eigenvalue caching and FFT plans
+- Enhance CirculantEmbedding with eigenvalue computation and caching
+- Add Brownian excursion example simulation
+- Add Brownian excursion simulation implementation
+- Add visualization test for Brownian motion
+- Update trajectory visualization to SVG format
+
+### 🐛 Bug Fixes
+
+- Replace unwrap with ? in simulation methods for better error handling
+- Correct occupation time parameter in Brownian excursion test
+
+### 💼 Other
+
+- Add Brownian bridge example simulation
+
+### 🚜 Refactor
+
+- Update simulation return types from PointPair to Pair
+- Simplify type casting in simulation methods
+- Update CTRW simulation methods for improved clarity
+- Update PlotConfig defaults and improve data handling
+
+### 📚 Documentation
+
+- Update documentation for random and simulation modules
+- Update TODO list to mark BrownianBridge as completed
+- Add Brownian excursion to the README files
+- Add Brownian excursion description to simulation module
+- Update mod.rs to include Brownian excursion in module exports
+- Update TODO list to mark BrownianExcursion as completed
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.3.3
+- Comment out unused pre-commit hooks for Rust
+- Update dependency versions in Cargo.toml
+- Update GitHub Actions workflow to include stable branch
+- Update dependencies and version in Cargo.toml
+
 ## [0.3.3] - 2025-04-15
 
 ### 🚀 Features

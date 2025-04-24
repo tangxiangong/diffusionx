@@ -1,6 +1,6 @@
 //! Brownian motion simulation
 //!
-//! For Levy process, see [`crate::simulation::levy`].
+//! For Levy process, see [`crate::simulation::continuous::levy`].
 
 use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
@@ -67,7 +67,7 @@ impl Bm {
     ///
     /// # Returns
     ///
-    /// A f64 representing the mean of the Brownian motion simulation.  
+    /// A f64 representing the mean of the Brownian motion simulation.
     ///
     /// # Example
     ///
@@ -77,7 +77,7 @@ impl Bm {
     /// let mean = bm.mean(1.0, 1000, 0.1).unwrap();
     /// ```
     pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.raw_moment(1, particles, time_step)
     }
 
@@ -94,7 +94,7 @@ impl Bm {
     /// let msd = bm.msd(1.0, 1000, 0.1).unwrap();
     /// ```
     pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.central_moment(2, particles, time_step)
     }
 
@@ -124,7 +124,7 @@ impl Bm {
         particles: usize,
         time_step: f64,
     ) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.raw_moment(order, particles, time_step)
     }
 
@@ -154,7 +154,7 @@ impl Bm {
         particles: usize,
         time_step: f64,
     ) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.central_moment(order, particles, time_step)
     }
 
@@ -252,14 +252,14 @@ impl ContinuousProcess for Bm {
 ///
 /// # Arguments
 ///
-/// * `start_position` - The starting position of the Brownian motion.  
+/// * `start_position` - The starting position of the Brownian motion.
 /// * `diffusion_coefficient` - The diffusion coefficient of the Brownian motion.
 /// * `duration` - The duration of the Brownian motion.
 /// * `time_step` - The time step of the Brownian motion.
 ///
 /// # Returns
 ///
-/// A tuple containing the time and the position of the Brownian motion simulation.   
+/// A tuple containing the time and the position of the Brownian motion simulation.
 ///
 /// # Example
 ///

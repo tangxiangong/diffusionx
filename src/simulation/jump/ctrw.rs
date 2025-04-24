@@ -174,7 +174,7 @@ impl CTRW {
     ///
     /// # Returns
     ///
-    /// A f64 representing the mean of the continuous time random walk simulation.  
+    /// A f64 representing the mean of the continuous time random walk simulation.
     ///
     /// # Example
     ///
@@ -183,7 +183,7 @@ impl CTRW {
     /// let mean = ctrw.mean(1.0, 1000).unwrap();
     /// ```
     pub fn mean(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.raw_moment(1, particles, 0.1)
     }
 
@@ -205,7 +205,7 @@ impl CTRW {
     /// let msd = ctrw.msd(1.0, 1000).unwrap();
     /// ```
     pub fn msd(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.central_moment(2, particles, 0.1)
     }
 
@@ -233,7 +233,7 @@ impl CTRW {
         order: i32,
         particles: usize,
     ) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.raw_moment(order, particles, 0.1)
     }
 
@@ -261,7 +261,7 @@ impl CTRW {
         order: i32,
         particles: usize,
     ) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.central_moment(order, particles, 0.1)
     }
 
@@ -288,7 +288,7 @@ impl CTRW {
         max_duration: impl Into<f64>,
     ) -> XResult<Option<f64>> {
         let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, 0.1)
+        fpt.simulate_p(max_duration)
     }
 
     /// Get the occupation time of the continuous time random walk simulation
@@ -314,11 +314,11 @@ impl CTRW {
         duration: impl Into<f64>,
     ) -> XResult<f64> {
         let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(0.1)
+        ot.simulate_p()
     }
 }
 
-impl ContinuousProcess for CTRW {
+impl PointProcess for CTRW {
     /// Simulate the continuous time random walk
     ///
     /// # Arguments
@@ -337,8 +337,8 @@ impl ContinuousProcess for CTRW {
     /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = ctrw.simulate(10.0, 0.1).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, _time_step: f64) -> XResult<Pair> {
-        simulate_ctrw_with_duration(self.alpha, self.beta, duration, self.start_position)
+    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
+        simulate_ctrw_with_step(self.alpha, self.beta, num_step, self.start_position)
     }
 }
 

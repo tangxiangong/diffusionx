@@ -50,6 +50,9 @@ pub enum XError {
     /// Error for non-positive definite matrix
     #[error("Circulant embedding matrix is not positive definite, eigenvalue: {0}")]
     NotPositiveDefinite(f64),
+    /// Error for FFT planner lock
+    #[error("FFT planner lock error")]
+    FFTPlannerLock,
 }
 
 /// Error type for stable distribution sampling

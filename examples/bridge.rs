@@ -1,20 +1,20 @@
 use diffusionx::{
-    simulation::{continuous::Levy, prelude::*},
+    simulation::{continuous::BrownianBridge, prelude::*},
     visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
 };
 
 fn main() {
-    println!("===== Lévy process simulation example =====");
+    println!("===== Example of Brownian Bridge Simulation =====");
 
-    // Create Lévy process object, alpha=1.5 represents the stable distribution index
-    let levy = Levy::new(0.0, 1.5).unwrap();
+    // Create Brownian bridge object
+    let bb = BrownianBridge;
 
     // Time settings
     let t_max = 10.0; // Maximum time
     let dt = 0.01; // Time step
 
-    // Generate Lévy process trajectory
-    let (times, positions) = levy.simulate(t_max, dt).unwrap();
+    // Generate Brownian bridge trajectory
+    let (times, positions) = bb.simulate(t_max, dt).unwrap();
 
     // Print some data points
     println!("Time\tPosition");
@@ -23,21 +23,22 @@ fn main() {
     }
 
     // Create trajectory and visualize
-    let traj = levy.duration(t_max).unwrap();
+    let traj = bb.duration(t_max).unwrap();
 
     // Visualize trajectory
     let config = PlotConfigBuilder::default()
+        .show_grid(false)
         .time_step(dt)
-        .output_path("tmp/levy.svg")
-        .caption("Lévy process trajectory")
+        .output_path("tmp/bb.svg")
+        .caption("Brownian Bridge Trajectory")
         .x_label("t")
         .y_label("X(t)")
-        .legend("levy")
+        .legend("bb")
         .size((800, 600))
         .backend(PlotterBackend::SVG)
         .build()
         .unwrap();
 
     traj.plot(&config).unwrap();
-    println!("Trajectory image saved to tmp/levy.svg");
+    println!("Trajectory image saved to tmp/bb.svg");
 }

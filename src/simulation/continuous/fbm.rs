@@ -57,7 +57,7 @@ impl Fbm {
     ///
     /// # Returns
     ///
-    /// A f64 representing the mean of the Fractional Brownian motion simulation.  
+    /// A f64 representing the mean of the Fractional Brownian motion simulation.
     ///
     /// # Example
     ///
@@ -66,7 +66,7 @@ impl Fbm {
     /// let mean = fbm.mean(1.0, 1000, 0.1).unwrap();
     /// ```
     pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.raw_moment(1, particles, time_step)
     }
 
@@ -83,7 +83,7 @@ impl Fbm {
     /// let msd = fbm.msd(1.0, 1000, 0.1).unwrap();
     /// ```
     pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.central_moment(2, particles, time_step)
     }
 
@@ -113,7 +113,7 @@ impl Fbm {
         particles: usize,
         time_step: f64,
     ) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.raw_moment(order, particles, time_step)
     }
 
@@ -143,7 +143,7 @@ impl Fbm {
         particles: usize,
         time_step: f64,
     ) -> XResult<f64> {
-        let traj = self.duration(duration).unwrap();
+        let traj = self.duration(duration)?;
         traj.central_moment(order, particles, time_step)
     }
 
@@ -241,14 +241,14 @@ impl ContinuousProcess for Fbm {
 ///
 /// # Arguments
 ///
-/// * `start_position` - The starting position of the Fractional Brownian motion.  
+/// * `start_position` - The starting position of the Fractional Brownian motion.
 /// * `hurst_exponent` - The Hurst exponent of the Fractional Brownian motion.
 /// * `duration` - The duration of the Fractional Brownian motion.
 /// * `time_step` - The time step of the Fractional Brownian motion.
 ///
 /// # Returns
 ///
-/// A tuple containing the time and the position of the Fractional Brownian motion simulation.   
+/// A tuple containing the time and the position of the Fractional Brownian motion simulation.
 ///
 /// # Example
 ///

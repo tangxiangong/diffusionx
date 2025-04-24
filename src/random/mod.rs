@@ -8,11 +8,11 @@
 //!
 //! # Available distributions
 //!
-//! - [Exponential distribution](exponential) - For generating waiting times and decay processes
-//! - [Normal (Gaussian) distribution](normal) - For Brownian motion and many other stochastic processes
-//! - [Poisson distribution](poisson) - For jump processes and counting events
-//! - [Stable distribution](stable) - For heavy-tailed distributions and Lévy processes
-//! - [Uniform distribution](uniform) - For general random sampling and basis of other distributions
+//! - Exponential distribution - For generating waiting times and decay processes
+//! - Normal (Gaussian) distribution - For Brownian motion and many other stochastic processes
+//! - Poisson distribution - For jump processes and counting events
+//! - Stable distribution - For heavy-tailed distributions and Lévy processes
+//! - Uniform distribution - For general random sampling and basis of other distributions
 
 pub mod exponential;
 pub mod normal;

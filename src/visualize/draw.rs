@@ -155,7 +155,7 @@ mod tests {
             .output_path("tmp/poisson.svg")
             .caption("Poisson")
             .show_grid(false)
-            .title("泊松过程")
+            .title("Poisson")
             .build()
             .unwrap();
         process.plot(&config).unwrap();

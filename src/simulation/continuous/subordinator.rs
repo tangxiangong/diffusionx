@@ -1,6 +1,6 @@
 //! Subordinator simulation
 //!
-//! For Levy process, see [`crate::simulation::levy`].
+//! For Levy process, see [`crate::simulation::continuous::levy`].
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
@@ -151,7 +151,7 @@ impl ContinuousProcess for Subordinator {
 ///
 /// # Returns
 ///
-/// The result of the subordinator simulation.   
+/// The result of the subordinator simulation.
 ///
 /// # Example
 ///

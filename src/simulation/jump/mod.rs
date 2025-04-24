@@ -1,8 +1,8 @@
 //! Jump processes
 //!
-//! - Birth-death process in [BirthDeath]
-//! - Continuous-time random walk in [CTRW]
-//! - Poisson process in [Poisson]
+//! - Birth-death process [BirthDeath]
+//! - Continuous-time random walk [CTRW]
+//! - Poisson process [Poisson]
 //!
 
 pub mod birth_death;

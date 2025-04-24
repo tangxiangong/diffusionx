@@ -173,7 +173,7 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `max_duration` - The maximum duration of the simulation.
-    /// * `time_step` - The time step of the simulation.    
+    /// * `time_step` - The time step of the simulation.
     ///
     /// # Returns
     ///
@@ -414,14 +414,14 @@ impl<SP: PointProcess> FirstPassageTime<SP> {
         let mut duration = 10.0;
         loop {
             let (t, x) = sp.simulate_with_duration(duration)?;
-            if let Some(index) = x.iter().position(|&x| x as f64 <= a || x as f64 >= b) {
+            if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
                 return Ok(Some(t[index]));
             }
             duration *= 2.0;
             if duration > max_duration {
                 duration = max_duration;
                 let (t, x) = sp.simulate_with_duration(duration)?;
-                if let Some(index) = x.iter().position(|&x| x as f64 <= a || x as f64 >= b) {
+                if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
                     return Ok(Some(t[index]));
                 } else {
                     return Ok(None);
@@ -590,8 +590,7 @@ impl<SP: PointProcess> OccupationTime<SP> {
             .windows(2)
             .zip(t.windows(2))
             .map(|(x_pair, t_pair)| {
-                let in_domain =
-                    (a..=b).contains(&(x_pair[0] as f64)) && (a..=b).contains(&(x_pair[1] as f64));
+                let in_domain = (a..=b).contains(&x_pair[0]) && (a..=b).contains(&x_pair[1]);
                 if in_domain {
                     t_pair[1] - t_pair[0]
                 } else {

@@ -18,10 +18,6 @@
 //! sudo apt install pkg-config libfreetype6-dev libfontconfig1-dev
 //! ```
 //!
-//! # Components
-//!
-//! - [Configuration](config) - Plot configuration options and styling settings
-//! - [Drawing functions](draw) - Functions for creating different types of plots
 
 pub mod config;
 pub use config::*;
