@@ -77,7 +77,7 @@ impl BirthDeath {
     /// let birth_death = BirthDeath::new(1.0, 1.0);
     /// let (t, x) = birth_death.simulate_with_step(100).unwrap();
     /// ```
-    pub fn simulate_with_step(&self, num_step: usize) -> XResult<PointPair> {
+    pub fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         let traj = self.step(num_step)?;
         traj.simulate_with_step()
     }
@@ -98,7 +98,7 @@ impl BirthDeath {
     /// let birth_death = BirthDeath::new(1.0, 1.0);
     /// let (t, x) = birth_death.simulate_with_duration(100.0).unwrap();
     /// ```
-    pub fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<PointPair> {
+    pub fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<Pair> {
         let traj = self.duration(duration)?;
         traj.simulate_with_duration()
     }
@@ -131,7 +131,7 @@ impl BirthDeath {
         traj.raw_moment(order, particles, 0.1)
     }
 
-    /// Get the central moment of the Birth-death process   
+    /// Get the central moment of the Birth-death process
     ///
     /// # Arguments
     ///
@@ -213,7 +213,7 @@ impl BirthDeath {
 }
 
 impl PointProcess for BirthDeath {
-    fn simulate_with_step(&self, num_step: usize) -> XResult<PointPair> {
+    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_birth_death_with_step(self.lambda, self.mu, num_step)
     }
 }
@@ -229,16 +229,16 @@ pub fn simulate_birth_death_with_step(
     lambda: impl Into<f64>,
     mu: impl Into<f64>,
     num_step: usize,
-) -> XResult<PointPair> {
+) -> XResult<Pair> {
     let lambda = lambda.into();
     let mu = mu.into();
     let durations = exponential::rands(lambda + mu, num_step)?;
     let t = cumsum(0.0, &durations);
     let directions = uniform::bool_rands(lambda / (lambda + mu), num_step)?
         .into_par_iter()
-        .map(|b| if b { 1i64 } else { -1i64 })
+        .map(|b| if b { 1.0 } else { -1.0 })
         .collect::<Vec<_>>();
-    let x = cumsum(0i64, &directions);
+    let x = cumsum(0.0, &directions);
     Ok((t, x))
 }
 
@@ -253,7 +253,7 @@ pub fn simulate_birth_death_with_duration(
     lambda: impl Into<f64>,
     mu: impl Into<f64>,
     duration: impl Into<f64>,
-) -> XResult<PointPair> {
+) -> XResult<Pair> {
     let birth_death = BirthDeath::new(lambda, mu)?;
     birth_death.simulate_with_duration(duration)
 }

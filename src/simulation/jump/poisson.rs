@@ -52,7 +52,7 @@ impl Poisson {
     /// let poisson = Poisson::new(1.0);
     /// let (t, x) = poisson.simulate_with_step(100).unwrap();
     /// ```
-    pub fn simulate_with_step(&self, num_step: usize) -> XResult<PointPair> {
+    pub fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         let traj = self.step(num_step)?;
         traj.simulate_with_step()
     }
@@ -73,7 +73,7 @@ impl Poisson {
     /// let poisson = Poisson::new(1.0);
     /// let (t, x) = poisson.simulate_with_duration(100.0).unwrap();
     /// ```
-    pub fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<PointPair> {
+    pub fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<Pair> {
         let traj = self.duration(duration)?;
         traj.simulate_with_duration()
     }
@@ -106,7 +106,7 @@ impl Poisson {
         traj.raw_moment(order, particles, 0.1)
     }
 
-    /// Get the central moment of the Poisson process   
+    /// Get the central moment of the Poisson process
     ///
     /// # Arguments
     ///
@@ -154,7 +154,7 @@ impl Poisson {
 }
 
 impl PointProcess for Poisson {
-    fn simulate_with_step(&self, num_step: usize) -> XResult<PointPair> {
+    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_poisson_with_step(self.lambda, num_step)
     }
 }
@@ -165,11 +165,11 @@ impl PointProcess for Poisson {
 ///
 /// * `lambda` - The rate of the Poisson process.
 /// * `num_step` - The number of steps of the simulation.
-pub fn simulate_poisson_with_step(lambda: impl Into<f64>, num_step: usize) -> XResult<PointPair> {
+pub fn simulate_poisson_with_step(lambda: impl Into<f64>, num_step: usize) -> XResult<Pair> {
     let lambda = lambda.into();
     let durations = exponential::rands(lambda, num_step)?;
     let t = cumsum(0.0, &durations);
-    let x = (0..=num_step as i64).collect::<Vec<_>>();
+    let x = (0..=num_step).map(|i| i as f64).collect::<Vec<_>>();
     Ok((t, x))
 }
 
@@ -182,7 +182,7 @@ pub fn simulate_poisson_with_step(lambda: impl Into<f64>, num_step: usize) -> XR
 pub fn simulate_poisson_with_duration(
     lambda: impl Into<f64>,
     duration: impl Into<f64>,
-) -> XResult<PointPair> {
+) -> XResult<Pair> {
     let poisson = Poisson::new(lambda)?;
     poisson.simulate_with_duration(duration)
 }
