@@ -42,9 +42,10 @@ impl Bm {
         let start_position = start_position.into();
         let diffusion_coefficient = diffusion_coefficient.into();
         if diffusion_coefficient <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "diffusion_coefficient must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The diffusion coefficient must be positive, got {}",
+                diffusion_coefficient
+            ))
             .into());
         }
         Ok(Self {
@@ -72,7 +73,7 @@ impl Bm {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::Bm;
+    /// use diffusionx::simulation::{continuous::Bm, prelude::*};
     /// let bm = Bm::new(10.0, 1.0).unwrap();
     /// let mean = bm.mean(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -90,6 +91,7 @@ impl Bm {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::Bm, prelude::*};
     /// let bm = Bm::new(10.0, 1.0).unwrap();
     /// let msd = bm.msd(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -114,6 +116,7 @@ impl Bm {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::Bm, prelude::*};
     /// let bm = Bm::new(10.0, 1.0).unwrap();
     /// let moment = bm.raw_moment(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -144,6 +147,7 @@ impl Bm {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::Bm, prelude::*};
     /// let bm = Bm::new(10.0, 1.0).unwrap();
     /// let msd = bm.msd(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -173,6 +177,7 @@ impl Bm {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::Bm, prelude::*};
     /// let bm = Bm::new(10.0, 1.0).unwrap();
     /// let fpt = bm.fpt((-1.0, 1.0), 1000.0, 0.1).unwrap();
     /// ```
@@ -201,6 +206,7 @@ impl Bm {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::Bm, prelude::*};
     /// let bm = Bm::new(10.0, 1.0).unwrap();
     /// let ot = bm.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
     /// ```
@@ -231,6 +237,7 @@ impl ContinuousProcess for Bm {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::Bm, prelude::*};
     /// let bm = Bm::default();
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -264,6 +271,7 @@ impl ContinuousProcess for Bm {
 /// # Example
 ///
 /// ```rust
+/// use diffusionx::simulation::continuous::bm::simulate_bm;
 /// let start_position = 10.0;
 /// let diffusion_coefficient = 1.0;
 /// let time_step = 0.1;

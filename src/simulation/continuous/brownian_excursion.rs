@@ -23,7 +23,7 @@ impl BrownianExcursion {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::BrownianExcursion;
+    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
     /// let be = BrownianExcursion;
     /// let mean = be.mean(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -47,15 +47,17 @@ impl BrownianExcursion {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
     /// let be = BrownianExcursion;
     /// let msd = be.msd(1.0, 1000, 0.1).unwrap();
     /// ```
     pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
         let duration: f64 = duration.into();
         if duration > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be less than or equal to 1.0".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be less than or equal to 1.0, got {}",
+                duration
+            ))
             .into());
         }
         let traj = self.duration(duration)?;
@@ -77,6 +79,7 @@ impl BrownianExcursion {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
     /// let be = BrownianExcursion;
     /// let moment = be.raw_moment(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -89,9 +92,10 @@ impl BrownianExcursion {
     ) -> XResult<f64> {
         let duration: f64 = duration.into();
         if duration > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be less than or equal to 1.0".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be less than or equal to 1.0, got {}",
+                duration
+            ))
             .into());
         }
         let traj = self.duration(duration)?;
@@ -114,6 +118,7 @@ impl BrownianExcursion {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
     /// let be = BrownianExcursion;
     /// let msd = bb.msd(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -149,6 +154,7 @@ impl BrownianExcursion {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
     /// let be = BrownianExcursion;
     /// let fpt = be.fpt((-1.0, 1.0), 0.1).unwrap();
     /// ```
@@ -158,9 +164,10 @@ impl BrownianExcursion {
         time_step: f64,
     ) -> XResult<Option<f64>> {
         if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "time_step must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got {}",
+                time_step
+            ))
             .into());
         }
         let a: f64 = domain.0.into();
@@ -189,6 +196,7 @@ impl BrownianExcursion {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
     /// let be = BrownianExcursion;
     /// let ot = be.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
     /// ```
@@ -200,9 +208,10 @@ impl BrownianExcursion {
     ) -> XResult<f64> {
         let duration: f64 = duration.into();
         if duration > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be less than or equal to 1.0".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be less than or equal to 1.0, got {}",
+                duration
+            ))
             .into());
         }
         let ot = OccupationTime::new(self, domain, duration)?;
@@ -210,9 +219,9 @@ impl BrownianExcursion {
     }
 }
 
-/// impl `ContinuousProcess` trait for Brownian motion
+/// impl `ContinuousProcess` trait for Brownian excursion
 impl ContinuousProcess for BrownianExcursion {
-    /// Simulate Brownian bridge
+    /// Simulate Brownian excursion
     ///
     /// # Arguments
     ///
@@ -226,6 +235,7 @@ impl ContinuousProcess for BrownianExcursion {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
     /// let be = BrownianExcursion;
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -252,6 +262,7 @@ impl ContinuousProcess for BrownianExcursion {
 /// # Example
 ///
 /// ```rust
+/// use diffusionx::simulation::continuous::brownian_excursion::simulate_brownian_excursion;
 /// let time_step = 0.1;
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_excursion(duration, time_step).unwrap();
@@ -263,15 +274,18 @@ pub fn simulate_brownian_excursion(
     let duration: f64 = duration.into();
     if duration <= 0.0 || duration > 1.0 {
         // Duration must be positive and not exceed 1.0
-        return Err(SimulationError::InvalidParameters(
-            "duration must be in (0.0, 1.0]".to_string(),
-        )
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be in (0.0, 1.0], got {}",
+            duration
+        ))
         .into());
     }
     if time_step <= 0.0 {
-        return Err(
-            SimulationError::InvalidParameters("time_step must be positive".to_string()).into(),
-        );
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got {}",
+            time_step
+        ))
+        .into());
     }
 
     let bridge = BrownianBridge;

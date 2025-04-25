@@ -37,15 +37,17 @@ impl BirthDeath {
         let lambda = lambda.into();
         let mu = mu.into();
         if lambda <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "lambda must be greater than 0".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `lambda` must be greater than 0, got {}",
+                lambda
+            ))
             .into());
         }
         if mu <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "mu must be greater than 0".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `mu` must be greater than 0, got {}",
+                mu
+            ))
             .into());
         }
         Ok(Self { lambda, mu })
@@ -67,13 +69,10 @@ impl BirthDeath {
     ///
     /// * `num_step` - The number of steps of the simulation.
     ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::BirthDeath;
     /// let birth_death = BirthDeath::new(1.0, 1.0);
     /// let (t, x) = birth_death.simulate_with_step(100).unwrap();
     /// ```
@@ -88,13 +87,10 @@ impl BirthDeath {
     ///
     /// * `duration` - The duration of the simulation.
     ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::BirthDeath;
     /// let birth_death = BirthDeath::new(1.0, 1.0);
     /// let (t, x) = birth_death.simulate_with_duration(100.0).unwrap();
     /// ```
@@ -111,13 +107,10 @@ impl BirthDeath {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     ///
-    /// # Returns
-    ///
-    /// A f64 representing the raw moment of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::BirthDeath;
     /// let birth_death = BirthDeath::new(1.0, 1.0);
     /// let moment = birth_death.raw_moment(100.0, 1, 100).unwrap();
     /// ```
@@ -139,13 +132,10 @@ impl BirthDeath {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     ///
-    /// # Returns
-    ///
-    /// A f64 representing the central moment of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::BirthDeath;
     /// let birth_death = BirthDeath::new(1.0, 1.0);
     /// let moment = birth_death.central_moment(100.0, 1, 100).unwrap();
     /// ```
@@ -166,13 +156,10 @@ impl BirthDeath {
     /// * `domain` - The domain of the simulation.
     /// * `max_duration` - The maximum duration of the simulation.
     ///
-    /// # Returns
-    ///
-    /// A f64 representing the first passage time of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::BirthDeath;
     /// let birth_death = BirthDeath::new(1.0, 1.0);
     /// let fpt = birth_death.fpt((0.0, 1.0), 100.0).unwrap();
     /// ```
@@ -192,13 +179,10 @@ impl BirthDeath {
     /// * `domain` - The domain of the simulation.
     /// * `duration` - The duration of the simulation.
     ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::BirthDeath;
     /// let birth_death = BirthDeath::new(1.0, 1.0);
     /// let ot = birth_death.occupation_time((0.0, 1.0), 100.0).unwrap();
     /// ```
@@ -212,6 +196,7 @@ impl BirthDeath {
     }
 }
 
+/// impl `PointProcess` trait for BirthDeath
 impl PointProcess for BirthDeath {
     fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_birth_death_with_step(self.lambda, self.mu, num_step)

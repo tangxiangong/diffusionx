@@ -2,7 +2,7 @@
 //!
 //! For the Gaussian distribution, see [crate::random::normal].
 //!
-//! Stable laws – also called alpha-stable, stable Paretian or Lévy stable – were introduced by Levy (1925) during his investigations of the behavior of sums of independent random variables. A sum of two independent random variables having an alpha-stable distribution with index alpha is again alpha-stable with the same index alpha. This invariance property, however, does not hold for different alpha's.
+//! Stable laws – also called alpha-stable, stable Paretian or Lévy stable – were introduced by Lévy (1925) during his investigations of the behavior of sums of independent random variables. A sum of two independent random variables having an alpha-stable distribution with index alpha is again alpha-stable with the same index alpha. This invariance property, however, does not hold for different alpha's.
 //! The alpha-stable distribution requires four parameters for complete description:
 //! - an index of stability alpha in (0, 2],
 //! - a skewness parameter beta in [-1, 1],
@@ -53,7 +53,7 @@ pub struct StandardStable {
 }
 
 impl StandardStable {
-    /// Create a new standard Levy stable distribution
+    /// Create a new standard Lévy stable distribution
     pub fn new(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<Self> {
         let alpha: f64 = alpha.into();
         let beta: f64 = beta.into();
@@ -76,7 +76,7 @@ impl StandardStable {
         self.beta
     }
 
-    /// Sample from the standard Levy stable distribution
+    /// Sample from the standard Lévy stable distribution
     ///
     /// # Arguments
     ///
@@ -84,10 +84,10 @@ impl StandardStable {
     ///
     /// # Returns
     ///
-    /// A vector of samples from the standard Levy stable distribution.
+    /// A vector of samples from the standard Lévy stable distribution.
     ///
     /// # Example
-    ///  
+    ///
     /// ```rust
     /// use diffusionx::random::stable::StandardStable;
     /// use rand::rng;
@@ -142,7 +142,7 @@ fn sample_standard_alpha_one<R: Rng + ?Sized>(_alpha: f64, beta: f64, rng: &mut 
     2.0 * (c1 - c2) / PI
 }
 
-/// Sample from the standard Levy stable distribution
+/// Sample from the standard Lévy stable distribution
 ///
 /// # Arguments
 ///
@@ -150,7 +150,7 @@ fn sample_standard_alpha_one<R: Rng + ?Sized>(_alpha: f64, beta: f64, rng: &mut 
 ///
 /// # Returns
 ///
-/// A sample from the standard Levy stable distribution.
+/// A sample from the standard Lévy stable distribution.
 ///
 /// # Example
 ///
@@ -186,7 +186,7 @@ pub struct Stable {
     mu: f64,
 }
 
-/// Convert a Levy stable distribution to a standard Levy stable distribution
+/// Convert a standard Lévy stable distribution to a Lévy stable distribution
 impl From<&Stable> for StandardStable {
     fn from(stable: &Stable) -> Self {
         StandardStable::new(stable.alpha, stable.beta).unwrap()
@@ -194,7 +194,7 @@ impl From<&Stable> for StandardStable {
 }
 
 impl Stable {
-    /// Create a new Levy stable distribution
+    /// Create a new Lévy stable distribution
     pub fn new(
         alpha: impl Into<f64>,
         beta: impl Into<f64>,
@@ -240,12 +240,12 @@ impl Stable {
         self.sigma
     }
 
-    /// Get the location parameter  
+    /// Get the location parameter
     pub fn location(&self) -> f64 {
         self.mu
     }
 
-    /// Sample from the Levy stable distribution
+    /// Sample from the Lévy stable distribution
     ///
     /// # Arguments
     ///
@@ -253,7 +253,7 @@ impl Stable {
     ///
     /// # Returns
     ///
-    /// A vector of samples from the Levy stable distribution.
+    /// A vector of samples from the Lévy stable distribution.
     ///
     /// # Example
     ///
@@ -270,7 +270,7 @@ impl Stable {
     }
 }
 
-/// Sample from the Levy stable distribution
+/// Sample from the Lévy stable distribution
 impl Distribution<f64> for Stable {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> f64 {
         let standard = StandardStable::from(self);
@@ -283,12 +283,12 @@ impl Distribution<f64> for Stable {
     }
 }
 
-/// Standard skew Levy stable distribution
+/// Standard skew Lévy stable distribution
 #[derive(Debug, Clone, Copy)]
 pub struct StandardSkewStable(pub f64);
 
 impl StandardSkewStable {
-    /// Create a new standard skew Levy stable distribution
+    /// Create a new standard skew Lévy stable distribution
     pub fn new(alpha: impl Into<f64>) -> XResult<Self> {
         let alpha: f64 = alpha.into();
         if alpha <= 0.0 || alpha >= 1.0 || alpha.is_nan() {
@@ -302,15 +302,15 @@ impl StandardSkewStable {
         self.0
     }
 
-    /// Sample from the standard skew Levy stable distribution
+    /// Sample from the standard skew Lévy stable distribution
     ///
     /// # Arguments
     ///
     /// * `n` - The number of samples to generate
     ///
-    /// # Returns   
+    /// # Returns
     ///
-    /// A vector of samples from the standard skew Levy stable distribution.
+    /// A vector of samples from the standard skew Lévy stable distribution.
     ///
     /// # Example
     ///
@@ -342,7 +342,7 @@ impl Distribution<f64> for StandardSkewStable {
     }
 }
 
-/// Symmetric Levy stable distribution
+/// Symmetric Lévy stable distribution
 #[derive(Debug, Clone, Copy)]
 pub struct SymmetricStandardStable(pub f64);
 
@@ -359,7 +359,7 @@ impl SymmetricStandardStable {
         self.0
     }
 
-    /// Sample from the symmetric standard Levy stable distribution
+    /// Sample from the symmetric standard Lévy stable distribution
     ///
     /// # Arguments
     ///
@@ -367,7 +367,7 @@ impl SymmetricStandardStable {
     ///
     /// # Returns
     ///
-    /// A vector of samples from the symmetric standard Levy stable distribution.
+    /// A vector of samples from the symmetric standard Lévy stable distribution.
     ///
     /// # Example
     ///
@@ -399,16 +399,16 @@ impl Distribution<f64> for SymmetricStandardStable {
     }
 }
 
-/// Sample from the standard Levy stable distribution
+/// Sample from the standard Lévy stable distribution
 ///
 /// # Arguments
 ///
 /// * `alpha` - Index of stability
 /// * `beta` - Skewness parameter
 ///
-/// # Returns   
+/// # Returns
 ///
-/// A sample from the standard Levy stable distribution.
+/// A sample from the standard Lévy stable distribution.
 ///
 /// # Example
 ///
@@ -426,7 +426,7 @@ pub fn standard_rand(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<f64
     Ok(rng().sample(standard))
 }
 
-/// Sample from the standard Levy stable distribution
+/// Sample from the standard Lévy stable distribution
 ///
 /// # Arguments
 ///
@@ -435,7 +435,7 @@ pub fn standard_rand(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<f64
 ///
 /// # Returns
 ///
-/// A vector of samples from the standard Levy stable distribution.
+/// A vector of samples from the standard Lévy stable distribution.
 ///
 /// # Example
 ///
@@ -469,7 +469,7 @@ pub fn standard_rands(alpha: impl Into<f64>, beta: impl Into<f64>, n: usize) -> 
         .collect())
 }
 
-/// Sample from the Levy stable distribution
+/// Sample from the Lévy stable distribution
 ///
 /// # Arguments
 ///
@@ -480,7 +480,7 @@ pub fn standard_rands(alpha: impl Into<f64>, beta: impl Into<f64>, n: usize) -> 
 ///
 /// # Returns
 ///
-/// A sample from the Levy stable distribution.
+/// A sample from the Lévy stable distribution.
 ///
 /// # Example
 ///
@@ -504,10 +504,10 @@ pub fn rand(
     Ok(rng().sample(levy))
 }
 
-/// Sample from the Levy stable distribution
+/// Sample from the Lévy stable distribution
 ///
 /// # Arguments
-///     
+///
 /// * `alpha` - Index of stability
 /// * `beta` - Skewness parameter
 /// * `sigma` - Scale parameter
@@ -515,8 +515,8 @@ pub fn rand(
 ///
 /// # Returns
 ///
-/// A vector of samples from the Levy stable distribution.
-///     
+/// A vector of samples from the Lévy stable distribution.
+///
 /// # Example
 ///
 /// ```rust
@@ -564,7 +564,7 @@ pub fn rands(
         .collect())
 }
 
-/// Sample from the standard skew Levy stable distribution
+/// Sample from the standard skew Lévy stable distribution
 ///
 /// # Arguments
 ///
@@ -572,7 +572,7 @@ pub fn rands(
 ///
 /// # Returns
 ///
-/// A sample from the standard skew Levy stable distribution.
+/// A sample from the standard skew Lévy stable distribution.
 ///
 /// # Example
 ///
@@ -588,15 +588,15 @@ pub fn skew_rand(alpha: impl Into<f64>) -> XResult<f64> {
     Ok(rng().sample(skew))
 }
 
-/// Sample from the standard skew Levy stable distribution
+/// Sample from the standard skew Lévy stable distribution
 ///
 /// # Arguments
 ///
 /// * `alpha` - Index of stability
 ///
-/// # Returns   
+/// # Returns
 ///
-/// A vector of samples from the standard skew Levy stable distribution.
+/// A vector of samples from the standard skew Lévy stable distribution.
 ///
 /// # Example
 ///
@@ -620,15 +620,15 @@ pub fn skew_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
         .collect())
 }
 
-/// Sample from the symmetric standard Levy stable distribution
+/// Sample from the symmetric standard Lévy stable distribution
 ///
 /// # Arguments
 ///
 /// * `alpha` - Index of stability
 ///
-/// # Returns   
+/// # Returns
 ///
-/// A sample from the symmetric Levy stable distribution.
+/// A sample from the symmetric Lévy stable distribution.
 ///
 /// # Example
 ///
@@ -644,7 +644,7 @@ pub fn sym_standard_rand(alpha: impl Into<f64>) -> XResult<f64> {
     Ok(rng().sample(sym))
 }
 
-/// Sample from the symmetric standard Levy stable distribution
+/// Sample from the symmetric standard Lévy stable distribution
 ///
 /// # Arguments
 ///
@@ -653,7 +653,7 @@ pub fn sym_standard_rand(alpha: impl Into<f64>) -> XResult<f64> {
 ///
 /// # Returns
 ///
-/// A vector of samples from the symmetric standard Levy stable distribution.
+/// A vector of samples from the symmetric standard Lévy stable distribution.
 ///
 /// # Example
 ///
@@ -681,16 +681,16 @@ pub fn sym_standard_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> 
         .collect())
 }
 
-/// Add two independent Levy stable distributions
+/// Add two independent Lévy stable distributions
 ///
 /// # Arguments
 ///
-/// * `self` - The first Levy stable distribution
-/// * `other` - The second Levy stable distribution
+/// * `self` - The first Lévy stable distribution
+/// * `other` - The second Lévy stable distribution
 ///
 /// # Returns
 ///
-/// A new Levy stable distribution. The location parameter is the sum of the location parameter of the Levy stable distribution and the f64.
+/// A new Lévy stable distribution. The location parameter is the sum of the location parameter of the Lévy stable distribution and the f64.
 ///
 /// # Example
 ///
@@ -712,16 +712,16 @@ where
     }
 }
 
-/// Add a Levy stable distribution and a f64
+/// Add a Lévy stable distribution and a f64
 ///
 /// # Arguments
 ///
-/// * `self` - The Levy stable distribution
+/// * `self` - The Lévy stable distribution
 /// * `other` - The f64
 ///
 /// # Returns
 ///
-/// A new Levy stable distribution. The scale parameter is the product of the scale parameter of the Levy stable distribution and the absolute value of the f64.
+/// A new Lévy stable distribution. The scale parameter is the product of the scale parameter of the Lévy stable distribution and the absolute value of the f64.
 ///
 /// # Example
 ///
@@ -740,16 +740,16 @@ impl Add<Stable> for f64 {
     }
 }
 
-/// Add a i32 and a Levy stable distribution
+/// Add a i32 and a Lévy stable distribution
 ///
 /// # Arguments
 ///
 /// * `self` - The i32
-/// * `other` - The Levy stable distribution
+/// * `other` - The Lévy stable distribution
 ///
 /// # Returns
 ///
-/// A new Levy stable distribution. The location parameter is the sum of the location parameter of the Levy stable distribution and the i32.
+/// A new Lévy stable distribution. The location parameter is the sum of the location parameter of the Lévy stable distribution and the i32.
 ///
 /// # Example
 ///
@@ -769,16 +769,16 @@ impl Add<Stable> for i32 {
     }
 }
 
-/// Add a standard Levy stable distribution and a number that can be converted to f64
+/// Add a standard Lévy stable distribution and a number that can be converted to f64
 ///
 /// # Arguments
 ///
-/// * `self` - The standard Levy stable distribution
+/// * `self` - The standard Lévy stable distribution
 /// * `other` - The number
 ///
 /// # Returns
 ///
-/// A new Levy stable distribution. The location parameter is the sum of the location parameter of the Levy stable distribution and the number.
+/// A new Lévy stable distribution. The location parameter is the sum of the location parameter of the Lévy stable distribution and the number.
 ///
 /// # Example
 ///
@@ -890,7 +890,7 @@ impl Mul<StandardStable> for i32 {
 ///
 /// # Returns
 ///
-/// The location parameter of the Levy stable distribution.
+/// The location parameter of the Lévy stable distribution.
 #[allow(dead_code)]
 fn zolotariev(alpha: f64, beta: f64, sigma: f64, mu0: f64) -> f64 {
     if alpha != 1.0 {
@@ -905,7 +905,7 @@ fn zolotariev(alpha: f64, beta: f64, sigma: f64, mu0: f64) -> f64 {
 /// # Arguments
 ///
 /// * `alpha` - Index of stability
-/// * `beta` - Skewness parameter   
+/// * `beta` - Skewness parameter
 /// * `sigma` - Scale parameter
 /// * `mu` - Location parameter
 ///

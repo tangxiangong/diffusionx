@@ -42,13 +42,10 @@ impl Poisson {
     ///
     /// * `num_step` - The number of steps of the simulation.
     ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::Poisson;
     /// let poisson = Poisson::new(1.0);
     /// let (t, x) = poisson.simulate_with_step(100).unwrap();
     /// ```
@@ -63,13 +60,10 @@ impl Poisson {
     ///
     /// * `duration` - The duration of the simulation.
     ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::Poisson;
     /// let poisson = Poisson::new(1.0);
     /// let (t, x) = poisson.simulate_with_duration(100.0).unwrap();
     /// ```
@@ -86,13 +80,10 @@ impl Poisson {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     ///
-    /// # Returns
-    ///
-    /// A f64 representing the raw moment of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::Poisson;
     /// let poisson = Poisson::new(1.0);
     /// let moment = poisson.raw_moment(100.0, 1, 100).unwrap();
     /// ```
@@ -114,13 +105,10 @@ impl Poisson {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     ///
-    /// # Returns
-    ///
-    /// A f64 representing the central moment of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::Poisson;
     /// let poisson = Poisson::new(1.0);
     /// let moment = poisson.central_moment(100.0, 1, 100).unwrap();
     /// ```
@@ -134,6 +122,12 @@ impl Poisson {
         traj.central_moment(order, particles, 0.1)
     }
 
+    /// Get the first passage time of the Poisson process
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the simulation.
+    /// * `max_duration` - The maximum duration of the simulation.
     pub fn fpt(
         &self,
         domain: (impl Into<f64>, impl Into<f64>),
@@ -143,6 +137,12 @@ impl Poisson {
         fpt.simulate_p(max_duration)
     }
 
+    /// Get the occupation time of the Poisson process
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the simulation.
+    /// * `duration` - The duration of the simulation.
     pub fn occupation_time(
         &self,
         domain: (impl Into<f64>, impl Into<f64>),

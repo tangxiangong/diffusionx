@@ -23,7 +23,7 @@ impl BrownianBridge {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::BrownianBridge;
+    /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
     /// let bb = BrownianBridge;
     /// let mean = bb.mean(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -41,6 +41,7 @@ impl BrownianBridge {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
     /// let bb = BrownianBridge;
     /// let msd = bb.msd(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -65,6 +66,7 @@ impl BrownianBridge {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
     /// let bb = BrownianBridge;
     /// let moment = bb.raw_moment(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -95,6 +97,7 @@ impl BrownianBridge {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
     /// let bb = BrownianBridge;
     /// let msd = bb.msd(1.0, 1000, 0.1).unwrap();
     /// ```
@@ -124,6 +127,7 @@ impl BrownianBridge {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
     /// let bb = BrownianBridge;
     /// let fpt = bm.fpt((-1.0, 1.0), 1000.0, 0.1).unwrap();
     /// ```
@@ -152,6 +156,7 @@ impl BrownianBridge {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
     /// let bb = BrownianBridge;
     /// let ot = bm.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
     /// ```
@@ -166,7 +171,7 @@ impl BrownianBridge {
     }
 }
 
-/// impl `ContinuousProcess` trait for Brownian motion
+/// impl `ContinuousProcess` trait for Brownian bridge
 impl ContinuousProcess for BrownianBridge {
     /// Simulate Brownian bridge
     ///
@@ -182,6 +187,7 @@ impl ContinuousProcess for BrownianBridge {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
     /// let bb = BrownianBridge;
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -208,6 +214,7 @@ impl ContinuousProcess for BrownianBridge {
 /// # Example
 ///
 /// ```rust
+/// use diffusionx::simulation::continuous::brownian_bridge::simulate_brownian_bridge;
 /// let time_step = 0.1;
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_bridge(duration, time_step).unwrap();

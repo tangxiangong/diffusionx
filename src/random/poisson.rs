@@ -17,12 +17,23 @@ impl Default for Poisson {
 }
 
 impl Poisson {
-    /// Create a new Poisson distribution
+    /// Create a new Poisson distribution with a given rate parameter
+    ///
+    /// # Arguments
+    ///
+    /// * `lambda` - The rate parameter of the Poisson distribution
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let lambda = 1.0;
+    /// let poisson = Poisson::new(lambda).unwrap();
+    /// ```
     pub fn new(lambda: impl Into<f64>) -> XResult<Self> {
         let lambda = lambda.into();
         if lambda <= 0.0 {
             return Err(XError::InvalidParameters(format!(
-                "lambda must be greater than 0, got {}",
+                "The rate parameter `lambda` must be greater than 0, got {}",
                 lambda
             )));
         }
@@ -35,14 +46,18 @@ impl Poisson {
     }
 
     /// Generate a vector of Poisson random numbers
-    pub fn samples(&self, n: usize) -> Vec<u64> {
-        rands(self.lambda, n).unwrap()
+    pub fn samples(&self, n: usize) -> XResult<Vec<u64>> {
+        rands(self.lambda, n)
     }
 }
 
 /// Generate a Poisson random number
 ///
 /// This function generates a Poisson random number using the `Poisson` distribution.
+///
+/// # Arguments
+///
+/// * `lambda` - The rate parameter of the Poisson distribution
 ///
 /// # Returns
 ///
@@ -52,7 +67,7 @@ impl Poisson {
 ///
 /// ```rust
 /// use diffusionx::random::poisson::rand;
-/// let random = rand(1.0);
+/// let random = rand(1.0).unwrap();
 /// ```
 pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
     let lambda = lambda.into();
@@ -64,6 +79,11 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
 ///
 /// This function generates a vector of Poisson random numbers using the `Poisson` distribution.
 ///
+/// # Arguments
+///
+/// * `lambda` - The rate parameter of the Poisson distribution
+/// * `n` - The number of random numbers to generate
+///
 /// # Returns
 ///
 /// A vector of `u64` values representing the generated random numbers.
@@ -72,7 +92,7 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
 ///
 /// ```rust
 /// use diffusionx::random::poisson::rands;
-/// let randoms = rands(1.0, 10);
+/// let randoms = rands(1.0, 10).unwrap();
 /// ```
 pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<u64>> {
     let lambda = lambda.into();

@@ -23,13 +23,26 @@ impl Default for Normal {
 }
 
 impl Normal {
-    /// Create a new Gaussian distribution
+    /// Create a new normal distribution with a given mean and standard deviation
+    ///
+    /// # Arguments
+    ///
+    /// * `mu` - The mean of the normal distribution
+    /// * `sigma` - The standard deviation of the normal distribution
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mu = 1.0;
+    /// let sigma = 2.0;
+    /// let normal = Normal::new(mu, sigma).unwrap();
+    /// ```
     pub fn new(mu: impl Into<f64>, sigma: impl Into<f64>) -> XResult<Self> {
         let mu = mu.into();
         let sigma = sigma.into();
         if sigma <= 0.0 {
             return Err(XError::InvalidParameters(format!(
-                "sigma must be greater than 0, got {}",
+                "The standard deviation `sigma` must be greater than 0, got {}",
                 sigma
             )));
         }
@@ -46,12 +59,27 @@ impl Normal {
         self.sigma
     }
 
-    /// Generate a vector of Gaussian random numbers
-    pub fn samples(&self, n: usize) -> Vec<f64> {
+    /// Generate a vector of normal random numbers
+    ///
+    /// # Arguments
+    ///
+    /// * `n` - The number of random numbers to generate
+    ///
+    /// # Returns
+    ///
+    /// A vector of `f64` values representing the generated random numbers.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let normal = Normal::new(0.0, 1.0).unwrap();
+    /// let randoms = normal.samples(10).unwrap();
+    /// ```
+    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
         if self.sigma == 1.0 && self.mu == 0.0 {
-            standard_rands(n)
+            Ok(standard_rands(n))
         } else {
-            rands(self.mu, self.sigma, n).unwrap()
+            rands(self.mu, self.sigma, n)
         }
     }
 }
@@ -108,7 +136,7 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 ///
 /// ```rust
 /// use diffusionx::random::normal::rand;
-/// let random = rand(0.0, 1.0);
+/// let random = rand(0.0, 1.0).unwrap();
 /// ```
 pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
     let mean = mean.into();
@@ -129,7 +157,7 @@ pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
 ///
 /// ```rust
 /// use diffusionx::random::normal::rands;
-/// let randoms = rands(0.0, 1.0, 10);
+/// let randoms = rands(0.0, 1.0, 10).unwrap();
 /// ```
 pub fn rands(mean: impl Into<f64>, std_dev: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
     let mean = mean.into();

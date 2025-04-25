@@ -32,9 +32,10 @@ impl Levy {
         let start_position = start_position.into();
         let alpha = alpha.into();
         if alpha <= 0.0 || alpha > 2.0 {
-            return Err(SimulationError::InvalidParameters(
-                "alpha must be in the range (0, 2]".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `alpha` must be in the range (0, 2], got {}",
+                alpha
+            ))
             .into());
         }
         Ok(Self {
@@ -70,6 +71,7 @@ impl Levy {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::continuous::Levy;
     /// let levy = Levy::new(0.0, 1.5).unwrap();
     /// let params = 0.1;
     /// let (t, x) = levy.simulate(params).unwrap();
@@ -92,13 +94,10 @@ impl Levy {
     /// * `duration` - The duration of the Lévy process simulation.
     /// * `time_step` - The time step of the Lévy process simulation.
     ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the Lévy process simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::continuous::Levy;
     /// let levy = Levy::new(0.0, 1.5).unwrap();
     /// let ot = levy.occupation_time((-1.0, 1.0), 10.0, 0.1).unwrap();
     /// ```
@@ -129,22 +128,25 @@ impl ContinuousProcess for Levy {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::continuous::Levy;
     /// let levy = Levy::new(0.0, 1.5).unwrap();
     /// let params = 0.1;
     /// let (t, x) = levy.simulate(params).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "time_step must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got {}",
+                time_step
+            ))
             .into());
         }
         let duration = duration.into();
         if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
             .into());
         }
         simulate_levy(self.start_position, self.alpha, duration, time_step)
@@ -162,16 +164,11 @@ impl ContinuousProcess for Levy {
 /// * `duration` - The duration of the Lévy process.
 /// * `time_step` - The time step of the Lévy process.
 ///
-/// # Returns
-///
-/// A tuple containing the time and the position of the Lévy process simulation.
-///
 /// # Example
 ///
 /// ```rust
-/// let levy = Levy::new(0.0, 1.5).unwrap();
-/// let params = 0.1;
-/// let (t, x) = levy.simulate(params).unwrap();
+/// use diffusionx::simulation::continuous::levy::simulate_levy;
+/// let (t, x) = simulate_levy(0.0, 1.5, 1.0, 0.1).unwrap();
 /// ```
 pub fn simulate_levy(
     start_position: impl Into<f64>,

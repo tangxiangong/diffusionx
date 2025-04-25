@@ -11,6 +11,7 @@ pub struct Exponential {
     lambda: f64,
 }
 
+/// Default value for the exponential distribution
 impl Default for Exponential {
     fn default() -> Self {
         Self { lambda: 1.0 }
@@ -18,12 +19,22 @@ impl Default for Exponential {
 }
 
 impl Exponential {
-    /// Create a new exponential distribution
+    /// Create a new exponential distribution with a given rate parameter
+    ///
+    /// # Arguments
+    ///
+    /// * `lambda` - The rate parameter of the exponential distribution
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let exp = Exponential::new(2).unwrap();
+    /// ```
     pub fn new(lambda: impl Into<f64>) -> XResult<Self> {
         let lambda = lambda.into();
         if lambda <= 0.0 {
             return Err(XError::InvalidParameters(format!(
-                "lambda must be greater than 0, got {}",
+                "The rate parameter `lambda` must be greater than 0, got {}",
                 lambda
             )));
         }
@@ -36,11 +47,26 @@ impl Exponential {
     }
 
     /// Generate a vector of exponential random numbers
-    pub fn samples(&self, n: usize) -> Vec<f64> {
+    ///
+    /// # Arguments
+    ///
+    /// * `n` - The number of random numbers to generate
+    ///
+    /// # Returns
+    ///
+    /// A vector of `f64` values representing the generated random numbers.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let exp = Exponential::new(2).unwrap();
+    /// let randoms = exp.samples(10).unwrap();
+    /// ```
+    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
         if self.lambda == 1.0 {
-            standard_rands(n)
+            Ok(standard_rands(n))
         } else {
-            rands(self.lambda, n).unwrap()
+            rands(self.lambda, n)
         }
     }
 }
@@ -89,6 +115,10 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 ///
 /// This function generates an exponential random number using the `Exp` distribution.
 ///
+/// # Arguments
+///
+/// * `lambda` - The rate parameter of the exponential distribution
+///
 /// # Returns
 ///
 /// A `f64` value representing the generated random number.
@@ -97,7 +127,7 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 ///
 /// ```rust
 /// use diffusionx::random::exponential::rand;
-/// let random = rand(1.0);
+/// let random = rand(1.0).unwrap();
 /// ```
 pub fn rand(lambda: impl Into<f64>) -> XResult<f64> {
     let lambda = lambda.into();
@@ -109,6 +139,10 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<f64> {
 ///
 /// This function generates a vector of exponential random numbers using the `Exp` distribution.
 ///
+/// # Arguments
+///
+/// * `lambda` - The rate parameter of the exponential distribution
+/// * `n` - The number of random numbers to generate
 /// # Returns
 ///
 /// A vector of `f64` values representing the generated random numbers.
@@ -117,7 +151,7 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<f64> {
 ///
 /// ```rust
 /// use diffusionx::random::exponential::rands;
-/// let randoms = rands(1.0, 10);
+/// let randoms = rands(1.0, 10).unwrap();
 /// ```
 pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
     let lambda = lambda.into();
@@ -167,12 +201,12 @@ mod tests {
 
         assert!(
             (mean - 1.0).abs() < 0.01,
-            "标准指数分布的均值应接近1，实际为{}",
+            "The mean of the standard exponential distribution should be close to 1, but got {}",
             mean
         );
         assert!(
             (variance - 1.0).abs() < 0.05,
-            "标准指数分布的方差应接近1，实际为{}",
+            "The variance of the standard exponential distribution should be close to 1, but got {}",
             variance
         );
     }
@@ -189,13 +223,13 @@ mod tests {
 
         assert!(
             (mean - expected_mean).abs() < 0.01,
-            "指数分布的均值应接近{}，实际为{}",
+            "The mean of the exponential distribution should be close to {}, but got {}",
             expected_mean,
             mean
         );
         assert!(
             (variance - expected_variance).abs() < 0.05,
-            "指数分布的方差应接近{}，实际为{}",
+            "The variance of the exponential distribution should be close to {}, but got {}",
             expected_variance,
             variance
         );
