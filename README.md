@@ -72,7 +72,7 @@ cargo add diffusionx
 ### Random Number Generation
 
 ```rust
-use diffusionx::random::{normal, uniform, exponential, poisson, stable};
+use diffusionx::random::{normal, uniform, stable};
 
 // Normal Distribution
 let normal_sample = normal::rand(0.0, 1.0)?; // Generate a normal random number with mean 0.0 and std 1.0
@@ -82,19 +82,9 @@ let std_normal_samples = normal::standard_rands(1000); // Generate 1000 standard
 let uniform_sample = uniform::range_rand(0..10)?; // Generate a uniform random number in range [0, 10)
 let std_uniform_samples = uniform::standard_rands(1000); // Generate 1000 uniform random numbers in range [0, 1)
 
-// Exponential Distribution
-let exp_samples = exponential::rands(1.0, 1000)?; // Generate 1000 exponential random numbers with rate 1.0
-
-// Poisson Distribution
-let poisson_samples = poisson::rands(5.0, 1000)?; // Generate 1000 Poisson random numbers with mean 5.0
-
 // α-Stable Distribution
 // Standard α-stable distribution (σ=1, μ=0)
 let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?; // Generate 1000 standard stable random numbers
-
-// Object-oriented interface for stable distributions
-let stable = stable::Stable::new(1.5, 0.5, 1.0, 0.0)?; // Create a stable distribution object
-let samples = stable.samples(1000)?; // Generate 1000 samples
 ```
 
 ### Stochastic Process Simulation
@@ -120,7 +110,6 @@ let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?; // Calculate FPT with boundaries at 
 ```rust
 use diffusionx::{
     simulation::{continuous::Bm, prelude::*},
-    visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
 };
 
 // Create Brownian motion trajectory
@@ -131,9 +120,10 @@ let traj = bm.duration(10.0)?;
 let config = PlotConfigBuilder::default()
     .time_step(0.01)
     .output_path("brownian_motion.png")
-    .title("Brownian Motion Trajectory")
-    .x_label("Time t")
-    .y_label("Position X(t)")
+    .caption("Brownian Motion Trajectory")
+    .x_label("t")
+    .y_label("B")
+    .legend("bm")
     .size((800, 600))
     .backend(PlotterBackend::BitMap)
     .build()?;
