@@ -1,9 +1,9 @@
 [package]
 name = "diffusionx"
-authors = ["xiangong tang <tangxiangong@gmail.com>"]
+authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
 edition = "2024"
 version = "0.3.4"
-description = "A library for random number/stochastic process simulation with high performance."
+description = "A Rust crate for random number/stochastic process simulation with high performance."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 readme = "README.md"
