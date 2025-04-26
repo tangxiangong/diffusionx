@@ -291,38 +291,17 @@ pub fn simulate_brownian_excursion(
     let bridge = BrownianBridge;
     let (bridge_t, bridge_traj) = bridge.simulate(1.0, time_step)?;
 
-    // Find the index separating the [0, 1] interval
-    // Use the points up to and including the last point where t <= 1.0
-    let end_index = bridge_t
-        .iter()
-        .rposition(|&t| t <= 1.0)
-        .unwrap_or(bridge_t.len() - 1)
-        + 1; // +1 for slice exclusivity
-
-    if end_index == 0 {
-        return Err(SimulationError::Unknown.into());
-    }
-
-    let bridge_traj_in_unit_interval = &bridge_traj[..end_index];
-    let bridge_t_in_unit_interval = &bridge_t[..end_index];
-
     // Find the minimum value and its index within [0, 1]
-    let (min_traj_within_one, _) = minmax(bridge_traj_in_unit_interval); // Assuming minmax returns Result
+    let (min_traj, _) = minmax(&bridge_traj); // Assuming minmax returns Result
 
-    let min_traj_within_one_index = bridge_traj_in_unit_interval
+    let min_traj_index = bridge_traj
         .iter()
-        .position(|&x| (x - min_traj_within_one).abs() < f64::EPSILON) // Use tolerance for float comparison
+        .position(|&x| (x - min_traj).abs() < f64::EPSILON) // Use tolerance for float comparison
         .ok_or(SimulationError::Unknown)?;
 
-    let tau_m = bridge_t_in_unit_interval[min_traj_within_one_index];
+    let tau_m = bridge_t[min_traj_index];
 
-    let num_steps = (duration / time_step).ceil() as usize;
-    let t: Vec<f64> = (0..=num_steps)
-        // .into_par_iter() // Keep sequential for Result handling within map, or collect results first
-        .map(|i| (time_step * i as f64).min(duration)) // Ensure time does not exceed duration
-        .collect();
-
-    let x = t
+    let x = bridge_t
         .par_iter() // Parallelize the mapping
         .map(|t_i| {
             // Correct modulo calculation for tt
@@ -333,11 +312,11 @@ pub fn simulate_brownian_excursion(
             let index = bridge_t.iter().position(|&t| t >= tt).unwrap();
 
             // Apply the transformation
-            bridge_traj[index] - min_traj_within_one
+            bridge_traj[index] - min_traj
         })
         .collect(); // Collect results from parallel iterator
 
-    Ok((t, x))
+    Ok((bridge_t, x))
 }
 
 #[cfg(test)]
