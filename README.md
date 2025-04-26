@@ -53,6 +53,7 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 - [x] Random walk - Discrete-time random walk
 - [x] Brownian bridge - Brownian motion conditioned to hit origin at the end
 - [x] Brownian excursion - Brownian motion conditioned to be positive and to take the value 0 at time 1
+- [x] Brownian meander
 
 ## Installation
 
