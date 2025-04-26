@@ -1,7 +1,7 @@
 - [ ] BesselProcess
 - [x] BrownianBridge
 - [x] BrownianExcursion
-- [ ] BrownianMeander
+- [x] BrownianMeander
 - [ ] CauchyProcess
 - [ ] GammaProcess
 - [ ] GeometricBrownianMotion
