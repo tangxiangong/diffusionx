@@ -16,6 +16,7 @@
 //! - Ornstein-Uhlenbeck process - Mean-reverting stochastic process
 //! - Brownian bridge - Brownian motion conditioned to hit origin at the end
 //! - Brownian excursion  - Brownian motion conditioned to be positive and to take the value 0 at time 1
+//! - Brownian meander
 //!
 //! # Jump processes
 //!
