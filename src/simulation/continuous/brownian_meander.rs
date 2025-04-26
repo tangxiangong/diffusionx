@@ -2,7 +2,7 @@
 //!
 //! For Brownian motion, Brownian bridge, Brownian excursion, see [`crate::simulation::continuous::bm`], [`crate::simulation::continuous::brownian_bridge`], and [`crate::simulation::continuous::brownian_excursion`], respectively.
 
-use crate::{simulation::prelude::*, utils::float_eq, SimulationError, XResult};
+use crate::{SimulationError, XResult, simulation::prelude::*, utils::float_eq};
 use rayon::prelude::*;
 
 use super::Bm;
@@ -283,18 +283,27 @@ pub fn simulate_brownian_meander(
     let bm = Bm::default();
     let (bm_t, bm_traj) = bm.simulate(1.0, time_step)?;
 
-    let hint_indexes = bm_traj.iter().enumerate().filter(|(_, x)| float_eq(**x, 0.0)).map(|(i, _)| i).collect::<Vec<_>>();
+    let hint_indexes = bm_traj
+        .iter()
+        .enumerate()
+        .filter(|(_, x)| float_eq(**x, 0.0))
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
     let last_hint_index = *hint_indexes.last().unwrap_or(&0);
     let tau = if last_hint_index == bm_t.len() - 1 {
         1.0 - time_step
     } else {
         bm_t[last_hint_index]
     };
-    let coe = 1.0/(1.0-tau).sqrt();
-    let x = bm_t.par_iter().map(
-        |&t_i| {
-            let time = t_i * (1.0-tau) + tau;
-            let right_index = bm_t.iter().position(|&t| t > time).unwrap_or(bm_t.len() - 1);
+    let coe = 1.0 / (1.0 - tau).sqrt();
+    let x = bm_t
+        .par_iter()
+        .map(|&t_i| {
+            let time = t_i * (1.0 - tau) + tau;
+            let right_index = bm_t
+                .iter()
+                .position(|&t| t > time)
+                .unwrap_or(bm_t.len() - 1);
             let left_index = right_index - 1;
             let left_time = bm_t[left_index];
             let right_time = bm_t[right_index];
@@ -303,8 +312,8 @@ pub fn simulate_brownian_meander(
             let k = (left_value - right_value) / (left_time - right_time);
             let value = k * (time - left_time) + left_value;
             value.abs() * coe
-        }
-    ).collect();
+        })
+        .collect();
     Ok((bm_t, x))
 }
 
