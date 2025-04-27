@@ -39,6 +39,7 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 
 - [x] Brownian motion - Standard and generalized with drift and diffusion
 - [x] Alpha-stable Lévy process - Non-Gaussian processes with heavy tails
+- [x] Cauchy process - Lévy process with stable index 1
 - [x] Subordinator - Time-changed processes
 - [x] Inverse subordinator - Processes for modeling waiting times
 - [x] Poisson process - Counting processes with independent increments
