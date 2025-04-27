@@ -7,6 +7,219 @@
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
+/// Asymmetric Lévy process
+///
+/// This struct represents a asymmetric Lévy process.
+///
+/// # Fields
+///
+/// * `start_position` - The starting position of the asymmetric Lévy process.
+/// * `alpha` - The stability index of the asymmetric Lévy process.
+/// * `beta` - The asymmetry parameter of the asymmetric Lévy process.
+#[derive(Debug, Clone)]
+pub struct AsymmetricLevy {
+    start_position: f64,
+    alpha: f64,
+    beta: f64,
+}
+
+impl AsymmetricLevy {
+    /// Create a new asymmetric Lévy process simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `start_position` - The starting position of the asymmetric Lévy process.
+    /// * `alpha` - The stability index of the asymmetric Lévy process.
+    /// * `beta` - The asymmetry parameter of the asymmetric Lévy process.
+    pub fn new(
+        start_position: impl Into<f64>,
+        alpha: impl Into<f64>,
+        beta: impl Into<f64>,
+    ) -> XResult<Self> {
+        let start_position = start_position.into();
+        let alpha = alpha.into();
+        if alpha <= 0.0 || alpha > 2.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `alpha` must be in the range (0, 2], got {}",
+                alpha
+            ))
+            .into());
+        }
+        let beta = beta.into();
+        if !(-1.0..=1.0).contains(&beta) {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `beta` must be in the range [-1, 1], got {}",
+                beta
+            ))
+            .into());
+        }
+        Ok(Self {
+            start_position,
+            alpha,
+            beta,
+        })
+    }
+
+    /// Get the starting position of the asymmetric Lévy process simulation
+    pub fn start_position(&self) -> f64 {
+        self.start_position
+    }
+
+    /// Get the stability index of the asymmetric Lévy process simulation
+    pub fn index(&self) -> f64 {
+        self.alpha
+    }
+
+    /// Get the asymmetry parameter of the asymmetric Lévy process simulation
+    pub fn asymmetry(&self) -> f64 {
+        self.beta
+    }
+
+    /// Get the first passage time of the asymmetric Lévy process simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the asymmetric Lévy process simulation.
+    /// * `max_duration` - The maximum duration of the asymmetric Lévy process simulation.
+    /// * `time_step` - The time step of the asymmetric Lévy process simulation.
+    ///
+    /// # Returns
+    ///
+    /// `Option<f64>`
+    /// * None if the first passage time is not found within the maximum duration.
+    /// * A f64 representing the first passage time of the simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::AsymmetricLevy;
+    /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
+    /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
+    /// ```
+    pub fn fpt(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        max_duration: impl Into<f64>,
+        time_step: f64,
+    ) -> XResult<Option<f64>> {
+        let fpt = FirstPassageTime::new(self, domain)?;
+        fpt.simulate(max_duration, time_step)
+    }
+
+    /// Get the occupation time of the asymmetric Lévy process simulation
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the asymmetric Lévy process simulation.
+    /// * `duration` - The duration of the asymmetric Lévy process simulation.
+    /// * `time_step` - The time step of the asymmetric Lévy process simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::AsymmetricLevy;
+    /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
+    /// let ot = levy.occupation_time((-1.0, 1.0), 10.0, 0.1).unwrap();
+    /// ```
+    pub fn occupation_time(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        duration: impl Into<f64>,
+        time_step: f64,
+    ) -> XResult<f64> {
+        let ot = OccupationTime::new(self, domain, duration)?;
+        ot.simulate(time_step)
+    }
+}
+
+/// impl `ContinuousProcess` trait for AsymmetricLevy process
+impl ContinuousProcess for AsymmetricLevy {
+    /// Simulate asymmetric Lévy process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the asymmetric Lévy process simulation.
+    /// * `time_step` - The time step of the asymmetric Lévy process simulation.
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing the time and the position of the asymmetric Lévy process simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::AsymmetricLevy;
+    /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
+    /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
+    /// ```
+    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got {}",
+                time_step
+            ))
+            .into());
+        }
+        let duration = duration.into();
+        if duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
+            .into());
+        }
+        simulate_asymmetric_levy(
+            self.start_position,
+            self.alpha,
+            self.beta,
+            duration,
+            time_step,
+        )
+    }
+}
+
+/// Simulate asymmetric Lévy process
+///
+/// This function simulates asymmetric Lévy process.
+///
+/// # Arguments
+///
+/// * `start_position` - The starting position of the asymmetric Lévy process.
+/// * `alpha` - The stability index of the asymmetric Lévy process.
+/// * `beta` - The asymmetry parameter of the asymmetric Lévy process.
+/// * `duration` - The duration of the asymmetric Lévy process.
+/// * `time_step` - The time step of the asymmetric Lévy process.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::continuous::levy::simulate_asymmetric_levy;
+/// let (t, x) = simulate_asymmetric_levy(0.0, 1.5, 0.4, 10.0, 0.1).unwrap();
+/// ```
+pub fn simulate_asymmetric_levy(
+    start_position: impl Into<f64>,
+    alpha: impl Into<f64>,
+    beta: impl Into<f64>,
+    duration: impl Into<f64>,
+    time_step: f64,
+) -> XResult<(Vec<f64>, Vec<f64>)> {
+    let start_position = start_position.into();
+    let alpha = alpha.into();
+    let beta = beta.into();
+    let duration = duration.into();
+    let num_steps = (duration / time_step).ceil() as usize;
+    let t = (0..=num_steps)
+        .into_par_iter()
+        .map(|i| time_step * i as f64)
+        .collect::<Vec<_>>();
+    let noise = stable::standard_rands(alpha, beta, num_steps)?
+        .into_par_iter()
+        .map(|x| x * time_step.powf(1.0 / alpha))
+        .collect::<Vec<_>>();
+    let x = cumsum(start_position, &noise);
+    Ok((t, x))
+}
+
 /// Lévy process
 ///
 /// This struct represents a Lévy process.
@@ -112,7 +325,7 @@ impl Levy {
     }
 }
 
-/// impl `ContinuousProcess` trait for Levy process
+/// impl `ContinuousProcess` trait for Lévy process
 impl ContinuousProcess for Levy {
     /// Simulate Lévy process
     ///
@@ -199,9 +412,13 @@ mod tests {
     #[test]
     fn test_simulate_levy() {
         let levy = Levy::new(10.0, 1.5).unwrap();
+        let asymmetric_levy = AsymmetricLevy::new(10.0, 1.5, 0.4).unwrap();
         let time_step = 0.1;
         let duration = 1.0;
         let (t, x) = levy.simulate(duration, time_step).unwrap();
+        println!("t: {:?}", t);
+        println!("x: {:?}", x);
+        let (t, x) = asymmetric_levy.simulate(duration, time_step).unwrap();
         println!("t: {:?}", t);
         println!("x: {:?}", x);
     }
@@ -209,16 +426,24 @@ mod tests {
     #[test]
     fn test_fpt() {
         let levy = Levy::new(0.0, 1.5).unwrap();
+        let asymmetric_levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
         let time_step = 0.1;
         let fpt = levy.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
+        println!("fpt: {:?}", fpt);
+        let fpt = asymmetric_levy.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
         println!("fpt: {:?}", fpt);
     }
 
     #[test]
     fn test_occupation_time() {
         let levy = Levy::new(0.0, 1.5).unwrap();
+        let asymmetric_levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
         let time_step = 0.1;
         let ot = levy.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
+        println!("ot: {:?}", ot);
+        let ot = asymmetric_levy
+            .occupation_time((-1.0, 1.0), 10.0, time_step)
+            .unwrap();
         println!("ot: {:?}", ot);
     }
 
@@ -226,5 +451,6 @@ mod tests {
     fn test_send_sync() {
         fn assert_send_sync<T: Send + Sync>() {}
         assert_send_sync::<Levy>();
+        assert_send_sync::<AsymmetricLevy>();
     }
 }
