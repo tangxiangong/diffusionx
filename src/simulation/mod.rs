@@ -7,6 +7,7 @@
 //!
 //! - Brownian motion - Standard and multidimensional Brownian motion
 //! - Lévy process - Processes with stationary and independent increments
+//! - Cauchy process - Processes with heavy-tailed jumps
 //! - Subordinator - Non-decreasing Lévy processes
 //! - Inverse subordinator - Time-changed processes via subordinator inverses
 //! - Generalized Langevin equation - Extensions of the standard Langevin equation
