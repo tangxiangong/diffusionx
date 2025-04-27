@@ -5,7 +5,8 @@
 //! - Generalized Langevin equation [GeneralizedLangevin]
 //! - Langevin equation [Langevin]
 //! - Levy walk [LevyWalk]
-//! - Levy process [Levy]
+//! - Levy process [Levy] and [AsymmetricLevy]
+//! - Cauchy process [Cauchy] and [AsymmetricCauchy]
 //! - Ornstein-Uhlenbeck process [OrnsteinUhlenbeck]
 //! - Subordinator [Subordinator]
 //! - Inverse subordinator [InvSubordinator]
@@ -46,3 +47,6 @@ pub use brownian_excursion::*;
 
 pub mod brownian_meander;
 pub use brownian_meander::*;
+
+pub mod cauchy;
+pub use cauchy::*;
