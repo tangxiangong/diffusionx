@@ -119,15 +119,15 @@ let traj = bm.duration(10.0)?;
 
 // Configure and create visualization
 let config = PlotConfigBuilder::default()
-    .time_step(0.01)
-    .output_path("brownian_motion.png")
-    .caption("Brownian Motion Trajectory")
-    .x_label("t")
-    .y_label("B")
-    .legend("bm")
-    .size((800, 600))
-    .backend(PlotterBackend::BitMap)
-    .build()?;
+.time_step(0.01)
+.output_path("brownian_motion.png")
+.caption("Brownian Motion Trajectory")
+.x_label("t")
+.y_label("B")
+.legend("bm")
+.size((800, 600))
+.backend(PlotterBackend::BitMap)
+.build()?;
 
 // Generate plot
 traj.plot(&config)?;
@@ -183,9 +183,9 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
    ```
 
 2. Automatic Feature Acquisition:
-   - Implementing `ContinuousProcess` trait automatically provides `ContinuousTrajectoryTrait` functionality
-   - `ContinuousTrajectory` provides access to the `Moment` trait functionality
-   - Built-in support for moment statistics calculation
+    - Implementing `ContinuousProcess` trait automatically provides `ContinuousTrajectoryTrait` functionality
+    - `ContinuousTrajectory` provides access to the `Moment` trait functionality
+    - Built-in support for moment statistics calculation
 
 Example:
 ```rust
@@ -195,13 +195,13 @@ let mean = traj.raw_moment(1, 1000, 0.01)?; // Calculate mean with 1000 particle
 ```
 
 3. Parallel Computing Support:
-   - Automatic parallel computation for moment calculations using Rayon
-   - Default parallel strategy for statistical calculations
-   - Configurable parallelism for optimal performance
+    - Automatic parallel computation for moment calculations using Rayon
+    - Default parallel strategy for statistical calculations
+    - Configurable parallelism for optimal performance
 
 4. Visualization Support:
-   - Easy trajectory visualization with minimal code
-   - Highly customizable plot configuration
+    - Easy trajectory visualization with minimal code
+    - Highly customizable plot configuration
 
 Example:
 ```rust
@@ -210,9 +210,9 @@ use diffusionx::visualize::{PlotConfigBuilder, Visualize};
 
 let bm = Bm::default().duration(10)?;
 let config = PlotConfigBuilder::default()
-    .title("Brownian Motion")
-    .output_path("brownian_motion.png")
-    .build()?;
+.title("Brownian Motion")
+.output_path("brownian_motion.png")
+.build()?;
 
 bm.plot(&config)?; // Generates a plot with the specified configuration
 ```

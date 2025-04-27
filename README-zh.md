@@ -120,15 +120,15 @@ let traj = bm.duration(10.0)?;
 
 // 配置并创建可视化
 let config = PlotConfigBuilder::default()
-    .time_step(0.01)
-    .output_path("brownian_motion.png")
-    .caption("布朗运动轨迹")
-    .x_label("t")
-    .y_label("B")
-    .legend("bm")
-    .size((800, 600))
-    .backend(PlotterBackend::BitMap)
-    .build()?;
+.time_step(0.01)
+.output_path("brownian_motion.png")
+.caption("布朗运动轨迹")
+.x_label("t")
+.y_label("B")
+.legend("bm")
+.size((800, 600))
+.backend(PlotterBackend::BitMap)
+.build()?;
 
 // 生成图像
 traj.plot(&config)?;
@@ -184,9 +184,9 @@ DiffusionX 为随机过程提供强大的泛函分布模拟功能：
    ```
 
 2. 自动获得功能：
-   - 实现 `ContinuousProcess` trait 后自动获得 `ContinuousTrajectoryTrait` 功能
-   - `ContinuousTrajectory` 提供对 `Moment` trait 功能的访问
-   - 内置支持矩统计量计算
+    - 实现 `ContinuousProcess` trait 后自动获得 `ContinuousTrajectoryTrait` 功能
+    - `ContinuousTrajectory` 提供对 `Moment` trait 功能的访问
+    - 内置支持矩统计量计算
 
 示例：
 ```rust
@@ -196,13 +196,13 @@ let mean = traj.raw_moment(1, 1000, 0.01)?; // 使用 1000 个粒子计算均值
 ```
 
 3. 并行计算支持：
-   - 矩计算自动支持通过 Rayon 进行并行计算
-   - 统计量计算默认使用并行策略
-   - 可配置的并行性能优化
+    - 矩计算自动支持通过 Rayon 进行并行计算
+    - 统计量计算默认使用并行策略
+    - 可配置的并行性能优化
 
 4. 可视化支持：
-   - 简单代码即可实现轨迹可视化
-   - 高度可定制的绘图配置
+    - 简单代码即可实现轨迹可视化
+    - 高度可定制的绘图配置
 
 示例：
 ```rust
@@ -211,9 +211,9 @@ use diffusionx::visualize::{PlotConfigBuilder, Visualize};
 
 let bm = Bm::default().duration(10)?;
 let config = PlotConfigBuilder::default()
-    .title("布朗运动")
-    .output_path("brownian_motion.png")
-    .build()?;
+.title("布朗运动")
+.output_path("brownian_motion.png")
+.build()?;
 
 bm.plot(&config)?; // 按照指定配置生成绘图
 ```
