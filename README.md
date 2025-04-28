@@ -9,7 +9,7 @@ English | [简体中文](README-zh.md)
 
 ## Features
 
-- **High Performance**: Optimized for computational efficiency with multi-threading support via Rayon
+- **High Performance**: Optimized for computational efficiency with multi-threading support via [rayon](https://github.com/rayon-rs/rayon)
 - **Comprehensive**: Extensive collection of random distributions and stochastic processes for scientific computing
 - **Extensible**: Trait-based architecture enabling easy extension with custom processes and distributions
 - **Well-documented**: Detailed API documentation with mathematical background and usage examples
@@ -76,17 +76,18 @@ cargo add diffusionx
 ```rust
 use diffusionx::random::{normal, uniform, stable};
 
-// Normal Distribution
-let normal_sample = normal::rand(0.0, 1.0)?; // Generate a normal random number with mean 0.0 and std 1.0
-let std_normal_samples = normal::standard_rands(1000); // Generate 1000 standard normal random numbers
+// Generate a normal random number with mean 0.0 and std 1.0
+let normal_sample = normal::rand(0.0, 1.0)?;
+// Generate 1000 standard normal random numbers
+let std_normal_samples = normal::standard_rands(1000);
 
-// Uniform Distribution
-let uniform_sample = uniform::range_rand(0..10)?; // Generate a uniform random number in range [0, 10)
-let std_uniform_samples = uniform::standard_rands(1000); // Generate 1000 uniform random numbers in range [0, 1)
+// Generate a uniform random number in range [0, 10)
+let uniform_sample = uniform::range_rand(0..10)?;
+// Generate 1000 uniform random numbers in range [0, 1)
+let std_uniform_samples = uniform::standard_rands(1000);
 
-// α-Stable Distribution
-// Standard α-stable distribution (σ=1, μ=0)
-let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?; // Generate 1000 standard stable random numbers
+// Generate 1000 standard stable random numbers
+let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?;
 ```
 
 ### Stochastic Process Simulation
@@ -94,17 +95,20 @@ let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?; // Generate 1000 s
 ```rust
 use diffusionx::simulation::{prelude::*, continuous::Bm};
 
-// Brownian motion simulation
-let bm = Bm::default();  // Create standard Brownian motion object
-let traj = bm.duration(1.0)?;  // Create trajectory with duration 1.0
-let (times, positions) = traj.simulate(0.01)?;  // Simulate Brownian motion trajectory with time step 0.01
+// Create standard Brownian motion object
+let bm = Bm::default();
+// Create trajectory with duration 1.0
+let traj = bm.duration(1.0)?;
+// Simulate Brownian motion trajectory with time step 0.01
+let (times, positions) = traj.simulate(0.01)?;
 
-// Monte Carlo simulation of Brownian motion statistics
-let mean = traj.raw_moment(1, 1000, 0.01)?;  // First-order raw moment with 1000 particles
-let msd = traj.central_moment(2, 1000, 0.01)?;  // Second-order central moment with 1000 particles
+// Calculate first-order raw moment with 1000 particles and time step 0.01
+let mean = traj.raw_moment(1, 1000, 0.01)?;
+// Calculate second-order central moment with 1000 particles and time step 0.01
+let msd = traj.central_moment(2, 1000, 0.01)?;
 
-// First passage time of Brownian motion
-let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?; // Calculate FPT with boundaries at -1.0 and 1.0
+// Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
+let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
 ```
 
 ### Visualization Example
@@ -154,7 +158,9 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
    ```rust
    // For a Brownian motion process
    let bm = Bm::default();
-   let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?; // Calculate FPT for crossing boundaries
+   // Calculate first passage time with time step 0.01,
+   // boundaries at -1.0 and 1.0, and 1000 particles
+   let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
    ```
 
 2. **Occupation Time**: Measure time spent by a process in a specified region
@@ -162,7 +168,8 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
    // For a Brownian motion process
    let bm = Bm::default();
    let traj = bm.duration(10.0)?;
-   let occupation = traj.occupation_time(0.01, (0.0, 2.0))?; // Calculate time spent in region [0.0, 2.0]
+   // Calculate time spent in region [0.0, 2.0] with time step 0.01
+   let occupation = traj.occupation_time(0.01, (0.0, 2.0))?;
    ```
 
 ### Extending with Custom Processes
@@ -192,7 +199,8 @@ Example:
 ```rust
 let myprocess = MyProcess::default();
 let traj = myprocess.duration(10)?;
-let mean = traj.raw_moment(1, 1000, 0.01)?; // Calculate mean with 1000 particles
+// Calculate mean with 1000 particles and time step 0.01
+let mean = traj.raw_moment(1, 1000, 0.01)?;
 ```
 
 3. Parallel Computing Support:
