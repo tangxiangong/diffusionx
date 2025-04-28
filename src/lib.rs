@@ -1,4 +1,4 @@
-#[doc = include_str!("../README.md")]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 /// Error handling module for the diffusionx crate
 ///
 /// This module defines error types and result types used throughout the crate.
