@@ -56,15 +56,6 @@ impl Subordinator {
     /// `Option<f64>`
     /// * None if the first passage time is not found within the maximum duration.
     /// * A f64 representing the first passage time of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::Subordinator;
-    /// let subordinator = Subordinator::new(0.5).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = subordinator.simulate(params).unwrap();
-    /// ```
     pub fn fpt(
         &self,
         domain: (impl Into<f64>, impl Into<f64>),
@@ -114,8 +105,7 @@ impl ContinuousProcess for Subordinator {
     /// ```rust
     /// use diffusionx::simulation::continuous::Subordinator;
     /// let subordinator = Subordinator::new(0.5).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = subordinator.simulate(params).unwrap();
+    /// let (t, x) = subordinator.simulate(1.0, 0.1).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {

@@ -286,8 +286,7 @@ impl Levy {
     /// ```rust
     /// use diffusionx::simulation::continuous::Levy;
     /// let levy = Levy::new(0.0, 1.5).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = levy.simulate(params).unwrap();
+    /// let (t, x) = levy.simulate(1.0, 0.1).unwrap();
     /// ```
     pub fn fpt(
         &self,
@@ -343,8 +342,7 @@ impl ContinuousProcess for Levy {
     /// ```rust
     /// use diffusionx::simulation::continuous::Levy;
     /// let levy = Levy::new(0.0, 1.5).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = levy.simulate(params).unwrap();
+    /// let (t, x) = levy.simulate(1.0, 0.1).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
