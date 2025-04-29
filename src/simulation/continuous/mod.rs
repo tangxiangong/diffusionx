@@ -13,6 +13,7 @@
 //! - Brownian bridge [BrownianBridge]
 //! - Brownian excursion [BrownianExcursion]
 //! - Brownian meander [BrownianMeander]
+//! - Gamma process [Gamma]
 //!
 
 pub mod bm;
@@ -50,3 +51,6 @@ pub use brownian_meander::*;
 
 pub mod cauchy;
 pub use cauchy::*;
+
+pub mod gamma;
+pub use gamma::*;
