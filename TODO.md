@@ -2,7 +2,7 @@
 - [x] BrownianExcursion
 - [x] BrownianMeander
 - [x] CauchyProcess
-- [ ] GammaProcess
+- [x] GammaProcess
 - [ ] GeometricBrownianMotion
 - [ ] InverseGaussianProcess
 - [ ] MixedPoissonProcess
