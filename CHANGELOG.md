@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5] - 2025-04-29
+
+### 🚀 Features
+
+- Add Brownian meander simulation implementation
+- Add Brownian meander module to continuous simulation
+- Add Asymmetric Lévy process simulation
+- Add Cauchy and Asymmetric Cauchy process simulations
+- Add Gamma distribution random number generation
+- Add Inverse process for continuous processes
+- Implement Gamma process simulation
+
+### 🐛 Bug Fixes
+
+- Improve error handling and documentation in random distributions
+- Update README documentation path for consistency
+
+### 🚜 Refactor
+
+- Simplify Brownian excursion simulation logic
+- Improve code readability and structure in Brownian meander simulation
+
+### 📚 Documentation
+
+- Update README for random number generation and visualization
+- Update README to include Brownian meander
+- Update documentation to include Brownian meander in simulation module
+- Mark Brownian meander as completed in TODO list
+- Update README for visualization configuration consistency
+- Add Cauchy process to README
+- Update simulation module documentation to include Cauchy process
+- Mark Cauchy process as completed in TODO list
+- Add Chinese version link to README
+- Update README for improved clarity and links
+- Update random module documentation to include Gamma distribution
+- Update Levy and Subordinator simulation examples for clarity
+- Add Gamma process to README
+- Add Gamma process to simulation documentation
+- Mark Gamma process as completed in TODO list
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.3.4
+- Update authors and description in Cargo.toml
+- Bump version to 0.3.5 in Cargo.toml
+
 ## [0.3.4] - 2025-04-24
 
 ### 🚀 Features
