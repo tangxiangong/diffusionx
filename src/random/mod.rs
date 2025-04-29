@@ -13,8 +13,10 @@
 //! - Poisson distribution - For jump processes and counting events
 //! - Stable distribution - For heavy-tailed distributions and Lévy processes
 //! - Uniform distribution - For general random sampling and basis of other distributions
+//! - Gamma distribution - For modeling waiting times and decay processes
 
 pub mod exponential;
+pub mod gamma;
 pub mod normal;
 pub mod poisson;
 pub mod stable;
