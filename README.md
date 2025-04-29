@@ -55,6 +55,7 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 - [x] Brownian bridge - Brownian motion conditioned to hit origin at the end
 - [x] Brownian excursion - Brownian motion conditioned to be positive and to take the value 0 at time 1
 - [x] Brownian meander
+- [x] Gamma process - Non-negative process with independent and stationary increments
 
 ## Installation
 
