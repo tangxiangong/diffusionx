@@ -9,7 +9,10 @@
 //! - Inverse process [Inverse]
 //!
 
-use crate::{SimulationError, XResult};
+use crate::{
+    SimulationError, XResult,
+    simulation::prelude::{FirstPassageTime, OccupationTime},
+};
 use rayon::prelude::*;
 
 pub type Pair = (Vec<f64>, Vec<f64>);
@@ -24,6 +27,110 @@ pub trait ContinuousProcess: Clone + Send + Sync {
     /// * `duration` - The duration of the simulation.
     /// * `time_step` - The time step of the simulation.
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair>;
+
+    /// Get the mean of the continuous process
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the mean of the continuous process.
+    fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
+        let traj = self.duration(duration)?;
+        traj.raw_moment(1, particles, time_step)
+    }
+
+    /// Get the mean square displacement of the continuous process
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the mean square displacement of the continuous process.
+    fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
+        let traj = self.duration(duration)?;
+        traj.central_moment(2, particles, time_step)
+    }
+
+    /// Get the raw moment of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the continuous process.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the continuous process.
+    fn raw_moment(
+        &self,
+        duration: impl Into<f64>,
+        order: i32,
+        particles: usize,
+        time_step: f64,
+    ) -> XResult<f64> {
+        let traj = self.duration(duration)?;
+        traj.raw_moment(order, particles, time_step)
+    }
+
+    /// Get the central moment of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the continuous process.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the continuous process.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the central moment of the continuous process.
+    fn central_moment(
+        &self,
+        duration: impl Into<f64>,
+        order: i32,
+        particles: usize,
+        time_step: f64,
+    ) -> XResult<f64> {
+        let traj = self.duration(duration)?;
+        traj.central_moment(order, particles, time_step)
+    }
+
+    /// Get the first passage time of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the continuous process.
+    /// * `max_duration` - The maximum duration of the continuous process.
+    /// * `time_step` - The time step of the continuous process.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the first passage time of the continuous process.
+    fn fpt(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        max_duration: impl Into<f64>,
+        time_step: f64,
+    ) -> XResult<Option<f64>> {
+        let fpt = FirstPassageTime::new(self, domain)?;
+        fpt.simulate(max_duration, time_step)
+    }
+
+    /// Get the occupation time of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the continuous process.
+    /// * `duration` - The duration of the continuous process.
+    /// * `time_step` - The time step of the continuous process.
+    ///
+    /// # Returns
+    ///
+    /// A f64 representing the occupation time of the continuous process.
+    fn occupation_time(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        duration: impl Into<f64>,
+        time_step: f64,
+    ) -> XResult<f64> {
+        let ot = OccupationTime::new(self, domain, duration)?;
+        ot.simulate(time_step)
+    }
 }
 
 /// Discrete process trait
@@ -34,6 +141,52 @@ pub trait DiscreteProcess: Clone + Send + Sync {
     ///
     /// * `num_step` - The number of steps of the simulation.
     fn simulate(&self, num_step: usize) -> XResult<DiscretePair>;
+
+    /// Get the mean of the discrete process
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps of the simulation.
+    /// * `particles` - The number of particles.
+    fn mean(&self, num_step: usize, particles: usize) -> XResult<f64> {
+        let traj = self.step(num_step)?;
+        traj.raw_moment(1, particles, 0.1)
+    }
+
+    /// Get the mean square displacement of the discrete process
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps of the simulation.
+    /// * `particles` - The number of particles.
+    fn msd(&self, num_step: usize, particles: usize) -> XResult<f64> {
+        let traj = self.step(num_step)?;
+        traj.central_moment(2, particles, 0.1)
+    }
+
+    /// Get the raw moment of the discrete process
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    fn raw_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
+        let traj = self.step(num_step)?;
+        traj.raw_moment(order, particles, 0.1)
+    }
+
+    /// Get the central moment of the discrete process
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    fn central_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
+        let traj = self.step(num_step).unwrap();
+        traj.central_moment(order, particles, 0.1)
+    }
 }
 
 pub trait PointProcess: Clone + Send + Sync {
@@ -70,6 +223,87 @@ pub trait PointProcess: Clone + Send + Sync {
         }
 
         Ok((t_, x_))
+    }
+
+    /// Get the mean of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `particles` - The number of particles.
+    fn mean(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
+        let traj = self.duration(duration)?;
+        traj.raw_moment(1, particles, 0.1)
+    }
+
+    /// Get the mean square displacement of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `particles` - The number of particles.
+    fn msd(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
+        let traj = self.duration(duration)?;
+        traj.central_moment(2, particles, 0.1)
+    }
+
+    /// Get the raw moment of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    fn raw_moment(&self, duration: impl Into<f64>, order: i32, particles: usize) -> XResult<f64> {
+        let traj = self.duration(duration)?;
+        traj.raw_moment(order, particles, 0.1)
+    }
+
+    /// Get the central moment of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    fn central_moment(
+        &self,
+        duration: impl Into<f64>,
+        order: i32,
+        particles: usize,
+    ) -> XResult<f64> {
+        let traj = self.duration(duration)?;
+        traj.central_moment(order, particles, 0.1)
+    }
+
+    /// Get the first passage time of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the simulation.
+    /// * `max_duration` - The maximum duration of the simulation.
+    fn fpt(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        max_duration: impl Into<f64>,
+    ) -> XResult<Option<f64>> {
+        let fpt = FirstPassageTime::new(self, domain)?;
+        fpt.simulate_p(max_duration)
+    }
+
+    /// Get the occupation time of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `domain` - The domain of the simulation.
+    /// * `duration` - The duration of the simulation.
+    fn occupation_time(
+        &self,
+        domain: (impl Into<f64>, impl Into<f64>),
+        duration: impl Into<f64>,
+    ) -> XResult<f64> {
+        let ot = OccupationTime::new(self, domain, duration)?;
+        ot.simulate_p()
     }
 
     /// Simulate the point process with a given number of steps
