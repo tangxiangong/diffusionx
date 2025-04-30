@@ -14,6 +14,7 @@
 //! - Brownian excursion [BrownianExcursion]
 //! - Brownian meander [BrownianMeander]
 //! - Gamma process [Gamma]
+//! - Geometric Brownian motion [GeometricBm]
 //!
 
 pub mod bm;
@@ -54,3 +55,6 @@ pub use cauchy::*;
 
 pub mod gamma;
 pub use gamma::*;
+
+pub mod geometric_bm;
+pub use geometric_bm::*;
