@@ -97,23 +97,6 @@ impl LevyWalk {
         self.start_position
     }
 
-    /// Simulate the Lévy walk
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::LevyWalk;
-    /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-    /// let (t, x) = levy_walk.simulate(10.0).unwrap();
-    /// ```
-    pub fn simulate(&self, duration: impl Into<f64>) -> XResult<Pair> {
-        simulate_levy_walk_with_duration(self.alpha, self.velocity, duration, self.start_position)
-    }
-
     /// Simulate the Lévy walk with step
     ///
     /// # Arguments
@@ -129,73 +112,6 @@ impl LevyWalk {
     /// ```
     pub fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_levy_walk_with_step(self.alpha, self.velocity, num_step, self.start_position)
-    }
-
-    /// Get the mean of the Lévy walk simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the simulation.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::LevyWalk;
-    /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-    /// let mean = levy_walk.mean(1.0, 1000).unwrap();
-    /// ```
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, 0.1)
-    }
-
-    /// Get the mean square displacement of the Lévy walk simulation
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, 0.1)
-    }
-
-    /// Get the raw moment of the Lévy walk simulation
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, 0.1)
-    }
-
-    /// Get the central moment of the Lévy walk simulation
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, 0.1)
-    }
-
-    /// Get the first passage time of the Lévy walk simulation
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, 0.1)
-    }
-
-    /// Get the occupation time of the Lévy walk simulation
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(0.1)
     }
 }
 
@@ -317,7 +233,6 @@ pub fn simulate_levy_walk_with_duration(
         t_[index] = t[index];
         x_[index] = x[index];
     }
-
     Ok((t_, x_))
 }
 
@@ -336,43 +251,43 @@ mod tests {
     #[test]
     fn test_simulate_levy_walk_with_duration() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let (_t, _x) = levy_walk.simulate(10.0).unwrap();
+        let (_t, _x) = levy_walk.simulate(10.0, 0.1).unwrap();
     }
 
     #[test]
     fn test_mean() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _mean = levy_walk.mean(1.0, 1000).unwrap();
+        let _mean = levy_walk.mean(1.0, 1000, 0.1).unwrap();
     }
 
     #[test]
     fn test_msd() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _msd = levy_walk.msd(1.0, 1000).unwrap();
+        let _msd = levy_walk.msd(1.0, 1000, 0.1).unwrap();
     }
 
     #[test]
     fn test_raw_moment() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _moment = levy_walk.raw_moment(1.0, 1, 1000).unwrap();
+        let _moment = levy_walk.raw_moment(1.0, 1, 1000, 0.1).unwrap();
     }
 
     #[test]
     fn test_central_moment() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _moment = levy_walk.central_moment(1.0, 2, 1000).unwrap();
+        let _moment = levy_walk.central_moment(1.0, 2, 1000, 0.1).unwrap();
     }
 
     #[test]
     fn test_fpt() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _fpt = levy_walk.fpt((-1.0, 1.0), 1000.0).unwrap();
+        let _fpt = levy_walk.fpt((-1.0, 1.0), 1000.0, 0.1).unwrap();
     }
 
     #[test]
     fn test_occupation_time() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let ot = levy_walk.occupation_time((-1.0, 1.0), 1000.0).unwrap();
+        let ot = levy_walk.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
         assert!((0.0..=1000.0).contains(&ot));
     }
 

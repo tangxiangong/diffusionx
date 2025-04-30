@@ -58,54 +58,6 @@ impl Gamma {
     pub fn rate(&self) -> f64 {
         self.rate
     }
-
-    /// Get the first passage time of the Gamma process
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Gamma process simulation.
-    /// * `max_duration` - The maximum duration of the Gamma process simulation.
-    /// * `time_step` - The time step of the Gamma process simulation.
-    ///
-    /// # Returns
-    ///
-    /// `Option<f64>`
-    /// * None if the first passage time is not found within the maximum duration.
-    /// * A f64 representing the first passage time of the simulation.
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Get the occupation time of the subordinator
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the subordinator.
-    /// * `duration` - The duration of the subordinator.
-    /// * `time_step` - The time step of the subordinator.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::Gamma;
-    /// let gamma = Gamma::new(0.5, 1.0).unwrap();
-    /// let ot = gamma.occupation_time((-1.0, 1.0), 10.0, 0.1).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(time_step)
-    }
 }
 
 /// impl `ContinuousProcess` trait for Gamma

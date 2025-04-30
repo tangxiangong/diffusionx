@@ -54,62 +54,6 @@ impl AsymmetricCauchy {
     pub fn asymmetry(&self) -> f64 {
         self.beta
     }
-
-    /// Get the first passage time of the asymmetric Cauchy process simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the asymmetric Cauchy process simulation.
-    /// * `max_duration` - The maximum duration of the asymmetric Cauchy process simulation.
-    /// * `time_step` - The time step of the asymmetric Cauchy process simulation.
-    ///
-    /// # Returns
-    ///
-    /// `Option<f64>`
-    /// * None if the first passage time is not found within the maximum duration.
-    /// * A f64 representing the first passage time of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::AsymmetricCauchy;
-    /// let cauchy = AsymmetricCauchy::new(0.0, 0.4).unwrap();
-    /// let (t, x) = cauchy.simulate(10.0, 0.1).unwrap();
-    /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Get the occupation time of the asymmetric Cauchy process simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the asymmetric Cauchy process simulation.
-    /// * `duration` - The duration of the asymmetric Cauchy process simulation.
-    /// * `time_step` - The time step of the asymmetric Cauchy process simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::AsymmetricCauchy;
-    /// let cauchy = AsymmetricCauchy::new(0.0, 0.4).unwrap();
-    /// let ot = cauchy.occupation_time((-1.0, 1.0), 10.0, 0.1).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(time_step)
-    }
 }
 
 /// impl `ContinuousProcess` trait for AsymmetricCauchy process
@@ -212,62 +156,6 @@ impl Cauchy {
     /// Get the starting position of the Cauchy process simulation
     pub fn start_position(&self) -> f64 {
         self.start_position
-    }
-
-    /// Get the first passage time of the Cauchy process simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Cauchy process simulation.
-    /// * `max_duration` - The maximum duration of the Cauchy process simulation.
-    /// * `time_step` - The time step of the Cauchy process simulation.
-    ///
-    /// # Returns
-    ///
-    /// `Option<f64>`
-    /// * None if the first passage time is not found within the maximum duration.
-    /// * A f64 representing the first passage time of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::Cauchy;
-    /// let cauchy = Cauchy::default();
-    /// let (t, x) = cauchy.simulate(10.0, 0.1).unwrap();
-    /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Get the occupation time of the Cauchy process simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Cauchy process simulation.
-    /// * `duration` - The duration of the Cauchy process simulation.
-    /// * `time_step` - The time step of the Cauchy process simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::Cauchy;
-    /// let cauchy = Cauchy::default();
-    /// let ot = cauchy.occupation_time((-1.0, 1.0), 10.0, 0.1).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(time_step)
     }
 }
 

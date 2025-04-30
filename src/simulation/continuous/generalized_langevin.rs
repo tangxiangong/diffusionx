@@ -105,64 +105,6 @@ where
     pub fn alpha(&self) -> f64 {
         self.alpha
     }
-
-    /// Calculate the mean of the Generalized Langevin equation
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
-    }
-
-    /// Calculate the mean square displacement of the Generalized Langevin equation
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
-    }
-
-    /// Calculate the raw moment of the Generalized Langevin equation
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, time_step)
-    }
-
-    /// Calculate the central moment of the Generalized Langevin equation
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, time_step)
-    }
-
-    /// Calculate the first passage time of the Generalized Langevin equation
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Calculate the occupation time of the Generialized Langevin equation
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let oc = OccupationTime::new(self, domain, duration)?;
-        oc.simulate(time_step)
-    }
 }
 
 /// impl `ContinuousProcess` trait for Generalized Langevin equation
@@ -308,23 +250,6 @@ where
         })
     }
 
-    /// Simulate the SubordinatedLangevin
-    ///
-    /// # Arguments
-    ///
-    /// - `duration`: the duration of the simulation.
-    /// - `time_step`: the time step of the simulation.
-    pub fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        simulate_subordinated_langevin(
-            &self.drift_func,
-            &self.diffusion_func,
-            self.start_position(),
-            self.alpha,
-            duration,
-            time_step,
-        )
-    }
-
     /// Get the starting position of the SubordinatedLangevin
     pub fn start_position(&self) -> f64 {
         self.start_position
@@ -343,64 +268,6 @@ where
     /// Get the stability index of the SubordinatedLangevin
     pub fn alpha(&self) -> f64 {
         self.alpha
-    }
-
-    /// Calculate the mean of the SubordinatedLangevin
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
-    }
-
-    /// Calculate the mean square displacement of the SubordinatedLangevin
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
-    }
-
-    /// Calculate the raw moment of the SubordinatedLangevin
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, time_step)
-    }
-
-    /// Calculate the central moment of the SubordinatedLangevin
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, time_step)
-    }
-
-    /// Calculate the first passage time of the SubordinatedLangevin
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Calculate the occupation time of the SubordinatedLangevin
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let oc = OccupationTime::new(self, domain, duration)?;
-        oc.simulate(time_step)
     }
 }
 

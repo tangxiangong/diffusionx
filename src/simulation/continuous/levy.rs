@@ -266,62 +266,6 @@ impl Levy {
     pub fn index(&self) -> f64 {
         self.alpha
     }
-
-    /// Get the first passage time of the Lévy process simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Lévy process simulation.
-    /// * `max_duration` - The maximum duration of the Lévy process simulation.
-    /// * `time_step` - The time step of the Lévy process simulation.
-    ///
-    /// # Returns
-    ///
-    /// `Option<f64>`
-    /// * None if the first passage time is not found within the maximum duration.
-    /// * A f64 representing the first passage time of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::Levy;
-    /// let levy = Levy::new(0.0, 1.5).unwrap();
-    /// let (t, x) = levy.simulate(1.0, 0.1).unwrap();
-    /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Get the occupation time of the Lévy process simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Lévy process simulation.
-    /// * `duration` - The duration of the Lévy process simulation.
-    /// * `time_step` - The time step of the Lévy process simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::Levy;
-    /// let levy = Levy::new(0.0, 1.5).unwrap();
-    /// let ot = levy.occupation_time((-1.0, 1.0), 10.0, 0.1).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(time_step)
-    }
 }
 
 /// impl `ContinuousProcess` trait for Lévy process
