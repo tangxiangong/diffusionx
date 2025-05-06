@@ -19,7 +19,7 @@ codegen-units = 1
 panic = "abort"
 
 [features]
-default = ["visualize"]
+default = ["visualize", "csv"]
 visualize = ["plotters", "derive_builder", "plotters-backend"]
 
 [dependencies]
@@ -36,3 +36,4 @@ once_cell = "1.21"
 plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }
 derive_builder = { version = "0.20", optional = true }
+csv = { version = "1.3.1", optional = true }
