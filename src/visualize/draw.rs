@@ -1,11 +1,10 @@
 use crate::{
-    PlotterError, XResult,
+    XResult,
     simulation::prelude::*,
-    utils::minmax,
+    utils::{ensure_output_dir, minmax},
     visualize::{PlotConfig, PlotterBackend},
 };
 use plotters::prelude::*;
-use std::path::Path;
 
 use super::set_config;
 
@@ -127,14 +126,6 @@ pub fn stair(times: &[f64], positions: &[i64], config: &PlotConfig) -> XResult<(
             set_config(config, backend, points, meta)
         }
     }
-}
-
-/// Ensure the output directory exists, or create it if it doesn't exist.
-fn ensure_output_dir(path: &Path) -> XResult<()> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| PlotterError::ConfigError(e.to_string()))?;
-    }
-    Ok(())
 }
 
 #[cfg(test)]
