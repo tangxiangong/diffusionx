@@ -2,7 +2,7 @@
 name = "diffusionx"
 authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.3.8"
+version = "0.3.9"
 description = "A Rust crate for random number/stochastic process simulation with high performance."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
