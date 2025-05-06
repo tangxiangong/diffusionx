@@ -3,7 +3,7 @@
 - [x] BrownianMeander
 - [x] CauchyProcess
 - [x] GammaProcess
-- [ ] GeometricBrownianMotion
+- [x] GeometricBrownianMotion
 - [ ] InverseGaussianProcess
 - [ ] MixedPoissonProcess
 - [ ] MultifractionalBrownianMotion
