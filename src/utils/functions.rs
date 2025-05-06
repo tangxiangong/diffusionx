@@ -13,7 +13,11 @@
 //! - `calculate_int_stats`: Calculate the mean and variance of an integer array.
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
 
+use std::path::Path;
+
 use num_traits::Num;
+
+use crate::{PlotterError, XResult};
 
 /// Calculate the cumulative sum of a vector
 ///
@@ -88,6 +92,14 @@ pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
         );
     }
     result
+}
+
+/// Ensure the output directory exists, or create it if it doesn't exist.
+pub(crate) fn ensure_output_dir(path: &Path) -> XResult<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| PlotterError::ConfigError(e.to_string()))?;
+    }
+    Ok(())
 }
 
 /// Check if two floating numbers are equal within the f64 precision

@@ -1,7 +1,9 @@
-use crate::XResult;
+use crate::{XResult, utils::ensure_output_dir};
 use csv::Writer;
+use std::path::Path;
 
 pub fn write_csv(path: &str, t: &[f64], x: &[f64]) -> XResult<()> {
+    ensure_output_dir(Path::new(path))?;
     let mut writer = Writer::from_path(path)?;
     t.iter().zip(x.iter()).for_each(|(t, x)| {
         writer

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.7] - 2025-05-06
+
+### 🚀 Features
+
+- Add ensure_output_dir function to handle output directory creation
+- Integrate ensure_output_dir in write_csv function
+
+### 🚜 Refactor
+
+- Remove ensure_output_dir function from draw.rs
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.3.6
+- Bump version to 0.3.7 in Cargo.toml
+
 ## [0.3.6] - 2025-05-06
 
 ### 🚀 Features
