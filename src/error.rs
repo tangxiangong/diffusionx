@@ -124,6 +124,7 @@ pub enum PlotterError {
 /// Implementation of From trait to convert Plotters errors to XError
 ///
 /// This allows for seamless error propagation from the plotting library.
+#[cfg(feature = "visualize")]
 impl<E: std::error::Error + Send + Sync> From<plotters::drawing::DrawingAreaErrorKind<E>>
     for XError
 {
