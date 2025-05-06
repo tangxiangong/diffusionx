@@ -42,9 +42,10 @@ impl Bm {
         let start_position = start_position.into();
         let diffusion_coefficient = diffusion_coefficient.into();
         if diffusion_coefficient <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "diffusion_coefficient must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The diffusion coefficient must be positive, got {}",
+                diffusion_coefficient
+            ))
             .into());
         }
         Ok(Self {
@@ -61,157 +62,6 @@ impl Bm {
     /// Get the diffusion coefficient of the Brownian motion simulation
     pub fn diffusion_coefficient(&self) -> f64 {
         self.diffusion_coefficient
-    }
-
-    /// Get the mean of the Brownian motion simulation
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the mean of the Brownian motion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::Bm;
-    /// let bm = Bm::new(10.0, 1.0).unwrap();
-    /// let mean = bm.mean(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
-    }
-
-    /// Get the mean square displacement of the Brownian motion simulation
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the mean square displacement of the Brownian motion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bm = Bm::new(10.0, 1.0).unwrap();
-    /// let msd = bm.msd(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
-    }
-
-    /// Get the raw moment of the Brownian motion simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the Brownian motion simulation.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    /// * `time_step` - The time step of the Brownian motion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the raw moment of the Brownian motion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bm = Bm::new(10.0, 1.0).unwrap();
-    /// let moment = bm.raw_moment(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, time_step)
-    }
-
-    /// Get the central moment of the Brownian motion simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the Brownian motion simulation.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    /// * `time_step` - The time step of the Brownian motion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the central moment of the Brownian motion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bm = Bm::new(10.0, 1.0).unwrap();
-    /// let msd = bm.msd(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, time_step)
-    }
-
-    /// Get the first passage time of the Brownian motion simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Brownian motion simulation.
-    /// * `max_duration` - The maximum duration of the Brownian motion simulation.
-    /// * `time_step` - The time step of the Brownian motion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the first passage time of the Brownian motion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bm = Bm::new(10.0, 1.0).unwrap();
-    /// let fpt = bm.fpt((-1.0, 1.0), 1000.0, 0.1).unwrap();
-    /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Get the occupation time of the Brownian motion simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Brownian motion simulation.
-    /// * `duration` - The duration of the Brownian motion simulation.
-    /// * `time_step` - The time step of the Brownian motion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the Brownian motion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bm = Bm::new(10.0, 1.0).unwrap();
-    /// let ot = bm.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(time_step)
     }
 }
 
@@ -231,6 +81,7 @@ impl ContinuousProcess for Bm {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::Bm, prelude::*};
     /// let bm = Bm::default();
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -264,6 +115,7 @@ impl ContinuousProcess for Bm {
 /// # Example
 ///
 /// ```rust
+/// use diffusionx::simulation::continuous::bm::simulate_bm;
 /// let start_position = 10.0;
 /// let diffusion_coefficient = 1.0;
 /// let time_step = 0.1;

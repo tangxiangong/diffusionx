@@ -18,7 +18,7 @@ pub type XResult<T> = Result<T, XError>;
 /// This enum represents all possible errors that can occur within the crate.
 /// It handles errors from various sources, including random number generation,
 /// simulation processes, and visualization.
-#[derive(Error, Debug, PartialEq, Clone)]
+#[derive(Error, Debug)]
 pub enum XError {
     /// Error for sampling from the uniform distribution
     #[error("Sample Uniform Distribution Error: {0}")]
@@ -53,6 +53,12 @@ pub enum XError {
     /// Error for FFT planner lock
     #[error("FFT planner lock error")]
     FFTPlannerLock,
+    #[cfg(feature = "csv")]
+    #[error("CSV IO Error: {0}")]
+    CSVError(#[from] csv::Error),
+    #[cfg(feature = "csv")]
+    #[error("CSV Write Error: {0}")]
+    CSVWriteError(#[from] std::io::Error),
 }
 
 /// Error type for stable distribution sampling

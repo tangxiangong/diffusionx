@@ -48,6 +48,13 @@ impl Default for CTRW {
 }
 
 impl CTRW {
+    /// Create a new continuous time random walk
+    ///
+    /// # Arguments
+    ///
+    /// * `alpha` - The alpha parameter of the stable distribution.
+    /// * `beta` - The beta parameter of the stable distribution.
+    /// * `start_position` - The starting position of the process.
     pub fn new(
         alpha: impl Into<f64>,
         beta: impl Into<f64>,
@@ -58,14 +65,14 @@ impl CTRW {
         let start_position = start_position.into();
         if alpha <= 0.0 || alpha > 1.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "alpha must be between 0 and 1, got {}",
+                "The `alpha` must be between 0 and 1, got {}",
                 alpha
             ))
             .into());
         }
         if beta <= 0.0 || beta > 2.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "beta must be between 0 and 2, got {}",
+                "The `beta` must be between 0 and 2, got {}",
                 beta
             ))
             .into());
@@ -78,49 +85,16 @@ impl CTRW {
     }
 
     /// Get the alpha of the continuous time random walk
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the alpha of the continuous time random walk.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let alpha = ctrw.alpha();
-    /// ```
     pub fn alpha(&self) -> f64 {
         self.alpha
     }
 
     /// Get the beta of the continuous time random walk
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the beta of the continuous time random walk.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let beta = ctrw.beta();
-    /// ```
     pub fn beta(&self) -> f64 {
         self.beta
     }
 
     /// Get the start position of the continuous time random walk
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the start position of the continuous time random walk.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let start_position = ctrw.start_position();
-    /// ```
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
@@ -131,13 +105,10 @@ impl CTRW {
     ///
     /// * `duration` - The duration of the simulation.
     ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::CTRW;
     /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = ctrw.simulate(10.0).unwrap();
     /// ```
@@ -151,170 +122,15 @@ impl CTRW {
     ///
     /// * `num_step` - The number of steps of the simulation.
     ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::jump::CTRW;
     /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = ctrw.simulate_with_step(1000).unwrap();
     /// ```
     pub fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_ctrw_with_step(self.alpha, self.beta, num_step, self.start_position)
-    }
-
-    /// Get the mean of the continuous time random walk simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the simulation.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the mean of the continuous time random walk simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let mean = ctrw.mean(1.0, 1000).unwrap();
-    /// ```
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, 0.1)
-    }
-
-    /// Get the mean square displacement of the continuous time random walk simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the simulation.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the mean square displacement of the continuous time random walk simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let msd = ctrw.msd(1.0, 1000).unwrap();
-    /// ```
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, 0.1)
-    }
-
-    /// Get the raw moment of the continuous time random walk simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the continuous time random walk simulation.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the raw moment of the continuous time random walk simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let moment = ctrw.raw_moment(1.0, 1000).unwrap();
-    /// ```
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, 0.1)
-    }
-
-    /// Get the central moment of the continuous time random walk simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the continuous time random walk simulation.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the central moment of the continuous time random walk simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let msd = ctrw.msd(1.0, 1000).unwrap();
-    /// ```
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, 0.1)
-    }
-
-    /// Get the first passage time of the continuous time random walk simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the continuous time random walk simulation.
-    /// * `max_duration` - The maximum duration of the continuous time random walk simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the first passage time of the continuous time random walk simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let fpt = ctrw.fpt((-1.0, 1.0), 1000.0).unwrap();
-    /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate_p(max_duration)
-    }
-
-    /// Get the occupation time of the continuous time random walk simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the continuous time random walk simulation.
-    /// * `duration` - The duration of the continuous time random walk simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the continuous time random walk simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let ot = ctrw.occupation_time((-1.0, 1.0), 1000.0).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate_p()
     }
 }
 
@@ -326,14 +142,10 @@ impl PointProcess for CTRW {
     /// * `duration` - The duration of the simulation.
     /// * `time_step` - The time step of the simulation.
     ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the simulation.
-    ///
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::CTRW;
+    /// use diffusionx::simulation::jump::CTRW;
     /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = ctrw.simulate(10.0, 0.1).unwrap();
     /// ```
@@ -342,6 +154,7 @@ impl PointProcess for CTRW {
     }
 }
 
+/// Simulate the continuous time random walk
 pub fn simulate_ctrw_with_step(
     alpha: f64,
     beta: f64,
@@ -363,6 +176,7 @@ pub fn simulate_ctrw_with_step(
     Ok((t, x))
 }
 
+/// Simulate the continuous time random walk
 pub fn simulate_ctrw_with_duration(
     alpha: f64,
     beta: f64,

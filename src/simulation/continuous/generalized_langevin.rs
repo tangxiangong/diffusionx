@@ -46,9 +46,10 @@ where
         let start_position = start_position.into();
         let alpha = alpha.into();
         if alpha <= 0.0 || alpha > 2.0 {
-            return Err(SimulationError::InvalidParameters(
-                "alpha must be in the range (0, 2]".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `alpha` must be in the range (0, 2], got {}",
+                alpha
+            ))
             .into());
         }
         Ok(Self {
@@ -59,6 +60,21 @@ where
         })
     }
 
+    /// Simulate the Generalized Langevin equation
+    ///
+    /// # Arguments
+    ///
+    /// - `duration`: the duration of the simulation
+    /// - `time_step`: the time step of the simulation
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::{continuous::GeneralizedLangevin, prelude::*};
+    /// let langevin = GeneralizedLangevin::new(|x, _t| x, |_x, _t| 1.0, 0.0, 1.7)
+    ///     .unwrap();
+    /// let (t, x) = langevin.simulate(1.0, 0.01).unwrap();
+    /// ```
     pub fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         simulate_generalized_langevin(
             &self.drift_func,
@@ -70,75 +86,28 @@ where
         )
     }
 
+    /// Get the starting position of the Generalized Langevin equation
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
+    /// Get the drift function of the Generalized Langevin equation
     pub fn drift_func(&self) -> &D {
         &self.drift_func
     }
 
+    /// Get the diffusion function of the Generalized Langevin equation
     pub fn diffusion_func(&self) -> &G {
         &self.diffusion_func
     }
 
+    /// Get the stability index of the Generalized Langevin equation
     pub fn alpha(&self) -> f64 {
         self.alpha
     }
-
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
-    }
-
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
-    }
-
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, time_step)
-    }
-
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, time_step)
-    }
-
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let oc = OccupationTime::new(self, domain, duration)?;
-        oc.simulate(time_step)
-    }
 }
 
+/// impl `ContinuousProcess` trait for Generalized Langevin equation
 impl<D, G> ContinuousProcess for GeneralizedLangevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
@@ -156,6 +125,29 @@ where
     }
 }
 
+/// Simulate the Generalized Langevin equation
+///
+/// # Arguments
+///
+/// - `drift`: the drift function of the Generalized Langevin equation.
+/// - `diffusion`: the diffusion function of the Generalized Langevin equation.
+/// - `start_position`: the starting position of the Generalized Langevin equation.
+/// - `alpha`: the stability index of the Generalized Langevin equation.
+/// - `duration`: the duration of the simulation.
+/// - `time_step`: the time step of the simulation.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::continuous::generalized_langevin::simulate_generalized_langevin;
+/// let drift = |x: f64, _t: f64| x;
+/// let diffusion = |_x: f64, _t: f64| 1.0;
+/// let start_position = 0.0;
+/// let alpha = 1.7;
+/// let duration = 1.0;
+/// let time_step = 0.01;
+/// let (t, x) = simulate_generalized_langevin(&drift, &diffusion, start_position, alpha, duration, time_step).unwrap();
+/// ```
 pub fn simulate_generalized_langevin<D, G>(
     drift: &D,
     diffusion: &G,
@@ -215,6 +207,26 @@ where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
     G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
 {
+    /// Create a new SubordinatedLangevin
+    ///
+    /// # Arguments
+    ///
+    /// - `drift_func`: the drift function of the SubordinatedLangevin.
+    /// - `diffusion_func`: the diffusion function of the SubordinatedLangevin.
+    /// - `start_position`: the starting position of the SubordinatedLangevin.
+    /// - `alpha`: the stability index of the alpha-stable subordinator.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::{continuous::SubordinatedLangevin, prelude::*};
+    /// let drift = |x: f64, _t: f64| x;
+    /// let diffusion = |_x: f64, _t: f64| 1.0;
+    /// let start_position = 0.0;
+    /// let alpha = 0.5;
+    /// let langevin = SubordinatedLangevin::new(drift, diffusion, start_position, alpha)
+    ///     .unwrap();
+    /// ```
     pub fn new(
         drift_func: D,
         diffusion_func: G,
@@ -224,9 +236,10 @@ where
         let start_position = start_position.into();
         let alpha = alpha.into();
         if alpha <= 0.0 || alpha >= 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "alpha must be in the range (0, 1)".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `alpha` must be in the range (0, 1), got {}",
+                alpha
+            ))
             .into());
         }
         Ok(Self {
@@ -237,86 +250,28 @@ where
         })
     }
 
-    pub fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        simulate_subordinated_langevin(
-            &self.drift_func,
-            &self.diffusion_func,
-            self.start_position(),
-            self.alpha,
-            duration,
-            time_step,
-        )
-    }
-
+    /// Get the starting position of the SubordinatedLangevin
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
+    /// Get the drift function of the SubordinatedLangevin
     pub fn drift_func(&self) -> &D {
         &self.drift_func
     }
 
+    /// Get the diffusion function of the SubordinatedLangevin
     pub fn diffusion_func(&self) -> &G {
         &self.diffusion_func
     }
 
+    /// Get the stability index of the SubordinatedLangevin
     pub fn alpha(&self) -> f64 {
         self.alpha
     }
-
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
-    }
-
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
-    }
-
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, time_step)
-    }
-
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, time_step)
-    }
-
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let oc = OccupationTime::new(self, domain, duration)?;
-        oc.simulate(time_step)
-    }
 }
 
+/// impl `ContinuousProcess` trait for SubordinatedLangevin
 impl<D, G> ContinuousProcess for SubordinatedLangevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
@@ -336,7 +291,7 @@ where
 
 /// Simulate the subordinated Langevin equation
 ///
-/// # Fields
+/// # Arguments
 ///
 /// - `drift`: the drift function of the subordinated Langevin equation.
 /// - `diffusion`: the diffusion function of the subordinated Langevin equation.
@@ -344,6 +299,19 @@ where
 /// - `alpha`: the stability index of the alpha-stable subordinator.
 /// - `duration`: the duration of the simulation.
 /// - `time_step`: the time step of the simulation.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::continuous::subordinated_langevin::simulate_subordinated_langevin;
+/// let drift = |x: f64, _t: f64| x;
+/// let diffusion = |_x: f64, _t: f64| 1.0;
+/// let start_position = 0.0;
+/// let alpha = 0.5;
+/// let duration = 1.0;
+/// let time_step = 0.01;
+/// let (t, x) = simulate_subordinated_langevin(&drift, &diffusion, start_position, alpha, duration, time_step).unwrap();
+/// ```
 pub fn simulate_subordinated_langevin<D, G>(
     drift: &D,
     diffusion: &G,

@@ -29,9 +29,10 @@ impl Subordinator {
     /// * `alpha` - The stability index of the subordinator, whose value must be in the range (0, 1).
     pub fn new(alpha: f64) -> XResult<Self> {
         if alpha <= 0.0 || alpha > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "alpha must be in the range (0, 1)".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `alpha` must be in the range (0, 1], got {}",
+                alpha
+            ))
             .into());
         }
         Ok(Self { alpha })
@@ -40,65 +41,6 @@ impl Subordinator {
     /// Get the stability index of the subordinator
     pub fn index(&self) -> f64 {
         self.alpha
-    }
-
-    /// Get the first passage time of the subordinator
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the subordinator simulation.
-    /// * `max_duration` - The maximum duration of the subordinator simulation.
-    /// * `time_step` - The time step of the subordinator simulation.
-    ///
-    /// # Returns
-    ///
-    /// `Option<f64>`
-    /// * None if the first passage time is not found within the maximum duration.
-    /// * A f64 representing the first passage time of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let subordinator = Subordinator::new(0.5).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = subordinator.simulate(params).unwrap();
-    /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Get the occupation time of the subordinator
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the subordinator.
-    /// * `duration` - The duration of the subordinator.
-    /// * `time_step` - The time step of the subordinator.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the subordinator.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let subordinator = Subordinator::new(0.5).unwrap();
-    /// let ot = subordinator.occupation_time((-1.0, 1.0), 10.0, 0.1).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(time_step)
     }
 }
 
@@ -110,16 +52,12 @@ impl ContinuousProcess for Subordinator {
     ///
     /// * `time_step` - The time step of the subordinator simulation.
     ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the subordinator simulation.
-    ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::continuous::Subordinator;
     /// let subordinator = Subordinator::new(0.5).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = subordinator.simulate(params).unwrap();
+    /// let (t, x) = subordinator.simulate(1.0, 0.1).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
@@ -149,16 +87,11 @@ impl ContinuousProcess for Subordinator {
 /// * `duration` - The duration of the subordinator.
 /// * `time_step` - The time step of the subordinator.
 ///
-/// # Returns
-///
-/// The result of the subordinator simulation.
-///
 /// # Example
 ///
 /// ```rust
-/// let subordinator = Subordinator::new(0.5).unwrap();
-/// let params = 0.1;
-/// let (t, x) = subordinator.simulate(params).unwrap();
+/// use diffusionx::simulation::continuous::subordinator::simulate_subordinator;
+/// let (t, x) = simulate_subordinator(0.5, 1.0, 0.1).unwrap();
 /// ```
 pub fn simulate_subordinator(
     alpha: f64,
@@ -190,9 +123,8 @@ pub fn simulate_subordinator(
 /// # Example
 ///
 /// ```rust
+/// use diffusionx::simulation::continuous::InvSubordinator;
 /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
-/// let params = 0.1;
-/// let (t, x) = inv_subordinator.simulate(params).unwrap();
 /// ```
 #[derive(Debug, Clone)]
 pub struct InvSubordinator {
@@ -200,6 +132,11 @@ pub struct InvSubordinator {
 }
 
 impl InvSubordinator {
+    /// Create a new inverse alpha-stable subordinator
+    ///
+    /// # Arguments
+    ///
+    /// * `alpha` - The stability index of the subordinator.
     pub fn new(alpha: f64) -> XResult<Self> {
         if alpha <= 0.0 || alpha > 1.0 {
             return Err(SimulationError::InvalidParameters(
@@ -214,116 +151,24 @@ impl InvSubordinator {
     pub fn index(&self) -> f64 {
         self.alpha
     }
-
-    /// Simulate inverse subordinator
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the subordinator.
-    /// * `time_step` - The time step of the subordinator.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the inverse subordinator simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = inv_subordinator.simulate(params).unwrap();
-    /// ```
-    pub fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "time_step must be positive".to_string(),
-            )
-            .into());
-        }
-        let duration = duration.into();
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
-            .into());
-        }
-        simulate_invsubordinator(self.alpha, duration, time_step)
-    }
-
-    /// Get the first passage time of the inverse subordinator
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the inverse subordinator.
-    /// * `max_duration` - The maximum duration of the inverse subordinator.
-    /// * `time_step` - The time step of the inverse subordinator.
-    ///
-    /// # Returns
-    ///
-    /// `Option<f64>`
-    /// * None if the first passage time is not found within the maximum duration.
-    /// * A f64 representing the first passage time of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = inv_subordinator.simulate(params).unwrap();
-    /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Get the occupation time of the inverse subordinator
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the inverse subordinator.
-    /// * `duration` - The duration of the inverse subordinator.
-    /// * `time_step` - The time step of the inverse subordinator.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the inverse subordinator.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
-    /// let params = 0.1;
-    /// let (t, x) = inv_subordinator.simulate(params).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(time_step)
-    }
 }
 
+/// impl `ContinuousProcess` trait for InvSubordinator
 impl ContinuousProcess for InvSubordinator {
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "time_step must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got {}",
+                time_step
+            ))
             .into());
         }
         let duration = duration.into();
         if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
             .into());
         }
         simulate_subordinator(self.alpha, duration, time_step)
@@ -340,16 +185,11 @@ impl ContinuousProcess for InvSubordinator {
 /// * `duration` - The duration of the subordinator.
 /// * `time_step` - The time step of the subordinator.
 ///
-/// # Returns
-///
-/// A tuple containing the time and the position of the inverse subordinator simulation.
-///
 /// # Example
 ///
 /// ```rust
-/// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
-/// let params = 0.1;
-/// let (t, x) = inv_subordinator.simulate(params).unwrap();
+/// use diffusionx::simulation::continuous::subordinator::simulate_invsubordinator;
+/// let (t, x) = simulate_invsubordinator(0.5, 1.0, 0.1).unwrap();
 /// ```
 pub fn simulate_invsubordinator(
     alpha: f64,
@@ -370,7 +210,6 @@ pub fn simulate_invsubordinator(
         mut_duration *= 2.0;
     };
 
-    // 构建均匀的时间网格
     let num_steps = (duration / time_step).ceil() as usize;
     let inv_times: Vec<f64> = (0..=num_steps)
         .map(|i| {
@@ -382,24 +221,20 @@ pub fn simulate_invsubordinator(
         })
         .collect();
 
-    // 对每个时间点找到对应的路径值
     let mut inv_path = Vec::with_capacity(inv_times.len());
 
     for &target_time in &inv_times {
-        // 使用二分查找找到第一个大于等于目标时间的位置
         let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {
-            Ok(idx) => idx, // 找到精确匹配
+            Ok(idx) => idx,
             Err(idx) => {
                 if idx >= s.len() {
-                    // 如果超出范围，使用最后一个位置
                     s.len() - 1
                 } else {
-                    idx // 插入位置就是第一个大于目标值的位置
+                    idx
                 }
             }
         };
 
-        // 取该位置对应的时间
         inv_path.push(t[pos]);
     }
 

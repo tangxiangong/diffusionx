@@ -5,12 +5,16 @@
 //! - Generalized Langevin equation [GeneralizedLangevin]
 //! - Langevin equation [Langevin]
 //! - Levy walk [LevyWalk]
-//! - Levy process [Levy]
+//! - Levy process [Levy] and [AsymmetricLevy]
+//! - Cauchy process [Cauchy] and [AsymmetricCauchy]
 //! - Ornstein-Uhlenbeck process [OrnsteinUhlenbeck]
 //! - Subordinator [Subordinator]
 //! - Inverse subordinator [InvSubordinator]
 //! - Brownian bridge [BrownianBridge]
 //! - Brownian excursion [BrownianExcursion]
+//! - Brownian meander [BrownianMeander]
+//! - Gamma process [Gamma]
+//! - Geometric Brownian motion [GeometricBm]
 //!
 
 pub mod bm;
@@ -42,3 +46,15 @@ pub use brownian_bridge::*;
 
 pub mod brownian_excursion;
 pub use brownian_excursion::*;
+
+pub mod brownian_meander;
+pub use brownian_meander::*;
+
+pub mod cauchy;
+pub use cauchy::*;
+
+pub mod gamma;
+pub use gamma::*;
+
+pub mod geometric_bm;
+pub use geometric_bm::*;

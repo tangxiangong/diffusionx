@@ -7,7 +7,7 @@ fn main() {
 
     // Example of Normal Distribution
     let normal = Normal::new(0.0, 1.0).unwrap();
-    let normal_samples: Vec<f64> = normal.samples(10);
+    let normal_samples = normal.samples(10).unwrap();
 
     println!(
         "Normal Distribution (μ=0, σ=1) samples: {:?}",

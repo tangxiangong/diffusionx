@@ -9,7 +9,7 @@ English | [简体中文](README-zh.md)
 
 ## Features
 
-- **High Performance**: Optimized for computational efficiency with multi-threading support via Rayon
+- **High Performance**: Optimized for computational efficiency with multi-threading support via [rayon](https://github.com/rayon-rs/rayon)
 - **Comprehensive**: Extensive collection of random distributions and stochastic processes for scientific computing
 - **Extensible**: Trait-based architecture enabling easy extension with custom processes and distributions
 - **Well-documented**: Detailed API documentation with mathematical background and usage examples
@@ -39,6 +39,7 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 
 - [x] Brownian motion - Standard and generalized with drift and diffusion
 - [x] Alpha-stable Lévy process - Non-Gaussian processes with heavy tails
+- [x] Cauchy process - Lévy process with stable index 1
 - [x] Subordinator - Time-changed processes
 - [x] Inverse subordinator - Processes for modeling waiting times
 - [x] Poisson process - Counting processes with independent increments
@@ -53,6 +54,8 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 - [x] Random walk - Discrete-time random walk
 - [x] Brownian bridge - Brownian motion conditioned to hit origin at the end
 - [x] Brownian excursion - Brownian motion conditioned to be positive and to take the value 0 at time 1
+- [x] Brownian meander
+- [x] Gamma process - Non-negative process with independent and stationary increments
 
 ## Installation
 
@@ -72,29 +75,20 @@ cargo add diffusionx
 ### Random Number Generation
 
 ```rust
-use diffusionx::random::{normal, uniform, exponential, poisson, stable};
+use diffusionx::random::{normal, uniform, stable};
 
-// Normal Distribution
-let normal_sample = normal::rand(0.0, 1.0)?; // Generate a normal random number with mean 0.0 and std 1.0
-let std_normal_samples = normal::standard_rands(1000); // Generate 1000 standard normal random numbers
+// Generate a normal random number with mean 0.0 and std 1.0
+let normal_sample = normal::rand(0.0, 1.0)?;
+// Generate 1000 standard normal random numbers
+let std_normal_samples = normal::standard_rands(1000);
 
-// Uniform Distribution
-let uniform_sample = uniform::range_rand(0..10)?; // Generate a uniform random number in range [0, 10)
-let std_uniform_samples = uniform::standard_rands(1000); // Generate 1000 uniform random numbers in range [0, 1)
+// Generate a uniform random number in range [0, 10)
+let uniform_sample = uniform::range_rand(0..10)?;
+// Generate 1000 uniform random numbers in range [0, 1)
+let std_uniform_samples = uniform::standard_rands(1000);
 
-// Exponential Distribution
-let exp_samples = exponential::rands(1.0, 1000)?; // Generate 1000 exponential random numbers with rate 1.0
-
-// Poisson Distribution
-let poisson_samples = poisson::rands(5.0, 1000)?; // Generate 1000 Poisson random numbers with mean 5.0
-
-// α-Stable Distribution
-// Standard α-stable distribution (σ=1, μ=0)
-let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?; // Generate 1000 standard stable random numbers
-
-// Object-oriented interface for stable distributions
-let stable = stable::Stable::new(1.5, 0.5, 1.0, 0.0)?; // Create a stable distribution object
-let samples = stable.samples(1000)?; // Generate 1000 samples
+// Generate 1000 standard stable random numbers
+let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?;
 ```
 
 ### Stochastic Process Simulation
@@ -102,17 +96,20 @@ let samples = stable.samples(1000)?; // Generate 1000 samples
 ```rust
 use diffusionx::simulation::{prelude::*, continuous::Bm};
 
-// Brownian motion simulation
-let bm = Bm::default();  // Create standard Brownian motion object
-let traj = bm.duration(1.0)?;  // Create trajectory with duration 1.0
-let (times, positions) = traj.simulate(0.01)?;  // Simulate Brownian motion trajectory with time step 0.01
+// Create standard Brownian motion object
+let bm = Bm::default();
+// Create trajectory with duration 1.0
+let traj = bm.duration(1.0)?;
+// Simulate Brownian motion trajectory with time step 0.01
+let (times, positions) = traj.simulate(0.01)?;
 
-// Monte Carlo simulation of Brownian motion statistics
-let mean = traj.raw_moment(1, 1000, 0.01)?;  // First-order raw moment with 1000 particles
-let msd = traj.central_moment(2, 1000, 0.01)?;  // Second-order central moment with 1000 particles
+// Calculate first-order raw moment with 1000 particles and time step 0.01
+let mean = traj.raw_moment(1, 1000, 0.01)?;
+// Calculate second-order central moment with 1000 particles and time step 0.01
+let msd = traj.central_moment(2, 1000, 0.01)?;
 
-// First passage time of Brownian motion
-let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?; // Calculate FPT with boundaries at -1.0 and 1.0
+// Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
+let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
 ```
 
 ### Visualization Example
@@ -120,7 +117,6 @@ let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?; // Calculate FPT with boundaries at 
 ```rust
 use diffusionx::{
     simulation::{continuous::Bm, prelude::*},
-    visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
 };
 
 // Create Brownian motion trajectory
@@ -129,14 +125,15 @@ let traj = bm.duration(10.0)?;
 
 // Configure and create visualization
 let config = PlotConfigBuilder::default()
-    .time_step(0.01)
-    .output_path("brownian_motion.png")
-    .title("Brownian Motion Trajectory")
-    .x_label("Time t")
-    .y_label("Position X(t)")
-    .size((800, 600))
-    .backend(PlotterBackend::BitMap)
-    .build()?;
+.time_step(0.01)
+.output_path("brownian_motion.png")
+.caption("Brownian Motion Trajectory")
+.x_label("t")
+.y_label("B")
+.legend("bm")
+.size((800, 600))
+.backend(PlotterBackend::BitMap)
+.build()?;
 
 // Generate plot
 traj.plot(&config)?;
@@ -162,7 +159,9 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
    ```rust
    // For a Brownian motion process
    let bm = Bm::default();
-   let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?; // Calculate FPT for crossing boundaries
+   // Calculate first passage time with time step 0.01,
+   // boundaries at -1.0 and 1.0, and 1000 particles
+   let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
    ```
 
 2. **Occupation Time**: Measure time spent by a process in a specified region
@@ -170,7 +169,8 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
    // For a Brownian motion process
    let bm = Bm::default();
    let traj = bm.duration(10.0)?;
-   let occupation = traj.occupation_time(0.01, (0.0, 2.0))?; // Calculate time spent in region [0.0, 2.0]
+   // Calculate time spent in region [0.0, 2.0] with time step 0.01
+   let occupation = traj.occupation_time(0.01, (0.0, 2.0))?;
    ```
 
 ### Extending with Custom Processes
@@ -192,25 +192,26 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
    ```
 
 2. Automatic Feature Acquisition:
-   - Implementing `ContinuousProcess` trait automatically provides `ContinuousTrajectoryTrait` functionality
-   - `ContinuousTrajectory` provides access to the `Moment` trait functionality
-   - Built-in support for moment statistics calculation
+    - Implementing `ContinuousProcess` trait automatically provides `ContinuousTrajectoryTrait` functionality
+    - `ContinuousTrajectory` provides access to the `Moment` trait functionality
+    - Built-in support for moment statistics calculation
 
 Example:
 ```rust
 let myprocess = MyProcess::default();
 let traj = myprocess.duration(10)?;
-let mean = traj.raw_moment(1, 1000, 0.01)?; // Calculate mean with 1000 particles
+// Calculate mean with 1000 particles and time step 0.01
+let mean = traj.raw_moment(1, 1000, 0.01)?;
 ```
 
 3. Parallel Computing Support:
-   - Automatic parallel computation for moment calculations using Rayon
-   - Default parallel strategy for statistical calculations
-   - Configurable parallelism for optimal performance
+    - Automatic parallel computation for moment calculations using Rayon
+    - Default parallel strategy for statistical calculations
+    - Configurable parallelism for optimal performance
 
 4. Visualization Support:
-   - Easy trajectory visualization with minimal code
-   - Highly customizable plot configuration
+    - Easy trajectory visualization with minimal code
+    - Highly customizable plot configuration
 
 Example:
 ```rust
@@ -219,9 +220,9 @@ use diffusionx::visualize::{PlotConfigBuilder, Visualize};
 
 let bm = Bm::default().duration(10)?;
 let config = PlotConfigBuilder::default()
-    .title("Brownian Motion")
-    .output_path("brownian_motion.png")
-    .build()?;
+.title("Brownian Motion")
+.output_path("brownian_motion.png")
+.build()?;
 
 bm.plot(&config)?; // Generates a plot with the specified configuration
 ```

@@ -1,4 +1,8 @@
-#[doc = include_str!("../README.md")]
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
+//!
+//! ## 简体中文
+//!
+//! 中文版本可见[这里](https://github.com/tangxiangong/diffusionx/blob/stable/README-zh.md).
 /// Error handling module for the diffusionx crate
 ///
 /// This module defines error types and result types used throughout the crate.

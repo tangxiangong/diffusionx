@@ -7,6 +7,7 @@
 //!
 //! - Brownian motion - Standard and multidimensional Brownian motion
 //! - Lévy process - Processes with stationary and independent increments
+//! - Cauchy process - Processes with heavy-tailed jumps
 //! - Subordinator - Non-decreasing Lévy processes
 //! - Inverse subordinator - Time-changed processes via subordinator inverses
 //! - Generalized Langevin equation - Extensions of the standard Langevin equation
@@ -16,6 +17,8 @@
 //! - Ornstein-Uhlenbeck process - Mean-reverting stochastic process
 //! - Brownian bridge - Brownian motion conditioned to hit origin at the end
 //! - Brownian excursion  - Brownian motion conditioned to be positive and to take the value 0 at time 1
+//! - Brownian meander
+//! - Gamma process - Non-negative process with independent and stationary increments
 //!
 //! # Jump processes
 //!

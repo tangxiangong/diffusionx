@@ -14,127 +14,6 @@ use super::BrownianBridge;
 pub struct BrownianExcursion;
 
 impl BrownianExcursion {
-    /// Get the mean of the Brownian excursion simulation
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the mean of the Brownian excursion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::BrownianExcursion;
-    /// let be = BrownianExcursion;
-    /// let mean = be.mean(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let duration: f64 = duration.into();
-        if duration > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be less than or equal to 1.0".to_string(),
-            )
-            .into());
-        }
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
-    }
-    /// Get the mean square displacement of the Brownian excursion simulation
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the mean square displacement of the Brownian excursion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let be = BrownianExcursion;
-    /// let msd = be.msd(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let duration: f64 = duration.into();
-        if duration > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be less than or equal to 1.0".to_string(),
-            )
-            .into());
-        }
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
-    }
-
-    /// Get the raw moment of the Brownian bridge simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    /// * `time_step` - The time step of the Brownian excursion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the raw moment of the Brownian excursion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let be = BrownianExcursion;
-    /// let moment = be.raw_moment(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let duration: f64 = duration.into();
-        if duration > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be less than or equal to 1.0".to_string(),
-            )
-            .into());
-        }
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, time_step)
-    }
-
-    /// Get the central moment of the Brownian excursion simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the Brownian excursion simulation.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    /// * `time_step` - The time step of the Brownian excursion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the central moment of the Brownian excursion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let be = BrownianExcursion;
-    /// let msd = bb.msd(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let duration: f64 = duration.into();
-        if duration > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be less than or equal to 1.0".to_string(),
-            )
-            .into());
-        }
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, time_step)
-    }
-
     /// Get the first passage time of the Brownian excursion simulation
     ///
     /// # Arguments
@@ -149,6 +28,7 @@ impl BrownianExcursion {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
     /// let be = BrownianExcursion;
     /// let fpt = be.fpt((-1.0, 1.0), 0.1).unwrap();
     /// ```
@@ -158,9 +38,10 @@ impl BrownianExcursion {
         time_step: f64,
     ) -> XResult<Option<f64>> {
         if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "time_step must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got {}",
+                time_step
+            ))
             .into());
         }
         let a: f64 = domain.0.into();
@@ -173,46 +54,11 @@ impl BrownianExcursion {
             Ok(None)
         }
     }
-
-    /// Get the occupation time of the Brownian excursion simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Brownian excursion simulation.
-    /// * `duration` - The duration of the Brownian excursion simulation.
-    /// * `time_step` - The time step of the Brownian excursion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the Brownian excursion simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let be = BrownianExcursion;
-    /// let ot = be.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let duration: f64 = duration.into();
-        if duration > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be less than or equal to 1.0".to_string(),
-            )
-            .into());
-        }
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(time_step)
-    }
 }
 
-/// impl `ContinuousProcess` trait for Brownian motion
+/// impl `ContinuousProcess` trait for Brownian excursion
 impl ContinuousProcess for BrownianExcursion {
-    /// Simulate Brownian bridge
+    /// Simulate Brownian excursion
     ///
     /// # Arguments
     ///
@@ -226,6 +72,7 @@ impl ContinuousProcess for BrownianExcursion {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
     /// let be = BrownianExcursion;
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -252,6 +99,7 @@ impl ContinuousProcess for BrownianExcursion {
 /// # Example
 ///
 /// ```rust
+/// use diffusionx::simulation::continuous::brownian_excursion::simulate_brownian_excursion;
 /// let time_step = 0.1;
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_excursion(duration, time_step).unwrap();
@@ -263,52 +111,34 @@ pub fn simulate_brownian_excursion(
     let duration: f64 = duration.into();
     if duration <= 0.0 || duration > 1.0 {
         // Duration must be positive and not exceed 1.0
-        return Err(SimulationError::InvalidParameters(
-            "duration must be in (0.0, 1.0]".to_string(),
-        )
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be in (0.0, 1.0], got {}",
+            duration
+        ))
         .into());
     }
     if time_step <= 0.0 {
-        return Err(
-            SimulationError::InvalidParameters("time_step must be positive".to_string()).into(),
-        );
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got {}",
+            time_step
+        ))
+        .into());
     }
 
     let bridge = BrownianBridge;
     let (bridge_t, bridge_traj) = bridge.simulate(1.0, time_step)?;
 
-    // Find the index separating the [0, 1] interval
-    // Use the points up to and including the last point where t <= 1.0
-    let end_index = bridge_t
-        .iter()
-        .rposition(|&t| t <= 1.0)
-        .unwrap_or(bridge_t.len() - 1)
-        + 1; // +1 for slice exclusivity
-
-    if end_index == 0 {
-        return Err(SimulationError::Unknown.into());
-    }
-
-    let bridge_traj_in_unit_interval = &bridge_traj[..end_index];
-    let bridge_t_in_unit_interval = &bridge_t[..end_index];
-
     // Find the minimum value and its index within [0, 1]
-    let (min_traj_within_one, _) = minmax(bridge_traj_in_unit_interval); // Assuming minmax returns Result
+    let (min_traj, _) = minmax(&bridge_traj); // Assuming minmax returns Result
 
-    let min_traj_within_one_index = bridge_traj_in_unit_interval
+    let min_traj_index = bridge_traj
         .iter()
-        .position(|&x| (x - min_traj_within_one).abs() < f64::EPSILON) // Use tolerance for float comparison
+        .position(|&x| (x - min_traj).abs() < f64::EPSILON) // Use tolerance for float comparison
         .ok_or(SimulationError::Unknown)?;
 
-    let tau_m = bridge_t_in_unit_interval[min_traj_within_one_index];
+    let tau_m = bridge_t[min_traj_index];
 
-    let num_steps = (duration / time_step).ceil() as usize;
-    let t: Vec<f64> = (0..=num_steps)
-        // .into_par_iter() // Keep sequential for Result handling within map, or collect results first
-        .map(|i| (time_step * i as f64).min(duration)) // Ensure time does not exceed duration
-        .collect();
-
-    let x = t
+    let x = bridge_t
         .par_iter() // Parallelize the mapping
         .map(|t_i| {
             // Correct modulo calculation for tt
@@ -319,11 +149,11 @@ pub fn simulate_brownian_excursion(
             let index = bridge_t.iter().position(|&t| t >= tt).unwrap();
 
             // Apply the transformation
-            bridge_traj[index] - min_traj_within_one
+            bridge_traj[index] - min_traj
         })
         .collect(); // Collect results from parallel iterator
 
-    Ok((t, x))
+    Ok((bridge_t, x))
 }
 
 #[cfg(test)]

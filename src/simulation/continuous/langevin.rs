@@ -31,6 +31,23 @@ where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
     G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
 {
+    /// Create a new Langevin
+    ///
+    /// # Arguments
+    ///
+    /// - `drift_func`: the drift function of the Langevin equation.
+    /// - `diffusion_func`: the diffusion function of the Langevin equation.
+    /// - `start_position`: the starting position of the Langevin equation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::Langevin;
+    /// let drift = |x: f64, _t: f64| x;
+    /// let diffusion = |_x: f64, _t: f64| 1.0;
+    /// let start_position = 0.0;
+    /// let langevin = Langevin::new(drift, diffusion, start_position);
+    /// ```
     pub fn new(drift_func: D, diffusion_func: G, start_position: impl Into<f64>) -> XResult<Self> {
         let start_position = start_position.into();
         Ok(Self {
@@ -40,81 +57,23 @@ where
         })
     }
 
-    pub fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        simulate_langevin(
-            &self.drift_func,
-            &self.diffusion_func,
-            self.start_position(),
-            duration,
-            time_step,
-        )
-    }
-
+    /// Get the starting position of the Langevin
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
+    /// Get the drift function of the Langevin
     pub fn drift_func(&self) -> &D {
         &self.drift_func
     }
 
+    /// Get the diffusion function of the Langevin
     pub fn diffusion_func(&self) -> &G {
         &self.diffusion_func
     }
-
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
-    }
-
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
-    }
-
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, time_step)
-    }
-
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, time_step)
-    }
-
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let oc = OccupationTime::new(self, domain, duration)?;
-        oc.simulate(time_step)
-    }
 }
 
+/// impl `ContinuousProcess` trait for Langevin equation
 impl<D, G> ContinuousProcess for Langevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,

@@ -13,160 +13,7 @@ use super::Bm;
 #[derive(Debug, Clone)]
 pub struct BrownianBridge;
 
-impl BrownianBridge {
-    /// Get the mean of the Brownian bridge simulation
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the mean of the Brownian bridge simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::BrownianBridge;
-    /// let bb = BrownianBridge;
-    /// let mean = bb.mean(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
-    }
-
-    /// Get the mean square displacement of the Brownian bridge simulation
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the mean square displacement of the Brownian bridge simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bb = BrownianBridge;
-    /// let msd = bb.msd(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
-    }
-
-    /// Get the raw moment of the Brownian bridge simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the Brownian bridge simulation.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    /// * `time_step` - The time step of the Brownian bridge simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the raw moment of the Brownian bridge simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bb = BrownianBridge;
-    /// let moment = bb.raw_moment(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, time_step)
-    }
-
-    /// Get the central moment of the Brownian bridge simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the Brownian bridge simulation.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    /// * `time_step` - The time step of the Brownian bridge simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the central moment of the Brownian bridge simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bb = BrownianBridge;
-    /// let msd = bb.msd(1.0, 1000, 0.1).unwrap();
-    /// ```
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, time_step)
-    }
-
-    /// Get the first passage time of the Brownian bridge simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Brownian bridge simulation.
-    /// * `max_duration` - The maximum duration of the Brownian bridge simulation.
-    /// * `time_step` - The time step of the Brownian bridge simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the first passage time of the Brownian bridge simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bb = BrownianBridge;
-    /// let fpt = bm.fpt((-1.0, 1.0), 1000.0, 0.1).unwrap();
-    /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    /// Get the occupation time of the Brownian bridge simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the Brownian bridge simulation.
-    /// * `duration` - The duration of the Brownian bridge simulation.
-    /// * `time_step` - The time step of the Brownian bridge simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the Brownian bridge simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let bb = BrownianBridge;
-    /// let ot = bm.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate(time_step)
-    }
-}
-
-/// impl `ContinuousProcess` trait for Brownian motion
+/// impl `ContinuousProcess` trait for Brownian bridge
 impl ContinuousProcess for BrownianBridge {
     /// Simulate Brownian bridge
     ///
@@ -182,6 +29,7 @@ impl ContinuousProcess for BrownianBridge {
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
     /// let bb = BrownianBridge;
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -208,6 +56,7 @@ impl ContinuousProcess for BrownianBridge {
 /// # Example
 ///
 /// ```rust
+/// use diffusionx::simulation::continuous::brownian_bridge::simulate_brownian_bridge;
 /// let time_step = 0.1;
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_bridge(duration, time_step).unwrap();

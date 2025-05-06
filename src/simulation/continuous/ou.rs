@@ -23,6 +23,20 @@ pub struct OrnsteinUhlenbeck {
 }
 
 impl OrnsteinUhlenbeck {
+    /// Create a new Ornstein-Uhlenbeck process
+    ///
+    /// # Arguments
+    ///
+    /// - `theta`: the parameter controlling the strength of mean reversion.
+    /// - `sigma`: the diffusion coefficient controlling the noise intensity.
+    /// - `start_position`: the initial position x0 of the process.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::OrnsteinUhlenbeck;
+    /// let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
+    /// ```
     pub fn new(theta: f64, sigma: f64, start_position: impl Into<f64>) -> XResult<Self> {
         let start_position = start_position.into();
         Ok(Self {
@@ -32,81 +46,23 @@ impl OrnsteinUhlenbeck {
         })
     }
 
-    pub fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        simulate_ou(
-            self.theta,
-            self.sigma,
-            self.start_position(),
-            duration,
-            time_step,
-        )
-    }
-
+    /// Get the starting position of the Ornstein-Uhlenbeck process
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
+    /// Get the parameter controlling the strength of mean reversion
     pub fn theta(&self) -> f64 {
         self.theta
     }
 
+    /// Get the diffusion coefficient controlling the noise intensity
     pub fn sigma(&self) -> f64 {
         self.sigma
     }
-
-    pub fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
-    }
-
-    pub fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
-    }
-
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, time_step)
-    }
-
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, time_step)
-    }
-
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate(max_duration, time_step)
-    }
-
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<f64> {
-        let oc = OccupationTime::new(self, domain, duration)?;
-        oc.simulate(time_step)
-    }
 }
 
+/// impl `ContinuousProcess` trait for OrnsteinUhlenbeck
 impl ContinuousProcess for OrnsteinUhlenbeck {
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         simulate_ou(
@@ -134,6 +90,13 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
 /// - `start_position`: the starting position of the Ornstein-Uhlenbeck process.
 /// - `duration`: the duration of the simulation.
 /// - `time_step`: the time step of the simulation.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::continuous::ou::simulate_ou;
+/// let (t, x) = simulate_ou(1.0, 1.0, 0.0, 1.0, 0.01).unwrap();
+/// ```
 pub fn simulate_ou(
     theta: f64,
     sigma: f64,

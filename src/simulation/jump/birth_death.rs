@@ -37,15 +37,17 @@ impl BirthDeath {
         let lambda = lambda.into();
         let mu = mu.into();
         if lambda <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "lambda must be greater than 0".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `lambda` must be greater than 0, got {}",
+                lambda
+            ))
             .into());
         }
         if mu <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "mu must be greater than 0".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `mu` must be greater than 0, got {}",
+                mu
+            ))
             .into());
         }
         Ok(Self { lambda, mu })
@@ -60,158 +62,9 @@ impl BirthDeath {
     pub fn mu(&self) -> f64 {
         self.mu
     }
-
-    /// Simulate the Birth-death process with a given number of steps
-    ///
-    /// # Arguments
-    ///
-    /// * `num_step` - The number of steps of the simulation.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let birth_death = BirthDeath::new(1.0, 1.0);
-    /// let (t, x) = birth_death.simulate_with_step(100).unwrap();
-    /// ```
-    pub fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
-        let traj = self.step(num_step)?;
-        traj.simulate_with_step()
-    }
-
-    /// Simulate the Birth-death process with a given duration
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the simulation.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let birth_death = BirthDeath::new(1.0, 1.0);
-    /// let (t, x) = birth_death.simulate_with_duration(100.0).unwrap();
-    /// ```
-    pub fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<Pair> {
-        let traj = self.duration(duration)?;
-        traj.simulate_with_duration()
-    }
-
-    /// Get the raw moment of the Birth-death process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the simulation.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the raw moment of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let birth_death = BirthDeath::new(1.0, 1.0);
-    /// let moment = birth_death.raw_moment(100.0, 1, 100).unwrap();
-    /// ```
-    pub fn raw_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.raw_moment(order, particles, 0.1)
-    }
-
-    /// Get the central moment of the Birth-death process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the simulation.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the central moment of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let birth_death = BirthDeath::new(1.0, 1.0);
-    /// let moment = birth_death.central_moment(100.0, 1, 100).unwrap();
-    /// ```
-    pub fn central_moment(
-        &self,
-        duration: impl Into<f64>,
-        order: i32,
-        particles: usize,
-    ) -> XResult<f64> {
-        let traj = self.duration(duration)?;
-        traj.central_moment(order, particles, 0.1)
-    }
-
-    /// Get the first passage time of the Birth-death process
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the simulation.
-    /// * `max_duration` - The maximum duration of the simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the first passage time of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let birth_death = BirthDeath::new(1.0, 1.0);
-    /// let fpt = birth_death.fpt((0.0, 1.0), 100.0).unwrap();
-    /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        max_duration: impl Into<f64>,
-    ) -> XResult<Option<f64>> {
-        let fpt = FirstPassageTime::new(self, domain)?;
-        fpt.simulate_p(max_duration)
-    }
-
-    /// Get the occupation time of the Birth-death process
-    ///
-    /// # Arguments
-    ///
-    /// * `domain` - The domain of the simulation.
-    /// * `duration` - The duration of the simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// let birth_death = BirthDeath::new(1.0, 1.0);
-    /// let ot = birth_death.occupation_time((0.0, 1.0), 100.0).unwrap();
-    /// ```
-    pub fn occupation_time(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-    ) -> XResult<f64> {
-        let ot = OccupationTime::new(self, domain, duration)?;
-        ot.simulate_p()
-    }
 }
 
+/// impl `PointProcess` trait for BirthDeath
 impl PointProcess for BirthDeath {
     fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_birth_death_with_step(self.lambda, self.mu, num_step)
