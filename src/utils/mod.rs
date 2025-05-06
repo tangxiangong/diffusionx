@@ -13,4 +13,5 @@ pub use circulant_embedding::*;
 
 #[cfg(feature = "csv")]
 mod csv;
+#[cfg(feature = "csv")]
 pub use csv::*;
