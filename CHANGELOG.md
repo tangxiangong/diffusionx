@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.6] - 2025-05-06
+
+### 🚀 Features
+
+- Add Geometric Brownian motion simulation
+- Add Geometric Brownian motion module
+- Enhance ContinuousProcess and DiscreteProcess traits
+- Add CSV error handling and CSV writing functionality
+- Add CSV feature to default dependencies in Cargo.toml
+
+### 🐛 Bug Fixes
+
+- Mark GeometricBrownianMotion as completed in TODO list
+
+### 🚜 Refactor
+
+- Remove unused methods from continuous process simulations
+- Remove unused simulation methods from RandomWalk
+- Remove unused simulation methods from BirthDeath, CTRW, and Poisson
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.3.5
+- Bump version to 0.3.6 in Cargo.toml
+
 ## [0.3.5] - 2025-04-29
 
 ### 🚀 Features
