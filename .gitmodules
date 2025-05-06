@@ -1,0 +1,3 @@
+[submodule "py-diffusion"]
+	path = py-diffusion
+	url = https://github.com/tangxiangong/py-diffusionx.git
