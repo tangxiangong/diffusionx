@@ -10,7 +10,6 @@ English | [简体中文](README-zh.md)
 ## Features
 
 - **High Performance**: Optimized for computational efficiency with multi-threading support via [rayon](https://github.com/rayon-rs/rayon)
-- **Comprehensive**: Extensive collection of random distributions and stochastic processes for scientific computing
 - **Extensible**: Trait-based architecture enabling easy extension with custom processes and distributions
 - **Well-documented**: Detailed API documentation with mathematical background and usage examples
 - **Type-safe**: Leverages Rust's type system for compile-time safety and correctness
@@ -29,33 +28,32 @@ DiffusionX provides built-in visualization capabilities using the [plotters](htt
 
 ### Random Number Generation
 
-- [x] Normal distribution - Gaussian random variables with specified mean and variance
-- [x] Uniform distribution - Uniform random variables in specified ranges
-- [x] Exponential distribution - Exponential waiting times with specified rate
-- [x] Poisson distribution - Discrete count distribution with specified mean
-- [x] Alpha-stable distribution - Heavy-tailed distributions with specified stability, skewness, scale, and location
+- [x] Normal distribution
+- [x] Uniform distribution
+- [x] Exponential distribution
+- [x] Poisson distribution
+- [x] $\alpha$-stable distribution
 
 ### Stochastic Processes
 
-- [x] Brownian motion - Standard and generalized with drift and diffusion
-- [x] Alpha-stable Lévy process - Non-Gaussian processes with heavy tails
-- [x] Cauchy process - Lévy process with stable index 1
-- [x] Subordinator - Time-changed processes
-- [x] Inverse subordinator - Processes for modeling waiting times
-- [x] Poisson process - Counting processes with independent increments
-- [x] Fractional Brownian motion - Long-range dependent processes
-- [x] Continuous time random walk - Jump processes with random waiting times
-- [x] Ornstein-Uhlenbeck process - Mean-reverting processes
-- [x] Langevin equation - Physical models with friction and noise
-- [x] Generalized Langevin equation - Extended models with memory effects
-- [x] Subordinated Langevin equation - Time-changed Langevin processes
-- [x] Lévy walk - Superdiffusive processes with coupled jump lengths and waiting times
-- [x] Birth-death process - Discrete-state processes with birth and death rates
-- [x] Random walk - Discrete-time random walk
-- [x] Brownian bridge - Brownian motion conditioned to hit origin at the end
-- [x] Brownian excursion - Brownian motion conditioned to be positive and to take the value 0 at time 1
+- [x] Brownian motion
+- [x] $\alpha$-stable Lévy process
+- [x] Cauchy process
+- [x] $\alpha$-stable subordinator
+- [x] Inverse $\alpha$-stable subordinator
+- [x] Poisson process
+- [x] Fractional Brownian motion
+- [x] Continuous-time random walk
+- [x] Ornstein-Uhlenbeck process
+- [x] Langevin equation
+- [x] Generalized Langevin equation
+- [x] Subordinated Langevin equation
+- [x] Lévy walk
+- [x] Birth-death process
+- [x] Random walk
+- [x] Brownian excursion
 - [x] Brownian meander
-- [x] Gamma process - Non-negative process with independent and stationary increments
+- [x] Gamma process
 
 ## Installation
 
