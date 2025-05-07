@@ -7,10 +7,11 @@ description = "A Rust crate for random number/stochastic process simulation with
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 readme = "README.md"
+categories = ["science", "mathematics"]
+keywords = ["math", "random number", "stochastic process", "anomalous diffusion"]
 
 [lib]
 name = "diffusionx"
-crate-type = ["cdylib", "lib"]
 doctest = false
 
 [profile.release]
