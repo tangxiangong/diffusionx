@@ -77,40 +77,48 @@ cargo add diffusionx
 
 ```rust
 use diffusionx::random::{normal, uniform, stable};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 生成一个均值为 0.0，标准差为 1.0 的正态随机数
+    let normal_sample = normal::rand(0.0, 1.0)?;
+    // 生成 1000 个标准正态随机数
+    let std_normal_samples = normal::standard_rands(1000);
 
-// 生成一个均值为 0.0，标准差为 1.0 的正态随机数
-let normal_sample = normal::rand(0.0, 1.0)?;
-// 生成 1000 个标准正态随机数
-let std_normal_samples = normal::standard_rands(1000);
+    // 生成一个 [0, 10) 范围内的均匀随机数
+    let uniform_sample = uniform::range_rand(0..10)?;
+    // 生成 1000 个 [0, 1) 范围内的均匀随机数
+    let std_uniform_samples = uniform::standard_rands(1000);
 
-// 生成一个 [0, 10) 范围内的均匀随机数
-let uniform_sample = uniform::range_rand(0..10)?;
-// 生成 1000 个 [0, 1) 范围内的均匀随机数
-let std_uniform_samples = uniform::standard_rands(1000);
+    // 生成 1000 个标准稳定随机数
+    let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?;
 
-// 生成 1000 个标准稳定随机数
-let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?;
+    Ok(())
+}
 ```
 
 ### 随机过程模拟
 
 ```rust
 use diffusionx::simulation::{prelude::*, continuous::Bm};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 创建标准布朗运动对象
+    let bm = Bm::default();
+    // 创建持续时间为 1.0 的轨迹
+    let traj = bm.duration(1.0)?;
+    // 模拟布朗运动轨迹，时间步长为 0.01
+    let (times, positions) = traj.simulate(0.01)?;
 
-// 创建标准布朗运动对象
-let bm = Bm::default();
-// 创建持续时间为 1.0 的轨迹
-let traj = bm.duration(1.0)?;
-// 模拟布朗运动轨迹，时间步长为 0.01
-let (times, positions) = traj.simulate(0.01)?;
+    // 计算一阶原点矩，1000 个粒子，时间步长为 0.01
+    let mean = traj.raw_moment(1, 1000, 0.01)?;
+    // 计算二阶中心矩，1000 个粒子，时间步长为 0.01
+    let msd = traj.central_moment(2, 1000, 0.01)?;
+    // 计算 TAMSD，100.0 的持续时间，1.0 的 delta，10000 个粒子，时间步长为 0.1，Gauss-Legendre 积分阶数为 10
+    let tamsd = bm.tamsd(100.0, 1.0, 10000, 0.1, 10)?;
 
-// 计算一阶原点矩，1000 个粒子，时间步长为 0.01
-let mean = traj.raw_moment(1, 1000, 0.01)?;
-// 计算二阶中心矩，1000 个粒子，时间步长为 0.01
-let msd = traj.central_moment(2, 1000, 0.01)?;
+    // 计算边界为 -1.0 和 1.0 的首次通过时间
+    let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
 
-// 计算边界为 -1.0 和 1.0 的首次通过时间
-let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
+    Ok(())
+}
 ```
 
 ### 可视化示例
@@ -119,25 +127,28 @@ let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
 use diffusionx::{
     simulation::{continuous::Bm, prelude::*},
 };
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 创建布朗运动轨迹
+    let bm = Bm::default();
+    let traj = bm.duration(10.0)?;
 
-// 创建布朗运动轨迹
-let bm = Bm::default();
-let traj = bm.duration(10.0)?;
+    // 配置并创建可视化
+    let config = PlotConfigBuilder::default()
+    .time_step(0.01)
+    .output_path("brownian_motion.png")
+    .caption("布朗运动轨迹")
+    .x_label("t")
+    .y_label("B")
+    .legend("bm")
+    .size((800, 600))
+    .backend(PlotterBackend::BitMap)
+    .build()?;
 
-// 配置并创建可视化
-let config = PlotConfigBuilder::default()
-.time_step(0.01)
-.output_path("brownian_motion.png")
-.caption("布朗运动轨迹")
-.x_label("t")
-.y_label("B")
-.legend("bm")
-.size((800, 600))
-.backend(PlotterBackend::BitMap)
-.build()?;
+    // 生成图像
+    traj.plot(&config)?;
 
-// 生成图像
-traj.plot(&config)?;
+    Ok(())
+}
 ```
 
 ## 架构与可扩展性

@@ -1,5 +1,6 @@
-//! Traits for stochastic processes
+//! Traits and structs for stochastic processes
 //!
+//! ## Traits
 //! - Continuous process [ContinuousProcess]
 //! - Point process [PointProcess]
 //! - Discrete process [DiscreteProcess]
@@ -8,11 +9,18 @@
 //! - Moment [Moment]
 //! - Inverse process [Inverse]
 //!
+//! ## Structs
+//! - ContinuousTrajectory [ContinuousTrajectory]
+//! - DiscreteTrajectory [DiscreteTrajectory]
+//! - PointTrajectory [PointTrajectory]
+//! - TAMSD [TAMSD]
+//!
 
 use crate::{
     SimulationError, XResult,
     simulation::prelude::{FirstPassageTime, OccupationTime},
 };
+use gauss_quad::GaussLegendre;
 use rayon::prelude::*;
 
 pub type Pair = (Vec<f64>, Vec<f64>);
@@ -130,6 +138,27 @@ pub trait ContinuousProcess: Clone + Send + Sync {
     ) -> XResult<f64> {
         let ot = OccupationTime::new(self, domain, duration)?;
         ot.simulate(time_step)
+    }
+
+    /// Get the time-averaged mean square displacement of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `delta` - The clip length.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the simulation.
+    /// * `quad_order` - The order of the quadrature.
+    fn tamsd(
+        &self,
+        duration: impl Into<f64>,
+        delta: impl Into<f64>,
+        particles: usize,
+        time_step: f64,
+        quad_order: usize,
+    ) -> XResult<f64> {
+        let tamsd = TAMSD::new(self.clone(), duration, delta)?;
+        tamsd.simulate(particles, time_step, quad_order)
     }
 }
 
@@ -752,16 +781,165 @@ pub trait Inverse: ContinuousProcess {
     }
 }
 
+/// TAMSD
+///
+/// Time-averaged mean square displacement
+///
+/// # Fields
+///
+/// * `process` - The process to calculate the TAMSD of.
+/// * `duration` - The duration of the simulation.
+/// * `delta` - The slag length.
+#[derive(Debug, Clone)]
+pub struct TAMSD<T: ContinuousProcess> {
+    process: T,
+    duration: f64,
+    delta: f64,
+}
+
+impl<T: ContinuousProcess> TAMSD<T> {
+    /// Create a new TAMSD
+    ///
+    /// # Arguments
+    ///
+    /// * `process` - The process to calculate the TAMSD of.
+    /// * `duration` - The duration of the simulation.
+    /// * `delta` - The clip length.
+    pub fn new(process: T, duration: impl Into<f64>, delta: impl Into<f64>) -> XResult<Self> {
+        let duration = duration.into();
+        let delta = delta.into();
+        if duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
+            .into());
+        }
+        if delta <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `delta` must be positive, got {}",
+                delta
+            ))
+            .into());
+        }
+
+        if duration < delta {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be greater than `delta`, got duration {} and delta {}",
+                duration, delta
+            ))
+            .into());
+        }
+        Ok(Self {
+            process,
+            duration,
+            delta,
+        })
+    }
+
+    /// Get the process
+    pub fn process(&self) -> &T {
+        &self.process
+    }
+
+    /// Get the duration
+    pub fn duration(&self) -> f64 {
+        self.duration
+    }
+
+    /// Get the clip length
+    pub fn delta(&self) -> f64 {
+        self.delta
+    }
+
+    /// Simulate the TAMSD
+    pub fn simulate(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+        let legendre_quad = GaussLegendre::new(quad_order)?;
+        let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
+        let duration = self.duration;
+        let slag = self.delta;
+        let nodes_weights = nodes_weights_transform(0.0, duration - slag, &nodes_weights_pairs);
+        let sp = self.process.clone();
+        let result = nodes_weights
+            .into_par_iter()
+            .map(|(node, weight)| -> XResult<f64> {
+                let cov = sub_covariance(&sp, duration, node, particles, time_step)?;
+                Ok(cov * weight)
+            })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / (duration - slag);
+        Ok(result)
+    }
+}
+
+/// Calculate the covariance of one processes
+fn sub_covariance<T: ContinuousProcess>(
+    process: &T,
+    duration: impl Into<f64>,
+    slag: impl Into<f64>,
+    particles: usize,
+    time_step: f64,
+) -> XResult<f64> {
+    let duration: f64 = duration.into();
+    let slag: f64 = slag.into();
+    let sp = process.clone();
+    let slag_length = (slag / time_step).ceil() as usize;
+    let result = (0..particles)
+        .into_par_iter()
+        .map(|_| -> XResult<f64> {
+            let (_, x) = sp.simulate(duration + slag, time_step)?;
+            let len = x.len();
+            let end_position = x.last();
+            let slag_position = x.get(len - slag_length - 1);
+            if end_position.is_none() || slag_position.is_none() {
+                return Err(SimulationError::Unknown.into());
+            }
+            let end_position = *end_position.unwrap();
+            let slag_position = *slag_position.unwrap();
+            Ok((end_position - slag_position).powi(2))
+        })
+        .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+        .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+        / particles as f64;
+    Ok(result)
+}
+
+fn nodes_weights_transform(
+    a: impl Into<f64>,
+    b: impl Into<f64>,
+    pairs: &[(f64, f64)],
+) -> Vec<(f64, f64)> {
+    let a: f64 = a.into();
+    let b: f64 = b.into();
+    pairs
+        .iter()
+        .map(|(node, weight)| {
+            let new_weight = weight * (b - a) / 2.0;
+            let new_node = (b - a) * node / 2.0 + (b + a) / 2.0;
+            (new_node, new_weight)
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::simulation::continuous::Bm;
 
     #[test]
+    fn test_quad() {
+        let quad = GaussLegendre::new(10).unwrap();
+        let nodes_weights_pairs = quad.into_node_weight_pairs();
+        let nodes_weights = nodes_weights_transform(0.0, 100.0, &nodes_weights_pairs);
+        println!("{:?}", nodes_weights);
+    }
+
+    #[test]
+    #[ignore]
     fn test_continuous_trajectory() {
         let sp = Bm::default();
-        let traj = ContinuousTrajectory::new(sp, 1.0).unwrap();
-        let result = traj.simulate(0.01).unwrap();
-        println!("{:?}", result);
+        let tamsd = sp.tamsd(100.0, 1.0, 10000, 0.1, 10).unwrap();
+        println!("{:?}", tamsd);
     }
 }

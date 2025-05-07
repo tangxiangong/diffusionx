@@ -4,6 +4,7 @@
 //! It defines various error categories for different components such as random number
 //! sampling, simulation processes, and visualization.
 
+use gauss_quad::legendre::GaussLegendreError;
 use rand::distr::uniform::Error as UniformError;
 use rand_distr::{ExpError, NormalError, PoissonError};
 use thiserror::Error;
@@ -59,6 +60,9 @@ pub enum XError {
     #[cfg(feature = "csv")]
     #[error("CSV Write Error: {0}")]
     CSVWriteError(#[from] std::io::Error),
+    /// Gauss-Legendre quadrature error
+    #[error("Gauss-Legendre quadrature error: {0}")]
+    GaussLegendreError(#[from] GaussLegendreError),
 }
 
 /// Error type for stable distribution sampling
@@ -124,6 +128,7 @@ pub enum PlotterError {
 /// Implementation of From trait to convert Plotters errors to XError
 ///
 /// This allows for seamless error propagation from the plotting library.
+#[cfg(feature = "visualize")]
 impl<E: std::error::Error + Send + Sync> From<plotters::drawing::DrawingAreaErrorKind<E>>
     for XError
 {

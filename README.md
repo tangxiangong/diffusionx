@@ -76,40 +76,48 @@ cargo add diffusionx
 
 ```rust
 use diffusionx::random::{normal, uniform, stable};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Generate a normal random number with mean 0.0 and std 1.0
+    let normal_sample = normal::rand(0.0, 1.0)?;
+    // Generate 1000 standard normal random numbers
+    let std_normal_samples = normal::standard_rands(1000);
 
-// Generate a normal random number with mean 0.0 and std 1.0
-let normal_sample = normal::rand(0.0, 1.0)?;
-// Generate 1000 standard normal random numbers
-let std_normal_samples = normal::standard_rands(1000);
+    // Generate a uniform random number in range [0, 10)
+    let uniform_sample = uniform::range_rand(0..10)?;
+    // Generate 1000 uniform random numbers in range [0, 1)
+    let std_uniform_samples = uniform::standard_rands(1000);
 
-// Generate a uniform random number in range [0, 10)
-let uniform_sample = uniform::range_rand(0..10)?;
-// Generate 1000 uniform random numbers in range [0, 1)
-let std_uniform_samples = uniform::standard_rands(1000);
+    // Generate 1000 standard stable random numbers
+    let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?;
 
-// Generate 1000 standard stable random numbers
-let stable_samples = stable::standard_rands(1.5, 0.5, 1000)?;
+    Ok(())
+}
 ```
 
 ### Stochastic Process Simulation
 
 ```rust
 use diffusionx::simulation::{prelude::*, continuous::Bm};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create standard Brownian motion object
+    let bm = Bm::default();
+    // Create trajectory with duration 1.0
+    let traj = bm.duration(1.0)?;
+    // Simulate Brownian motion trajectory with time step 0.01
+    let (times, positions) = traj.simulate(0.01)?;
 
-// Create standard Brownian motion object
-let bm = Bm::default();
-// Create trajectory with duration 1.0
-let traj = bm.duration(1.0)?;
-// Simulate Brownian motion trajectory with time step 0.01
-let (times, positions) = traj.simulate(0.01)?;
+    // Calculate first-order raw moment with 1000 particles and time step 0.01
+    let mean = traj.raw_moment(1, 1000, 0.01)?;
+    // Calculate second-order central moment with 1000 particles and time step 0.01
+    let msd = traj.central_moment(2, 1000, 0.01)?;
+    // Calculate TAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1, and Gauss-Legendre quadrature order 10
+    let tamsd = bm.tamsd(100.0, 1.0, 10000, 0.1, 10)?;
 
-// Calculate first-order raw moment with 1000 particles and time step 0.01
-let mean = traj.raw_moment(1, 1000, 0.01)?;
-// Calculate second-order central moment with 1000 particles and time step 0.01
-let msd = traj.central_moment(2, 1000, 0.01)?;
+    // Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
+    let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
 
-// Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
-let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
+    Ok(())
+}
 ```
 
 ### Visualization Example
@@ -118,25 +126,28 @@ let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
 use diffusionx::{
     simulation::{continuous::Bm, prelude::*},
 };
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create Brownian motion trajectory
+    let bm = Bm::default();
+    let traj = bm.duration(10.0)?;
 
-// Create Brownian motion trajectory
-let bm = Bm::default();
-let traj = bm.duration(10.0)?;
+    // Configure and create visualization
+    let config = PlotConfigBuilder::default()
+    .time_step(0.01)
+    .output_path("brownian_motion.png")
+    .caption("Brownian Motion Trajectory")
+    .x_label("t")
+    .y_label("B")
+    .legend("bm")
+    .size((800, 600))
+    .backend(PlotterBackend::BitMap)
+    .build()?;
 
-// Configure and create visualization
-let config = PlotConfigBuilder::default()
-.time_step(0.01)
-.output_path("brownian_motion.png")
-.caption("Brownian Motion Trajectory")
-.x_label("t")
-.y_label("B")
-.legend("bm")
-.size((800, 600))
-.backend(PlotterBackend::BitMap)
-.build()?;
+    // Generate plot
+    traj.plot(&config)?;
 
-// Generate plot
-traj.plot(&config)?;
+    Ok(())
+}
 ```
 
 ## Architecture and Extensibility
