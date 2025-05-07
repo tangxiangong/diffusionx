@@ -205,14 +205,14 @@ DiffusionX 为随机过程提供强大的泛函分布模拟功能：
    ```
 
 2. 实现 `ContinuousProcess` trait 后自动实现
-    - 均值 `mean(&self: &ContinuousProcess, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
-    - 均方差 `msd(&self: &ContinuousProcess, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
-    - 原点矩 `raw_moment(&self: &ContinuousProcess, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
-    - 中心矩 `central_moment(&self: &ContinuousProcess, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
-    - 首次通过时间 `fpt(&self: &ContinuousProcess, domain: (impl Into<f64>, impl Into<f64>), max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>>`
-    - 占据时间 `occupation_time(&self: &ContinuousProcess, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>, time_step: f64) -> XResult<f64>`
-    - 时间平均均方差 `tamsd(&self: &ContinuousProcess, duration: impl Into<f64>, delta: impl Into<f64>, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64>`
-    - 可视化 `plot(&self: &ContinuousTrajectory, config: &PlotConfig) -> XResult<()>`
+    - 均值 `mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
+    - 均方差 `msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
+    - 原点矩 `raw_moment(&self, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
+    - 中心矩 `central_moment(&self, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
+    - 首次通过时间 `fpt(&self, domain: (impl Into<f64>, impl Into<f64>), max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>>`
+    - 占据时间 `occupation_time(&self, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>, time_step: f64) -> XResult<f64>`
+    - 时间平均均方差 `tamsd(&self, duration: impl Into<f64>, delta: impl Into<f64>, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64>`
+    - 路径 trait `ContinuousTrajectoryTrait` 和其用于可视化的子 trait `Visualize`
 
 示例：
 ```rust
