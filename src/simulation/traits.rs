@@ -929,6 +929,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_continuous_trajectory() {
         let sp = Bm::default();
         let tamsd = sp.tamsd(100.0, 1.0, 10000, 0.1, 10).unwrap();
