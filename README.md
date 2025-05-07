@@ -207,13 +207,14 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
    ```
 
 2. Implementing `ContinuousProcess` trait automatically provides
-    - mean `mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
-    - msd `msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
-    - raw moment `raw_moment(&self, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
-    - central moment `central_moment(&self, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
-    - first passage time `fpt(&self, domain: (impl Into<f64>, impl Into<f64>), max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>>`
-    - occupation time `occupation_time(&self, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>, time_step: f64) -> XResult<f64>`
-    - TAMSD `tamsd(&self, duration: impl Into<f64>, delta: impl Into<f64>, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64>`
+    - mean `mean(&self: &ContinuousProcess, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
+    - msd `msd(&self: &ContinuousProcess, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
+    - raw moment `raw_moment(&self: &ContinuousProcess, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
+    - central moment `central_moment(&self: &ContinuousProcess, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
+    - first passage time `fpt(&self: &ContinuousProcess, domain: (impl Into<f64>, impl Into<f64>), max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>>`
+    - occupation time `occupation_time(&self: &ContinuousProcess, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>, time_step: f64) -> XResult<f64>`
+    - TAMSD `tamsd(&self: &ContinuousProcess, duration: impl Into<f64>, delta: impl Into<f64>, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64>`
+    - Visualization `plot(&self: &ContinuousTrajectory, config: &PlotConfig) -> XResult<()>`
 
 Example:
 ```rust
