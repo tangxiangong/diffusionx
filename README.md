@@ -1,7 +1,7 @@
 # DiffusionX
 
 English | [简体中文](README-zh.md)
-> DiffusionX is a multi-threaded high-performance Rust library for random number generation and stochastic process simulation, designed for scientific computing and quantitative finance applications.
+> DiffusionX is a multi-threaded high-performance Rust library for random number generation and stochastic process simulation.
 
 [![docs.rs](https://img.shields.io/badge/docs.rs-latest-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
 [![crates.io](https://img.shields.io/crates/v/diffusionx.svg)](https://crates.io/crates/diffusionx)
@@ -206,10 +206,14 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
    }
    ```
 
-2. Automatic Feature Acquisition:
-    - Implementing `ContinuousProcess` trait automatically provides `ContinuousTrajectoryTrait` functionality
-    - `ContinuousTrajectory` provides access to the `Moment` trait functionality
-    - Built-in support for moment statistics calculation
+2. Implementing `ContinuousProcess` trait automatically provides
+    - mean `mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
+    - msd `msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
+    - raw moment `raw_moment(&self, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
+    - central moment `central_moment(&self, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
+    - first passage time `fpt(&self, domain: (impl Into<f64>, impl Into<f64>), max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>>`
+    - occupation time `occupation_time(&self, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>, time_step: f64) -> XResult<f64>`
+    - TAMSD `tamsd(&self, duration: impl Into<f64>, delta: impl Into<f64>, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64>`
 
 Example:
 ```rust
@@ -219,12 +223,12 @@ let traj = myprocess.duration(10)?;
 let mean = traj.raw_moment(1, 1000, 0.01)?;
 ```
 
-3. Parallel Computing Support:
+1. Parallel Computing Support:
     - Automatic parallel computation for moment calculations using Rayon
     - Default parallel strategy for statistical calculations
     - Configurable parallelism for optimal performance
 
-4. Visualization Support:
+2. Visualization Support:
     - Easy trajectory visualization with minimal code
     - Highly customizable plot configuration
 

@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-> DiffusionX 是一个多线程高性能的 Rust 随机数生成和随机过程模拟库，专为科学计算和量化金融应用设计。
+> DiffusionX 是一个多线程高性能的 Rust 随机数生成和随机过程模拟库。
 
 [![文档](https://img.shields.io/badge/文档-最新-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
 [![crates.io](https://img.shields.io/crates/v/diffusionx.svg)](https://crates.io/crates/diffusionx)
@@ -194,22 +194,24 @@ DiffusionX 为随机过程提供强大的泛函分布模拟功能：
    ```rust
    #[derive(Clone)]
    struct MyProcess {
-       // 您的参数
-       // 应该是 `Send + Sync` 以支持并行计算
+       // 您的参数应该是 `Send + Sync` 以支持并行计算
    }
 
    impl ContinuousProcess for MyProcess {
        fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
-           // 实现您的模拟逻辑
-           todo!()
+           todo!() // 实现您的模拟逻辑
        }
    }
    ```
 
-2. 自动获得功能：
-    - 实现 `ContinuousProcess` trait 后自动获得 `ContinuousTrajectoryTrait` 功能
-    - `ContinuousTrajectory` 提供对 `Moment` trait 功能的访问
-    - 内置支持矩统计量计算
+2. 实现 `ContinuousProcess` trait 后自动实现
+    - 均值 `mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
+    - 均方差 `msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64>`
+    - 原点矩 `raw_moment(&self, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
+    - 中心矩 `central_moment(&self, duration: impl Into<f64>, order: i32, particles: usize, time_step: f64) -> XResult<f64>`
+    - 首次通过时间 `fpt(&self, domain: (impl Into<f64>, impl Into<f64>), max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>>`
+    - 占据时间 `occupation_time(&self, domain: (impl Into<f64>, impl Into<f64>), duration: impl Into<f64>, time_step: f64) -> XResult<f64>`
+    - 时间平均均方差 `tamsd(&self, duration: impl Into<f64>, delta: impl Into<f64>, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64>`
 
 示例：
 ```rust
@@ -219,12 +221,12 @@ let traj = myprocess.duration(10)?;
 let mean = traj.raw_moment(1, 1000, 0.01)?;
 ```
 
-3. 并行计算支持：
+1. 并行计算支持：
     - 矩计算自动支持通过 Rayon 进行并行计算
     - 统计量计算默认使用并行策略
     - 可配置的并行性能优化
 
-4. 可视化支持：
+2. 可视化支持：
     - 简单代码即可实现轨迹可视化
     - 高度可定制的绘图配置
 
