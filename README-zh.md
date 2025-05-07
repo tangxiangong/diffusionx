@@ -104,19 +104,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bm = Bm::default();
     // 创建持续时间为 1.0 的轨迹
     let traj = bm.duration(1.0)?;
-    // 模拟布朗运动轨迹，时间步长为 0.01
+    // 使用时间步长 0.01 模拟布朗运动轨迹
     let (times, positions) = traj.simulate(0.01)?;
+    println!("times: {:?}", times);
+    println!("positions: {:?}", positions);
 
     // 计算一阶原点矩，1000 个粒子，时间步长为 0.01
     let mean = traj.raw_moment(1, 1000, 0.01)?;
+    println!("mean: {:?}", mean);
     // 计算二阶中心矩，1000 个粒子，时间步长为 0.01
     let msd = traj.central_moment(2, 1000, 0.01)?;
+    println!("msd: {:?}", msd);
     // 计算 TAMSD，100.0 的持续时间，1.0 的 delta，10000 个粒子，时间步长为 0.1，Gauss-Legendre 积分阶数为 10
     let tamsd = bm.tamsd(100.0, 1.0, 10000, 0.1, 10)?;
-
-    // 计算边界为 -1.0 和 1.0 的首次通过时间
-    let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
-
+    println!("tamsd: {:?}", tamsd);
+    // 计算布朗运动首次通过时间，边界为 -1.0 和 1.0
+    let fpt = bm.fpt((-1.0, 1.0), 1000, 0.01)?;
+    println!("fpt: {:?}", fpt);
     Ok(())
 }
 ```

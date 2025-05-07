@@ -105,17 +105,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let traj = bm.duration(1.0)?;
     // Simulate Brownian motion trajectory with time step 0.01
     let (times, positions) = traj.simulate(0.01)?;
+    println!("times: {:?}", times);
+    println!("positions: {:?}", positions);
 
     // Calculate first-order raw moment with 1000 particles and time step 0.01
     let mean = traj.raw_moment(1, 1000, 0.01)?;
+    println!("mean: {:?}", mean);
     // Calculate second-order central moment with 1000 particles and time step 0.01
     let msd = traj.central_moment(2, 1000, 0.01)?;
+    println!("msd: {:?}", msd);
     // Calculate TAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1, and Gauss-Legendre quadrature order 10
     let tamsd = bm.tamsd(100.0, 1.0, 10000, 0.1, 10)?;
-
+    println!("tamsd: {:?}", tamsd);
     // Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
-    let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
-
+    let fpt = bm.fpt((-1.0, 1.0), 1000, 0.01)?;
+    println!("fpt: {:?}", fpt);
     Ok(())
 }
 ```
