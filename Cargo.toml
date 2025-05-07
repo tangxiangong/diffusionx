@@ -31,6 +31,7 @@ num-traits = "0.2"
 rustfft = "6.3"
 num-complex = "0.4"
 once_cell = "1.21"
+gauss-quad = "0.2.3"
 
 # optional dependencies
 plotters = { version = "0.3", optional = true }
