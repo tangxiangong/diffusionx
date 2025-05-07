@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.10] - 2025-05-07
+
+### 🚀 Features
+
+- Add `TAMSD` struct and implementation for time-averaged mean square displacement
+- Add GaussLegendreError to XError enum
+- Refactor README examples to include main function
+
+### 📚 Documentation
+
+- Update traits.rs documentation to include structs
+
+### 🧪 Testing
+
+- Ignore continuous trajectory test for now
+
+### ⚙️ Miscellaneous Tasks
+
+- Update py-diffusion submodule to dirty state
+- Add gauss-quad dependency in Cargo.toml
+- Add categories and keywords in Cargo.toml
+- Bump version to 0.3.10 in Cargo.toml
+
+## [0.3.9] - 2025-05-06
+
+### 🚀 Features
+
+- Implement From trait for PlotterError to XError
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.3.9 in Cargo.toml
+
+## [0.3.8] - 2025-05-06
+
+### 🐛 Bug Fixes
+
+- Expose csv module in utils for better accessibility
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.3.7
+- Add py-diffusion submodule
+- Bump version to 0.3.8 in Cargo.toml
+
 ## [0.3.7] - 2025-05-06
 
 ### 🚀 Features
