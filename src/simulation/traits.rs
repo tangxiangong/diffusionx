@@ -1,5 +1,6 @@
-//! Traits for stochastic processes
+//! Traits and structs for stochastic processes
 //!
+//! ## Traits
 //! - Continuous process [ContinuousProcess]
 //! - Point process [PointProcess]
 //! - Discrete process [DiscreteProcess]
@@ -7,6 +8,12 @@
 //! - Discrete trajectory [DiscreteTrajectory]
 //! - Moment [Moment]
 //! - Inverse process [Inverse]
+//!
+//! ## Structs
+//! - ContinuousTrajectory [ContinuousTrajectory]
+//! - DiscreteTrajectory [DiscreteTrajectory]
+//! - PointTrajectory [PointTrajectory]
+//! - TAMSD [TAMSD]
 //!
 
 use crate::{
