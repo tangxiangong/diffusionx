@@ -8,7 +8,6 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 readme = "README.md"
 categories = ["science", "mathematics"]
-keywords = ["math", "random number", "stochastic process", "anomalous diffusion"]
 
 [lib]
 name = "diffusionx"
