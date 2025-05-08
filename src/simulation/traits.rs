@@ -910,6 +910,20 @@ impl<T: ContinuousProcess> TAMSD<T> {
             .try_reduce(|| 0.0, |a, b| Ok(a + b))?
             / particles as f64)
     }
+
+    /// Get the variance of the TAMSD
+    pub fn variance(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+        let mean = self.mean(particles, time_step, quad_order)?;
+        Ok((0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let value = self.simulate(time_step, quad_order)?;
+                Ok((value - mean).powi(2))
+            })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64)
+    }
 }
 
 fn nodes_weights_transform(
