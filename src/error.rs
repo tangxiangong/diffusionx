@@ -43,6 +43,7 @@ pub enum XError {
     #[error("Simulate Error: {0}")]
     SimulateError(#[from] SimulationError),
     /// Error for visualization
+    #[cfg(feature = "visualize")]
     #[error("Visualization Error: {0}")]
     VisualizationError(#[from] PlotterError),
     /// Error for invalid parameters in various contexts
@@ -63,6 +64,10 @@ pub enum XError {
     /// Gauss-Legendre quadrature error
     #[error("Gauss-Legendre quadrature error: {0}")]
     GaussLegendreError(#[from] GaussLegendreError),
+    /// Plotter Config Error
+    #[cfg(feature = "visualize")]
+    #[error("Plotter Config Error: {0}")]
+    BuilderError(#[from] crate::visualize::config::PlotConfigBuilderError),
 }
 
 /// Error type for stable distribution sampling
@@ -112,7 +117,8 @@ pub enum SimulationError {
 ///
 /// This enum provides a more specific error classification for
 /// plotting and visualization errors.
-#[derive(Error, Debug, PartialEq, Eq, Clone)]
+#[cfg(feature = "visualize")]
+#[derive(Error, Debug)]
 pub enum PlotterError {
     /// Error for invalid visualization configuration
     #[error("Config Error: {0}")]
