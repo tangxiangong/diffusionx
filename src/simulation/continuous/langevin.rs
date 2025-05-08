@@ -116,14 +116,25 @@ where
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let mut x = vec![0.0; num + 1];
-    x[0] = start_position.into();
+
+    let initial_x = start_position.into();
     let noise = normal::standard_rands(num);
-    for i in 1..=num {
-        x[i] = x[i - 1]
-            + drift(x[i - 1], t[i - 1]) * time_step
-            + diffusion(x[i - 1], t[i - 1]) * noise[i - 1] * time_step.sqrt();
-    }
+
+    // 使用迭代器风格生成路径
+    let x = std::iter::once(initial_x)
+        .chain((0..num).scan(initial_x, |state, i| {
+            let current_x = *state;
+            let current_t = t[i];
+
+            let next_x = current_x
+                + drift(current_x, current_t) * time_step
+                + diffusion(current_x, current_t) * noise[i] * time_step.sqrt();
+
+            *state = next_x;
+            Some(next_x)
+        }))
+        .collect();
+
     Ok((t, x))
 }
 
