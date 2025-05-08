@@ -146,10 +146,29 @@ pub trait ContinuousProcess: Clone + Send + Sync {
     ///
     /// * `duration` - The duration of the simulation.
     /// * `delta` - The clip length.
-    /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the quadrature.
     fn tamsd(
+        &self,
+        duration: impl Into<f64>,
+        delta: impl Into<f64>,
+        time_step: f64,
+        quad_order: usize,
+    ) -> XResult<f64> {
+        let tamsd = TAMSD::new(self, duration, delta)?;
+        tamsd.simulate(time_step, quad_order)
+    }
+
+    /// Get the ensemble average of the time-averaged mean square displacement of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `delta` - The clip length.
+    /// * `time_step` - The time step of the simulation.
+    /// * `particles` - The number of particles.
+    /// * `quad_order` - The order of the quadrature.
+    fn eatamsd(
         &self,
         duration: impl Into<f64>,
         delta: impl Into<f64>,
@@ -157,8 +176,8 @@ pub trait ContinuousProcess: Clone + Send + Sync {
         time_step: f64,
         quad_order: usize,
     ) -> XResult<f64> {
-        let tamsd = TAMSD::new(self.clone(), duration, delta)?;
-        tamsd.simulate(particles, time_step, quad_order)
+        let tamsd = TAMSD::new(self, duration, delta)?;
+        tamsd.mean(particles, time_step, quad_order)
     }
 }
 
@@ -213,7 +232,7 @@ pub trait DiscreteProcess: Clone + Send + Sync {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     fn central_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step).unwrap();
+        let traj = self.step(num_step)?;
         traj.central_moment(order, particles, 0.1)
     }
 }
@@ -805,7 +824,7 @@ impl<T: ContinuousProcess> TAMSD<T> {
     /// * `process` - The process to calculate the TAMSD of.
     /// * `duration` - The duration of the simulation.
     /// * `delta` - The clip length.
-    pub fn new(process: T, duration: impl Into<f64>, delta: impl Into<f64>) -> XResult<Self> {
+    pub fn new(process: &T, duration: impl Into<f64>, delta: impl Into<f64>) -> XResult<Self> {
         let duration = duration.into();
         let delta = delta.into();
         if duration <= 0.0 {
@@ -831,7 +850,7 @@ impl<T: ContinuousProcess> TAMSD<T> {
             .into());
         }
         Ok(Self {
-            process,
+            process: process.clone(),
             duration,
             delta,
         })
@@ -853,7 +872,7 @@ impl<T: ContinuousProcess> TAMSD<T> {
     }
 
     /// Simulate the TAMSD
-    pub fn simulate(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+    pub fn simulate(&self, time_step: f64, quad_order: usize) -> XResult<f64> {
         let legendre_quad = GaussLegendre::new(quad_order)?;
         let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
         let duration = self.duration;
@@ -863,46 +882,34 @@ impl<T: ContinuousProcess> TAMSD<T> {
         let result = nodes_weights
             .into_par_iter()
             .map(|(node, weight)| -> XResult<f64> {
-                let cov = sub_covariance(&sp, duration, node, particles, time_step)?;
-                Ok(cov * weight)
+                let slag_length = (slag / time_step).ceil() as usize;
+                let (_, x) = sp.simulate(node + slag, time_step)?;
+                let len = x.len();
+                let end_position = x.last();
+                let slag_position = x.get(len - slag_length - 1);
+                if end_position.is_none() || slag_position.is_none() {
+                    return Err(SimulationError::Unknown.into());
+                }
+                let end_position = *end_position.unwrap();
+                let slag_position = *slag_position.unwrap();
+
+                Ok((end_position - slag_position).powi(2) * weight)
             })
             .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
             .try_reduce(|| 0.0, |a, b| Ok(a + b))?
             / (duration - slag);
         Ok(result)
     }
-}
 
-/// Calculate the covariance of one processes
-fn sub_covariance<T: ContinuousProcess>(
-    process: &T,
-    duration: impl Into<f64>,
-    slag: impl Into<f64>,
-    particles: usize,
-    time_step: f64,
-) -> XResult<f64> {
-    let duration: f64 = duration.into();
-    let slag: f64 = slag.into();
-    let sp = process.clone();
-    let slag_length = (slag / time_step).ceil() as usize;
-    let result = (0..particles)
-        .into_par_iter()
-        .map(|_| -> XResult<f64> {
-            let (_, x) = sp.simulate(duration + slag, time_step)?;
-            let len = x.len();
-            let end_position = x.last();
-            let slag_position = x.get(len - slag_length - 1);
-            if end_position.is_none() || slag_position.is_none() {
-                return Err(SimulationError::Unknown.into());
-            }
-            let end_position = *end_position.unwrap();
-            let slag_position = *slag_position.unwrap();
-            Ok((end_position - slag_position).powi(2))
-        })
-        .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-        .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-        / particles as f64;
-    Ok(result)
+    /// Get the ensemble average of the TAMSD
+    pub fn mean(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+        Ok((0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> { self.simulate(time_step, quad_order) })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64)
+    }
 }
 
 fn nodes_weights_transform(
@@ -939,7 +946,10 @@ mod tests {
     #[ignore]
     fn test_continuous_trajectory() {
         let sp = Bm::default();
-        let tamsd = sp.tamsd(100.0, 1.0, 10000, 0.1, 10).unwrap();
-        println!("{:?}", tamsd);
+        let tamsd = TAMSD::new(&sp, 100.0, 1.0).unwrap();
+        let value = tamsd.simulate(0.1, 10).unwrap();
+        println!("{:?}", value);
+        let eatamsd = tamsd.mean(10000, 0.1, 10).unwrap();
+        println!("{:?}", eatamsd);
     }
 }
