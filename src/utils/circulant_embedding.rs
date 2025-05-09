@@ -8,26 +8,34 @@ use std::sync::{Arc, Mutex};
 static FFT_PLANNER: Lazy<Mutex<FftPlanner<f64>>> = Lazy::new(|| Mutex::new(FftPlanner::new()));
 
 /// Circulant embedding method for generating stationary Gaussian random fields with given correlation functions
-///
-/// # Fields
-///
-/// * `size` - Number of grid points per dimension
-/// * `correlation_fn` - Correlation function, takes distance as input and returns correlation
 pub struct CirculantEmbedding {
+    /// Number of grid points per dimension
     size: usize,
+    /// Correlation function, takes distance as input and returns correlation
     correlation_fn: Box<dyn Fn(f64) -> f64 + Send + Sync + 'static>,
+    /// Cache of the first row of the circulant embedding matrix
     first_row_cache: Option<Vec<f64>>,
+    /// Cache of the eigenvalues of the circulant embedding matrix
     eigenvalues_cache: Option<Vec<Complex<f64>>>,
+    /// Cache of the inverse FFT plan of the circulant embedding matrix
     fft_inverse_plan: Option<Arc<dyn Fft<f64>>>,
 }
 
 impl CirculantEmbedding {
-    /// Create a new one-dimensional circulant embedding instance
+    /// Create a new `CirculantEmbedding`
     ///
-    /// # Parameters
+    /// # Arguments
     ///
     /// * `size` - Number of grid points per dimension
     /// * `correlation_fn` - Correlation function, takes distance as input and returns correlation
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::utils::CirculantEmbedding;
+    ///
+    /// let embedding = CirculantEmbedding::new(100, |r| (-r / 10.0).exp());
+    /// ```
     pub fn new<F>(size: usize, correlation_fn: F) -> Self
     where
         F: Fn(f64) -> f64 + Send + Sync + 'static,
@@ -43,6 +51,16 @@ impl CirculantEmbedding {
 
     /// Precompute and cache the first row of the circulant embedding matrix,
     /// its eigenvalues (via FFT), and the inverse FFT plan.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::utils::CirculantEmbedding;
+    ///
+    /// let embedding = CirculantEmbedding::new(100, |r| (-r / 10.0).exp());
+    /// let embedding = CirculantEmbedding::new(100, |r| (-r / 10.0).exp());
+    /// embedding.precompute_correlation().unwrap();
+    /// ```
     pub fn precompute_correlation(&mut self) -> XResult<()> {
         let n = self.size;
         let m = 2 * n;
@@ -144,8 +162,6 @@ impl CirculantEmbedding {
             // Return computed eigenvalues and inverse plan
             (complex_data, inverse_fft)
         };
-
-        // --- Common logic starts here ---
 
         // Generate a random Gaussian vector (components for complex noise)
         let z_real = normal::standard_rands(m);

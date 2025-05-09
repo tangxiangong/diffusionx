@@ -12,12 +12,11 @@
 //! - `calculate_stats`: Calculate the mean and variance of an array.
 //! - `calculate_int_stats`: Calculate the mean and variance of an integer array.
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
-
-use std::path::Path;
-
-use num_traits::Num;
+//!
 
 use crate::{PlotterError, XResult};
+use num_traits::Num;
+use std::path::Path;
 
 /// Calculate the cumulative sum of a vector
 ///
@@ -25,17 +24,14 @@ use crate::{PlotterError, XResult};
 ///
 /// # Arguments
 ///
-/// * `start`: The initial value of the cumulative sum
-/// * `v`: The vector to calculate the cumulative sum of
-///
-/// # Returns
-///
-/// Returns a vector of cumulative sums
+/// * `start` - The initial value of the cumulative sum
+/// * `v` - The vector to calculate the cumulative sum of
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::utils::cumsum;
+///
 /// let v = vec![1, 2, 3, 4, 5];
 /// let result = cumsum(0, &v);
 /// assert_eq!(result, vec![0, 1, 3, 6, 10, 15]);
@@ -63,14 +59,11 @@ where
 /// * `b` - The second number
 /// * `tol` - The tolerance
 ///
-/// # Returns
-///
-/// Returns true if the two numbers are approximately equal within the tolerance, otherwise returns false.
-///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::utils::approx_eq;
+///
 /// let a = 1.0;
 /// let b = 1.0;
 /// let result = approx_eq(a, b, 1.0e-6);
@@ -109,14 +102,11 @@ pub(crate) fn ensure_output_dir(path: &Path) -> XResult<()> {
 /// * `a` - The first number
 /// * `b` - The second number
 ///
-/// # Returns
-///
-/// Returns true if the two numbers are equal within the f64 precision, otherwise returns false.
-///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::utils::float_eq;
+///
 /// let a = 1.0;
 /// let b = 1.0;
 /// let result = float_eq(a, b);
@@ -134,14 +124,11 @@ pub fn float_eq(a: f64, b: f64) -> bool {
 /// * `x` - The value of the independent variable
 /// * `arr` - The coefficients of the polynomial
 ///
-/// # Returns
-///
-/// The value of the polynomial at `x`.
-///
 /// # Example
 ///
 /// ```
 /// use diffusionx::utils::eval_poly;
+///
 /// let y = eval_poly(0.5, &[16., 0., 20., 0., 5., 0.]); // 6th first-kind Chebyshev polynomial
 /// ```
 pub fn eval_poly(x: f64, arr: &[f64]) -> f64 {
@@ -162,10 +149,6 @@ pub fn minmax(arr: &[f64]) -> (f64, f64) {
 /// # Arguments
 ///
 /// * `samples` - The array to calculate the mean and variance of
-///
-/// # Returns
-///
-/// Return a tuple, containing the mean and variance
 #[cfg(test)]
 pub fn calculate_stats(samples: &[f64]) -> (f64, f64) {
     let n = samples.len() as f64;
@@ -179,10 +162,6 @@ pub fn calculate_stats(samples: &[f64]) -> (f64, f64) {
 /// # Arguments
 ///
 /// * `samples` - The integer array to calculate the mean and variance of
-///
-/// # Returns
-///
-/// Return a tuple, containing the mean and variance
 #[cfg(test)]
 pub fn calculate_int_stats(samples: &[u64]) -> (f64, f64) {
     let n = samples.len() as f64;
@@ -200,10 +179,6 @@ pub fn calculate_int_stats(samples: &[u64]) -> (f64, f64) {
 /// # Arguments
 ///
 /// * `samples` - The boolean array to calculate the mean of
-///
-/// # Returns
-///
-/// Return the proportion of True
 #[cfg(test)]
 pub fn calculate_bool_mean(samples: &[bool]) -> f64 {
     samples.iter().filter(|&&x| x).count() as f64 / samples.len() as f64
