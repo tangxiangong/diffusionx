@@ -1,3 +1,6 @@
+//! Random walk simulation
+//!
+
 use crate::{
     SimulationError, XResult,
     random::{exponential, stable, uniform::bool_rands},
@@ -20,15 +23,13 @@ use rayon::prelude::*;
 /// - X_0 is the initial position
 /// - a is the step size
 /// - d_n^{(p)} is the direction of the step, which is either +1 or -1 with probability p or 1-p respectively
-///
-/// # Fields
-/// - `step_size`: The step size of the random walk.
-/// - `probability`: The probability of the step in the positive direction.
-/// - `start_position`: The starting position of the process.
 #[derive(Clone, Debug)]
 pub struct LatticeRandomWalk {
+    /// The step size
     step_size: f64,
+    /// The probability of the step in the positive direction
     probability: f64,
+    /// The starting position
     start_position: f64,
 }
 
@@ -43,13 +44,21 @@ impl Default for LatticeRandomWalk {
 }
 
 impl LatticeRandomWalk {
-    /// Create a new lattice random walk
+    /// Create a new `LatticeRandomWalk`
     ///
     /// # Arguments
     ///
-    /// * `step_size` - The step size of the lattice random walk.
-    /// * `probability` - The probability of the step in the positive direction.
-    /// * `start_position` - The starting position of the process.
+    /// * `step_size` - The step size
+    /// * `probability` - The probability of the step in the positive direction
+    /// * `start_position` - The starting position
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::LatticeRandomWalk;
+    ///
+    /// let rw = LatticeRandomWalk::new(1.0, 0.5, 0.0).unwrap();
+    /// ```
     pub fn new(
         step_size: impl Into<f64>,
         probability: impl Into<f64>,
@@ -79,7 +88,7 @@ impl LatticeRandomWalk {
         })
     }
 
-    /// Get the step size of the lattice random walk
+    /// Get the step size
     pub fn step_size(&self) -> f64 {
         self.step_size
     }
@@ -89,124 +98,25 @@ impl LatticeRandomWalk {
         self.probability
     }
 
-    /// Get the start position of the lattice random walk
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
-
-    /// Simulate the lattice random walk
-    ///
-    /// # Arguments
-    ///
-    /// * `num_step` - The number of steps of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::LatticeRandomWalk;
-    /// let rw = LatticeRandomWalk::default();
-    /// let (t, x) = rw.simulate(1000).unwrap();
-    /// ```
-    pub fn simulate(&self, num_step: usize) -> XResult<DiscretePair> {
-        simulate_lattice_random_walk(
-            self.step_size,
-            self.probability,
-            self.start_position,
-            num_step,
-        )
-    }
-
-    /// Get the mean of the lattice random walk simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `num_step` - The number of steps of the simulation.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::LatticeRandomWalk;
-    /// let rw = LatticeRandomWalk::default();
-    /// let mean = rw.mean(1000).unwrap();
-    /// ```
-    pub fn mean(&self, num_step: usize, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step)?;
-        traj.raw_moment(1, particles, 0.1)
-    }
-
-    /// Get the mean square displacement of the lattice random walk simulation
-    ///
-    /// # Arguments
-    ///
-    /// * `num_step` - The number of steps of the simulation.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::LatticeRandomWalk;
-    /// let rw = LatticeRandomWalk::default();
-    /// let msd = rw.msd(1000).unwrap();
-    /// ```
-    pub fn msd(&self, num_step: usize, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step)?;
-        traj.central_moment(2, particles, 0.1)
-    }
-
-    /// Get the raw moment of the lattice random walk
-    ///
-    /// # Arguments
-    ///
-    /// * `num_step` - The number of steps.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::LatticeRandomWalk;
-    /// let rw = LatticeRandomWalk::default();
-    /// let moment = rw.raw_moment(1.0, 1000).unwrap();
-    /// ```
-    pub fn raw_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step)?;
-        traj.raw_moment(order, particles, 0.1)
-    }
-
-    /// Get the central moment of the lattice random walk
-    ///
-    /// # Arguments
-    ///
-    /// * `num_step` - The number of steps.
-    /// * `order` - The order of the moment.
-    /// * `particles` - The number of particles.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::LatticeRandomWalk;
-    /// let rw = LatticeRandomWalk::default();
-    /// let msd = rw.msd(1.0, 1000).unwrap();
-    /// ```
-    pub fn central_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step)?;
-        traj.central_moment(order, particles, 0.1)
-    }
 }
 
-/// impl `DiscreteProcess` trait for LatticeRandomWalk
+/// impl `DiscreteProcess` trait for `LatticeRandomWalk`
 impl DiscreteProcess for LatticeRandomWalk {
     /// Simulate the lattice random walk
     ///
     /// # Arguments
     ///
-    /// * `num_step` - The number of steps of the simulation.
+    /// * `num_step` - The number of steps
     ///
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::LatticeRandomWalk;
+    /// use diffusionx::simulation::{discrete::LatticeRandomWalk, prelude::*};
+    ///
     /// let rw = LatticeRandomWalk::default();
     /// let (t, x) = rw.simulate(1000).unwrap();
     /// ```
@@ -224,15 +134,16 @@ impl DiscreteProcess for LatticeRandomWalk {
 ///
 /// # Arguments
 ///
-/// * `step_size` - The step size of the lattice random walk.
-/// * `probability` - The probability of the step in the positive direction.
-/// * `start_position` - The starting position of the process.
-/// * `num_step` - The number of steps of the simulation.
+/// * `step_size` - The step size
+/// * `probability` - The probability of the step in the positive direction
+/// * `start_position` - The starting position
+/// * `num_step` - The number of steps
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::lattice_random_walk::simulate_lattice_random_walk;
+///
 /// let (t, x) = simulate_lattice_random_walk(0.5, 0.5, 0.0, 1000).unwrap();
 /// ```
 pub fn simulate_lattice_random_walk(
@@ -263,15 +174,13 @@ pub fn simulate_lattice_random_walk(
 /// - X_n is the position after n steps
 /// - X_0 is the initial position
 /// - a_i is the step size
-///
-/// # Fields
-/// - `probability`: The probability of the step in the positive direction.
-/// - `alpha`: The alpha parameter of the stable distribution.
-/// - `start_position`: The starting position of the process.
 #[derive(Clone, Debug)]
 pub struct RandomWalk {
+    /// The probability of the step in the positive direction
     probability: f64,
+    /// The alpha parameter of the stable distribution
     alpha: f64,
+    /// The starting position
     start_position: f64,
 }
 
@@ -286,18 +195,19 @@ impl Default for RandomWalk {
 }
 
 impl RandomWalk {
-    /// Create a new random walk
+    /// Create a new `RandomWalk`
     ///
     /// # Arguments
     ///
-    /// * `probability` - The probability of the step in the positive direction.
-    /// * `alpha` - The alpha parameter of the stable distribution.
-    /// * `start_position` - The starting position of the process.
+    /// * `probability` - The probability of the step in the positive direction
+    /// * `alpha` - The alpha parameter of the stable distribution
+    /// * `start_position` - The starting position
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::RandomWalk;
+    ///
     /// let rw = RandomWalk::new(0.5, 1.0, 0.0).unwrap();
     /// ```
     pub fn new(
@@ -339,24 +249,25 @@ impl RandomWalk {
         self.alpha
     }
 
-    /// Get the start position of the random walk
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 }
 
-/// impl `DiscreteProcess` trait for RandomWalk
+/// impl `DiscreteProcess` trait for `RandomWalk`
 impl DiscreteProcess for RandomWalk {
     /// Simulate the random walk
     ///
     /// # Arguments
     ///
-    /// * `num_step` - The number of steps of the simulation.
+    /// * `num_step` - The number of steps
     ///
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::RandomWalk;
+    /// use diffusionx::simulation::{discrete::RandomWalk, prelude::*};
+    ///
     /// let rw = RandomWalk::default();
     /// let (t, x) = rw.simulate(1000).unwrap();
     /// ```
@@ -369,15 +280,16 @@ impl DiscreteProcess for RandomWalk {
 ///
 /// # Arguments
 ///
-/// * `probability` - The probability of the step in the positive direction.
-/// * `alpha` - The alpha parameter of the stable distribution.
-/// * `start_position` - The starting position of the process.
-/// * `num_step` - The number of steps of the simulation.
+/// * `probability` - The probability of the step in the positive direction
+/// * `alpha` - The alpha parameter of the stable distribution
+/// * `start_position` - The starting position
+/// * `num_step` - The number of steps
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::random_walk::simulate_random_walk;
+///
 /// let (t, x) = simulate_random_walk(0.5, 1.0, 0.0, 1000).unwrap();
 /// ```
 pub fn simulate_random_walk(
