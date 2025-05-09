@@ -6,29 +6,32 @@ use rayon::prelude::*;
 
 /// Gamma process
 ///
-/// This struct represents an Gamma process.
-///
 /// # Mathematical Formulation
 ///
 /// A Gamma process is a process that is non-negative and has a non-decreasing sample path with a Gamma distribution.
-///
-/// # Fields
-///
-/// * `shape` - The shape parameter of the Gamma distribution.
-/// * `rate` - The rate parameter of the Gamma distribution.
 #[derive(Debug, Clone)]
 pub struct Gamma {
+    /// The shape parameter
     shape: f64,
+    /// The rate parameter
     rate: f64,
 }
 
 impl Gamma {
-    /// Create a new Gamma process
+    /// Create a new `Gamma`
     ///
     /// # Arguments
     ///
-    /// * `shape` - The shape parameter of the Gamma distribution.
-    /// * `rate` - The rate parameter of the Gamma distribution.
+    /// * `shape` - The shape parameter.
+    /// * `rate` - The rate parameter.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::Gamma;
+    ///
+    /// let gamma = Gamma::new(0.5, 1.0).unwrap();
+    /// ```
     pub fn new(shape: impl Into<f64>, rate: impl Into<f64>) -> XResult<Self> {
         let shape = shape.into();
         let rate = rate.into();
@@ -49,45 +52,50 @@ impl Gamma {
         Ok(Self { shape, rate })
     }
 
-    /// Get the shape parameter of the Gamma distribution
+    /// Get the shape parameter
     pub fn shape(&self) -> f64 {
         self.shape
     }
 
-    /// Get the rate parameter of the Gamma distribution
+    /// Get the rate parameter
     pub fn rate(&self) -> f64 {
         self.rate
     }
 }
 
-/// impl `ContinuousProcess` trait for Gamma
+/// impl `ContinuousProcess` trait for `Gamma`
 impl ContinuousProcess for Gamma {
     /// Simulate Gamma process
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the Gamma process simulation.
-    /// * `time_step` - The time step of the Gamma process simulation.
+    /// * `duration` - The duration of the trajectory.
+    /// * `time_step` - The time step of the simulation.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::continuous::Gamma;
+    ///
     /// let gamma = Gamma::new(0.5, 1.0).unwrap();
-    /// let (t, x) = gamma.simulate(1.0, 0.1).unwrap();
+    /// let time_step = 0.1;
+    /// let duration = 1.0;
+    /// let (t, x) = gamma.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "time_step must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got {}",
+                time_step
+            ))
             .into());
         }
         let duration = duration.into();
         if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
             .into());
         }
         simulate_gamma(self.shape, self.rate, duration, time_step)
@@ -96,20 +104,23 @@ impl ContinuousProcess for Gamma {
 
 /// Simulate Gamma process
 ///
-/// This function simulates Gamma process.
-///
 /// # Arguments
 ///
-/// * `shape` - The shape parameter of the Gamma distribution.
-/// * `rate` - The rate parameter of the Gamma distribution.
-/// * `duration` - The duration of the Gamma process simulation.
-/// * `time_step` - The time step of the Gamma process simulation.
+/// * `shape` - The shape parameter.
+/// * `rate` - The rate parameter.
+/// * `duration` - The duration of the trajectory.
+/// * `time_step` - The time step of the simulation.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::gamma::simulate_gamma;
-/// let (t, x) = simulate_gamma(0.5, 1.0, 1.0, 0.1).unwrap();
+///
+/// let shape = 0.5;
+/// let rate = 1.0;
+/// let duration = 1.0;
+/// let time_step = 0.1;
+/// let (t, x) = simulate_gamma(shape, rate, duration, time_step).unwrap();
 /// ```
 pub fn simulate_gamma(
     shape: f64,

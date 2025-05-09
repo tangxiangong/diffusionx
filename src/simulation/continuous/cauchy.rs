@@ -2,33 +2,35 @@
 //!
 //! The Cauchy process is a Lévy process with alpha = 1.
 //!
-//! For Lévy process, see [`crate::simulation::continuous::levy`].
 
 use crate::{SimulationError, XResult, simulation::prelude::*};
 
 use super::{simulate_asymmetric_levy, simulate_levy};
 
 /// Asymmetric Cauchy process
-///
-/// This struct represents a Cauchy process.
-///
-/// # Fields
-///
-/// * `start_position` - The starting position of the Cauchy process.
-/// * `beta` - The asymmetry parameter of the asymmetric Cauchy process.
 #[derive(Debug, Clone)]
 pub struct AsymmetricCauchy {
+    /// The starting position
     start_position: f64,
+    /// The asymmetry parameter
     beta: f64,
 }
 
 impl AsymmetricCauchy {
-    /// Create a new asymmetric Cauchy process simulation
+    /// Create a new `AsymmetricCauchy`
     ///
     /// # Arguments
     ///
-    /// * `start_position` - The starting position of the asymmetric Cauchy process.
-    /// * `beta` - The asymmetry parameter of the asymmetric Cauchy process.
+    /// * `start_position` - The starting position.
+    /// * `beta` - The asymmetry parameter.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::AsymmetricCauchy;
+    ///
+    /// let cauchy = AsymmetricCauchy::new(0.0, 0.4).unwrap();
+    /// ```
     pub fn new(start_position: impl Into<f64>, beta: impl Into<f64>) -> XResult<Self> {
         let start_position = start_position.into();
         let beta = beta.into();
@@ -45,36 +47,35 @@ impl AsymmetricCauchy {
         })
     }
 
-    /// Get the starting position of the asymmetric Cauchy process simulation
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
-    /// Get the asymmetry parameter of the asymmetric Cauchy process simulation
+    /// Get the asymmetry parameter
     pub fn asymmetry(&self) -> f64 {
         self.beta
     }
 }
 
-/// impl `ContinuousProcess` trait for AsymmetricCauchy process
+/// impl `ContinuousProcess` trait for `AsymmetricCauchy`
 impl ContinuousProcess for AsymmetricCauchy {
     /// Simulate asymmetric Cauchy process
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the asymmetric Cauchy process simulation.
-    /// * `time_step` - The time step of the asymmetric Cauchy process simulation.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the asymmetric Cauchy process simulation.
+    /// * `duration` - The duration of the trajectory.
+    /// * `time_step` - The time step of the simulation.
     ///
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::continuous::AsymmetricCauchy;
+    /// use diffusionx::simulation::{continuous::AsymmetricCauchy, prelude::*};
+    ///
     /// let cauchy = AsymmetricCauchy::new(0.0, 0.4).unwrap();
-    /// let (t, x) = cauchy.simulate(10.0, 0.1).unwrap();
+    /// let time_step = 0.1;
+    /// let duration = 1.0;
+    /// let (t, x) = cauchy.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
@@ -98,20 +99,21 @@ impl ContinuousProcess for AsymmetricCauchy {
 
 /// Simulate asymmetric Cauchy process
 ///
-/// This function simulates asymmetric Cauchy process.
-///
 /// # Arguments
 ///
-/// * `start_position` - The starting position of the asymmetric Cauchy process.
-/// * `beta` - The asymmetry parameter of the asymmetric Cauchy process.
-/// * `duration` - The duration of the asymmetric Cauchy process.
-/// * `time_step` - The time step of the asymmetric Cauchy process.
+/// * `start_position` - The starting position.
+/// * `beta` - The asymmetry parameter.
+/// * `duration` - The duration of the trajectory.
+/// * `time_step` - The time step of the simulation.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::cauchy::simulate_asymmetric_cauchy;
-/// let (t, x) = simulate_asymmetric_cauchy(0.0, 0.4, 10.0, 0.1).unwrap();
+///
+/// let time_step = 0.1;
+/// let duration = 1.0;
+/// let (t, x) = simulate_asymmetric_cauchy(0.0, 0.4, duration, time_step).unwrap();
 /// ```
 pub fn simulate_asymmetric_cauchy(
     start_position: impl Into<f64>,
@@ -123,14 +125,9 @@ pub fn simulate_asymmetric_cauchy(
 }
 
 /// Cauchy process
-///
-/// This struct represents a Cauchy process.
-///
-/// # Fields
-///
-/// * `start_position` - The starting position of the Cauchy process.
 #[derive(Debug, Clone)]
 pub struct Cauchy {
+    /// The starting position
     start_position: f64,
 }
 
@@ -143,41 +140,48 @@ impl Default for Cauchy {
 }
 
 impl Cauchy {
-    /// Create a new Cauchy process simulation
+    /// Create a new `Cauchy`
     ///
     /// # Arguments
     ///
-    /// * `start_position` - The starting position of the Cauchy process.
-    pub fn new(start_position: impl Into<f64>) -> Self {
-        let start_position = start_position.into();
-        Self { start_position }
-    }
-
-    /// Get the starting position of the Cauchy process simulation
-    pub fn start_position(&self) -> f64 {
-        self.start_position
-    }
-}
-
-/// impl `ContinuousProcess` trait for Cauchy process
-impl ContinuousProcess for Cauchy {
-    /// Simulate Cauchy process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the Cauchy process simulation.
-    /// * `time_step` - The time step of the Cauchy process simulation.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the Cauchy process simulation.
+    /// * `start_position` - The starting position.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::continuous::Cauchy;
+    ///
+    /// let cauchy = Cauchy::new(0.0).unwrap();
+    /// ```
+    pub fn new(start_position: impl Into<f64>) -> Self {
+        let start_position = start_position.into();
+        Self { start_position }
+    }
+
+    /// Get the starting position
+    pub fn start_position(&self) -> f64 {
+        self.start_position
+    }
+}
+
+/// impl `ContinuousProcess` trait for `Cauchy`
+impl ContinuousProcess for Cauchy {
+    /// Simulate Cauchy process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the trajectory.
+    /// * `time_step` - The time step of the simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::{continuous::Cauchy, prelude::*};
+    ///
     /// let cauchy = Cauchy::default();
-    /// let (t, x) = cauchy.simulate(10.0, 0.1).unwrap();
+    /// let time_step = 0.1;
+    /// let duration = 1.0;
+    /// let (t, x) = cauchy.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
@@ -201,19 +205,20 @@ impl ContinuousProcess for Cauchy {
 
 /// Simulate Cauchy process
 ///
-/// This function simulates Cauchy process.
-///
 /// # Arguments
 ///
-/// * `start_position` - The starting position of the Cauchy process.
-/// * `duration` - The duration of the Cauchy process.
-/// * `time_step` - The time step of the Cauchy process.
+/// * `start_position` - The starting position.
+/// * `duration` - The duration of the trajectory.
+/// * `time_step` - The time step of the simulation.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::cauchy::simulate_cauchy;
-/// let (t, x) = simulate_cauchy(0.0, 1.0, 0.1).unwrap();
+///
+/// let time_step = 0.1;
+/// let duration = 1.0;
+/// let (t, x) = simulate_cauchy(0.0, duration, time_step).unwrap();
 /// ```
 pub fn simulate_cauchy(
     start_position: impl Into<f64>,

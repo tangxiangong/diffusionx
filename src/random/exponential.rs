@@ -1,4 +1,5 @@
 //! Exponential distribution random number generation
+//!
 
 use crate::{XError, XResult};
 use rand::{prelude::*, rng};
@@ -7,7 +8,7 @@ use rayon::prelude::*;
 
 /// Exponential distribution
 pub struct Exponential {
-    /// rate parameter, must be greater than 0
+    /// rate parameter
     lambda: f64,
 }
 
@@ -23,11 +24,13 @@ impl Exponential {
     ///
     /// # Arguments
     ///
-    /// * `lambda` - The rate parameter of the exponential distribution
+    /// * `lambda` - The rate parameter of the exponential distribution, must be greater than 0.
     ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::random::exponential::Exponential;
+    ///
     /// let exp = Exponential::new(2).unwrap();
     /// ```
     pub fn new(lambda: impl Into<f64>) -> XResult<Self> {
@@ -50,15 +53,13 @@ impl Exponential {
     ///
     /// # Arguments
     ///
-    /// * `n` - The number of random numbers to generate
-    ///
-    /// # Returns
-    ///
-    /// A vector of `f64` values representing the generated random numbers.
+    /// * `n` - The number of random numbers to generate, must be greater than 0.
     ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::random::exponential::Exponential;
+    ///
     /// let exp = Exponential::new(2).unwrap();
     /// let randoms = exp.samples(10).unwrap();
     /// ```
@@ -73,16 +74,11 @@ impl Exponential {
 
 /// Generate a standard exponential random number
 ///
-/// This function generates a standard exponential random number using the `Exp1` distribution.
-///
-/// # Returns
-///
-/// A `f64` value representing the generated random number.
-///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::exponential::standard_rand;
+///
 /// let random = standard_rand();
 /// ```
 pub fn standard_rand() -> f64 {
@@ -91,16 +87,15 @@ pub fn standard_rand() -> f64 {
 
 /// Generate a vector of standard exponential random numbers
 ///
-/// This function generates a vector of standard exponential random numbers using the `Exp1` distribution.
+/// # Arguments
 ///
-/// # Returns
-///
-/// A vector of `f64` values representing the generated random numbers.
+/// * `n` - The number of random numbers to generate, must be greater than 0.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::exponential::standard_rands;
+///
 /// let randoms = standard_rands(10);
 /// ```
 pub fn standard_rands(n: usize) -> Vec<f64> {
@@ -113,20 +108,15 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 
 /// Generate an exponential random number
 ///
-/// This function generates an exponential random number using the `Exp` distribution.
-///
 /// # Arguments
 ///
-/// * `lambda` - The rate parameter of the exponential distribution
-///
-/// # Returns
-///
-/// A `f64` value representing the generated random number.
+/// * `lambda` - The rate parameter of the exponential distribution, must be greater than 0.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::exponential::rand;
+///
 /// let random = rand(1.0).unwrap();
 /// ```
 pub fn rand(lambda: impl Into<f64>) -> XResult<f64> {
@@ -137,20 +127,16 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<f64> {
 
 /// Generate a vector of exponential random numbers
 ///
-/// This function generates a vector of exponential random numbers using the `Exp` distribution.
-///
 /// # Arguments
 ///
-/// * `lambda` - The rate parameter of the exponential distribution
-/// * `n` - The number of random numbers to generate
-/// # Returns
-///
-/// A vector of `f64` values representing the generated random numbers.
+/// * `lambda` - The rate parameter of the exponential distribution, must be greater than 0.
+/// * `n` - The number of random numbers to generate, must be greater than 0.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::exponential::rands;
+///
 /// let randoms = rands(1.0, 10).unwrap();
 /// ```
 pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {

@@ -2,6 +2,13 @@ use crate::{XResult, utils::ensure_output_dir};
 use csv::Writer;
 use std::path::Path;
 
+/// Write data to a CSV file
+///
+/// # Arguments
+///
+/// * `path` - The path to the CSV file
+/// * `t` - The time data
+/// * `x` - The data to write
 pub fn write_csv(path: &str, t: &[f64], x: &[f64]) -> XResult<()> {
     ensure_output_dir(Path::new(path))?;
     let mut writer = Writer::from_path(path)?;

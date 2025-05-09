@@ -18,7 +18,13 @@ pub trait Visualize {
     fn plot(&self, config: &PlotConfig) -> XResult<()>;
 }
 
+/// Implement the `Visualize` trait for `ContinuousTrajectory`.
 impl<CP: ContinuousProcess> Visualize for ContinuousTrajectory<CP> {
+    /// Plot the continuous trajectory.
+    ///
+    /// # Arguments
+    ///
+    /// * `config`: The configuration for the plot.
     fn plot(&self, config: &PlotConfig) -> XResult<()> {
         ensure_output_dir(&config.output_path)?;
         match config.backend {
@@ -34,7 +40,9 @@ impl<CP: ContinuousProcess> Visualize for ContinuousTrajectory<CP> {
     }
 }
 
+/// Implement the `Visualize` trait for `PointTrajectory`.
 impl<P: PointProcess> Visualize for PointTrajectory<P> {
+    /// Plot the point trajectory.
     fn plot(&self, config: &PlotConfig) -> XResult<()> {
         ensure_output_dir(&config.output_path)?;
         match config.backend {
@@ -54,9 +62,9 @@ impl<P: PointProcess> Visualize for PointTrajectory<P> {
 ///
 /// # Arguments
 ///
-/// * `times`: The times of the trajectory.
-/// * `positions`: The positions of the trajectory.
-/// * `config`: The configuration for the plot.
+/// * `times` - The times of the trajectory.
+/// * `positions` - The positions of the trajectory.
+/// * `config` - The configuration for the plot.
 ///
 /// # Examples
 ///
@@ -87,9 +95,9 @@ pub fn plot(times: &[f64], positions: &[f64], config: &PlotConfig) -> XResult<()
 ///
 /// # Arguments
 ///
-/// * `times`: The times of the trajectory.
-/// * `positions`: The positions of the trajectory.
-/// * `config`: The configuration for the plot.
+/// * `times` - The times of the trajectory.
+/// * `positions` - The positions of the trajectory.
+/// * `config` - The configuration for the plot.
 ///
 /// # Examples
 ///

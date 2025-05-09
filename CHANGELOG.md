@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.11] - 2025-05-09
+
+### 🚀 Features
+
+- Add visualization error types to XError enum
+- Enhance ContinuousProcess and TAMSD with new methods
+- Add variance method to TAMSD for enhanced statistical analysis
+
+### 💼 Other
+
+- Implement CIR process simulation and visualization
+- Update output formatting in CIR example for improved readability
+
+### 🚜 Refactor
+
+- Use iterator style for path generation in Langevin simulations
+
+### 📚 Documentation
+
+- Enhance README examples with additional print statements
+- Update README files to simplify descriptions and enhance clarity
+- Update README files to include type annotations for methods
+- Update README files to remove unnecessary type annotations
+- Update README-zh.md to correct terminology for methods
+- Update README files to improve clarity and consistency in random distributions and stochastic processes
+- Update README-zh.md for terminology consistency
+- Update README files to reflect changes in features and usage
+- Update output formatting and terminology in README files
+- Improve error handling and documentation in random number generation modules
+- Enhance documentation for continuous simulation processes
+- Enhance documentation for random walk simulation
+- Enhance documentation for birth-death and CTRW processes
+- Enhance documentation for circulant embedding and CSV writing
+- Enhance documentation for plotting functions
+- Update README files with new entries and error message improvements
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.3.11 in Cargo.toml
+
 ## [0.3.10] - 2025-05-07
 
 ### 🚀 Features
@@ -24,6 +64,8 @@ All notable changes to this project will be documented in this file.
 - Add gauss-quad dependency in Cargo.toml
 - Add categories and keywords in Cargo.toml
 - Bump version to 0.3.10 in Cargo.toml
+- Update CHANGELOG for version 0.3.10
+- Remove keywords from Cargo.toml
 
 ## [0.3.9] - 2025-05-06
 

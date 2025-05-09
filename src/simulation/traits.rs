@@ -38,9 +38,11 @@ pub trait ContinuousProcess: Clone + Send + Sync {
 
     /// Get the mean of the continuous process
     ///
-    /// # Returns
+    /// # Arguments
     ///
-    /// A f64 representing the mean of the continuous process.
+    /// * `duration` - The duration of the simulation.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the simulation.
     fn mean(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
         let traj = self.duration(duration)?;
         traj.raw_moment(1, particles, time_step)
@@ -48,9 +50,11 @@ pub trait ContinuousProcess: Clone + Send + Sync {
 
     /// Get the mean square displacement of the continuous process
     ///
-    /// # Returns
+    /// # Arguments
     ///
-    /// A f64 representing the mean square displacement of the continuous process.
+    /// * `duration` - The duration of the simulation.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the simulation.
     fn msd(&self, duration: impl Into<f64>, particles: usize, time_step: f64) -> XResult<f64> {
         let traj = self.duration(duration)?;
         traj.central_moment(2, particles, time_step)
@@ -83,10 +87,6 @@ pub trait ContinuousProcess: Clone + Send + Sync {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the continuous process.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the central moment of the continuous process.
     fn central_moment(
         &self,
         duration: impl Into<f64>,
@@ -102,13 +102,9 @@ pub trait ContinuousProcess: Clone + Send + Sync {
     ///
     /// # Arguments
     ///
-    /// * `domain` - The domain of the continuous process.
-    /// * `max_duration` - The maximum duration of the continuous process.
-    /// * `time_step` - The time step of the continuous process.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the first passage time of the continuous process.
+    /// * `domain` - The domain which the first passage time is interested in.
+    /// * `max_duration` - The maximum duration of the continuous process. If the process does not exit the domain before the maximum duration, the function returns None.
+    /// * `time_step` - The time step of the simulation.
     fn fpt(
         &self,
         domain: (impl Into<f64>, impl Into<f64>),
@@ -123,13 +119,9 @@ pub trait ContinuousProcess: Clone + Send + Sync {
     ///
     /// # Arguments
     ///
-    /// * `domain` - The domain of the continuous process.
+    /// * `domain` - The domain which the occupation time is interested in.
     /// * `duration` - The duration of the continuous process.
-    /// * `time_step` - The time step of the continuous process.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the occupation time of the continuous process.
+    /// * `time_step` - The time step of the simulation.
     fn occupation_time(
         &self,
         domain: (impl Into<f64>, impl Into<f64>),
@@ -145,11 +137,30 @@ pub trait ContinuousProcess: Clone + Send + Sync {
     /// # Arguments
     ///
     /// * `duration` - The duration of the simulation.
-    /// * `delta` - The clip length.
+    /// * `delta` - The slag length.
+    /// * `time_step` - The time step of the simulation.
+    /// * `quad_order` - The order of the Gauss-Legendre quadrature.
+    fn tamsd(
+        &self,
+        duration: impl Into<f64>,
+        delta: impl Into<f64>,
+        time_step: f64,
+        quad_order: usize,
+    ) -> XResult<f64> {
+        let tamsd = TAMSD::new(self, duration, delta)?;
+        tamsd.simulate(time_step, quad_order)
+    }
+
+    /// Get the ensemble average of the time-averaged mean square displacement of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `delta` - The slag length.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
-    /// * `quad_order` - The order of the quadrature.
-    fn tamsd(
+    /// * `quad_order` - The order of the Gauss-Legendre quadrature.
+    fn eatamsd(
         &self,
         duration: impl Into<f64>,
         delta: impl Into<f64>,
@@ -157,8 +168,8 @@ pub trait ContinuousProcess: Clone + Send + Sync {
         time_step: f64,
         quad_order: usize,
     ) -> XResult<f64> {
-        let tamsd = TAMSD::new(self.clone(), duration, delta)?;
-        tamsd.simulate(particles, time_step, quad_order)
+        let tamsd = TAMSD::new(self, duration, delta)?;
+        tamsd.mean(particles, time_step, quad_order)
     }
 }
 
@@ -213,13 +224,14 @@ pub trait DiscreteProcess: Clone + Send + Sync {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     fn central_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
-        let traj = self.step(num_step).unwrap();
+        let traj = self.step(num_step)?;
         traj.central_moment(order, particles, 0.1)
     }
 }
 
+/// Point process trait
 pub trait PointProcess: Clone + Send + Sync {
-    /// Simulate the point process
+    /// Simulate the point process with given duration
     ///
     /// # Arguments
     ///
@@ -309,8 +321,8 @@ pub trait PointProcess: Clone + Send + Sync {
     ///
     /// # Arguments
     ///
-    /// * `domain` - The domain of the simulation.
-    /// * `max_duration` - The maximum duration of the simulation.
+    /// * `domain` - The domain which the first passage time is interested in.
+    /// * `max_duration` - The maximum duration of the simulation. If the process does not exit the domain before the maximum duration, the function returns None.
     fn fpt(
         &self,
         domain: (impl Into<f64>, impl Into<f64>),
@@ -324,7 +336,7 @@ pub trait PointProcess: Clone + Send + Sync {
     ///
     /// # Arguments
     ///
-    /// * `domain` - The domain of the simulation.
+    /// * `domain` - The domain which the occupation time is interested in.
     /// * `duration` - The duration of the simulation.
     fn occupation_time(
         &self,
@@ -344,44 +356,58 @@ pub trait PointProcess: Clone + Send + Sync {
 }
 
 /// Continuous trajectory
-///
-/// # Fields
-///
-/// * `sp` - The simulation object.
-/// * `duration` - The duration of the simulation.
 pub struct ContinuousTrajectory<SP: ContinuousProcess> {
-    pub(crate) sp: SP,
-    pub(crate) duration: f64,
+    /// The continuous process
+    sp: SP,
+    /// The duration of the simulation
+    duration: f64,
 }
 
 impl<SP: ContinuousProcess> ContinuousTrajectory<SP> {
     /// Create a new `ContinuousTrajectory` with given `ContinuousProcess` and duration.
+    ///
+    /// # Arguments
+    ///
+    /// * `sp` - The continuous process.
+    /// * `duration` - The duration of the simulation.
     pub fn new(sp: SP, duration: impl Into<f64>) -> XResult<Self> {
         let duration = duration.into();
         if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
             .into());
         }
         Ok(Self { sp, duration })
     }
 
+    /// Get the continuous process
+    pub fn process(&self) -> &SP {
+        &self.sp
+    }
+
+    /// Get the duration of the trajectory
+    pub fn duration(&self) -> f64 {
+        self.duration
+    }
+
     /// Simulate method
+    ///
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the simulation.
     pub fn simulate(&self, time_step: f64) -> XResult<Pair> {
         self.sp.simulate(self.duration, time_step)
     }
 }
 
 /// Discrete trajectory
-///
-/// # Fields
-///
-/// * `sp` - The simulation object.
-/// * `num_step` - The number of steps of the simulation.
 pub struct DiscreteTrajectory<SP: DiscreteProcess> {
-    pub(crate) sp: SP,
-    pub(crate) num_step: usize,
+    /// The discrete process
+    sp: SP,
+    /// The number of steps
+    num_step: usize,
 }
 
 impl<SP: DiscreteProcess> DiscreteTrajectory<SP> {
@@ -396,6 +422,16 @@ impl<SP: DiscreteProcess> DiscreteTrajectory<SP> {
         Ok(Self { sp, num_step })
     }
 
+    /// Get the discrete process
+    pub fn process(&self) -> &SP {
+        &self.sp
+    }
+
+    /// Get the number of steps of the trajectory
+    pub fn num_step(&self) -> usize {
+        self.num_step
+    }
+
     /// Simulate method
     pub fn simulate(&self) -> XResult<DiscretePair> {
         self.sp.simulate(self.num_step)
@@ -403,26 +439,43 @@ impl<SP: DiscreteProcess> DiscreteTrajectory<SP> {
 }
 
 /// Point process trajectory
-///
-/// # Fields
-///
-/// * `sp` - The simulation object.
-/// * `duration` - The duration of the simulation.
-/// * `num_step` - The number of steps.
 pub struct PointTrajectory<SP: PointProcess> {
-    pub(crate) sp: SP,
-    pub(crate) duration: Option<f64>,
-    pub(crate) num_step: Option<usize>,
+    /// The point process
+    sp: SP,
+    /// The duration of the trajectory
+    duration: Option<f64>,
+    /// The number of steps of the trajectory
+    num_step: Option<usize>,
 }
 
 impl<SP: PointProcess> PointTrajectory<SP> {
+    /// Get the point process
+    pub fn process(&self) -> &SP {
+        &self.sp
+    }
+
+    /// Get the duration of the trajectory
+    pub fn duration(&self) -> Option<f64> {
+        self.duration
+    }
+
+    /// Get the number of steps of the trajectory
+    pub fn num_step(&self) -> Option<usize> {
+        self.num_step
+    }
+
     /// Create a `PointTrajectory` with duration.
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the trajectory
     pub fn with_duration(sp: SP, duration: impl Into<f64>) -> XResult<Self> {
         let duration = duration.into();
         if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
             .into());
         }
         Ok(Self {
@@ -432,12 +485,17 @@ impl<SP: PointProcess> PointTrajectory<SP> {
         })
     }
 
-    /// /// Create a `PointTrajectory` with num of steps.
+    /// Create a `PointTrajectory` with num of steps.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps of the trajectory
     pub fn with_step(sp: SP, num_step: usize) -> XResult<Self> {
         if num_step == 0 {
-            return Err(SimulationError::InvalidParameters(
-                "num_step must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `num_step` must be positive, got {}",
+                num_step
+            ))
             .into());
         }
         Ok(Self {
@@ -447,15 +505,23 @@ impl<SP: PointProcess> PointTrajectory<SP> {
         })
     }
 
-    /// Simulate with duration
+    /// Simulate the trajectory with duration
     pub fn simulate_with_duration(&self) -> XResult<Pair> {
         if self.duration.is_none() {
             return Err(SimulationError::InvalidParameters(
-                "duration must be provided".to_string(),
+                "The `duration` must be provided".to_string(),
             )
             .into());
         }
-        self.sp.simulate_with_duration(self.duration.unwrap())
+        let duration = self.duration.unwrap();
+        if duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
+            .into());
+        }
+        self.sp.simulate_with_duration(duration)
     }
 
     /// Simulate with number of steps
@@ -466,12 +532,25 @@ impl<SP: PointProcess> PointTrajectory<SP> {
             )
             .into());
         }
-        self.sp.simulate_with_step(self.num_step.unwrap())
+        let num_step = self.num_step.unwrap();
+        if num_step == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `num_step` must be positive, got {}",
+                num_step
+            ))
+            .into());
+        }
+        self.sp.simulate_with_step(num_step)
     }
 }
 
 /// Continuous trajectory trait
 pub trait ContinuousTrajectoryTrait: ContinuousProcess {
+    /// Create a `ContinuousTrajectory` with given duration
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the trajectory
     fn duration(&self, duration: impl Into<f64>) -> XResult<ContinuousTrajectory<Self>> {
         let traj = ContinuousTrajectory::new(self.clone(), duration)?;
         Ok(traj)
@@ -482,6 +561,11 @@ impl<SP: ContinuousProcess> ContinuousTrajectoryTrait for SP {}
 
 /// Discrete trajectory trait
 pub trait DiscreteTrajectoryTrait: DiscreteProcess {
+    /// Create a `DiscreteTrajectory` with given number of steps
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps of the trajectory
     fn step(&self, num_step: usize) -> XResult<DiscreteTrajectory<Self>> {
         let traj = DiscreteTrajectory::new(self.clone(), num_step)?;
         Ok(traj)
@@ -492,11 +576,21 @@ impl<SP: DiscreteProcess> DiscreteTrajectoryTrait for SP {}
 
 /// Point trajectory trait
 pub trait PointTrajectoryTrait: PointProcess {
+    /// Create a `PointTrajectory` with given duration
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the trajectory
     fn duration(&self, duration: impl Into<f64>) -> XResult<PointTrajectory<Self>> {
         let traj = PointTrajectory::with_duration(self.clone(), duration)?;
         Ok(traj)
     }
 
+    /// Create a `PointTrajectory` with given number of steps
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps of the trajectory
     fn step(&self, num_step: usize) -> XResult<PointTrajectory<Self>> {
         let traj = PointTrajectory::with_step(self.clone(), num_step)?;
         Ok(traj)
@@ -535,13 +629,7 @@ impl<SP: ContinuousProcess> Moment for ContinuousTrajectory<SP> {
             ))
             .into());
         }
-        if order < 0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "order must be non-negative, got {}",
-                order
-            ))
-            .into());
-        }
+
         if order == 0 {
             return Ok(0.0);
         }
@@ -564,6 +652,7 @@ impl<SP: ContinuousProcess> Moment for ContinuousTrajectory<SP> {
             / particles as f64;
         Ok(result)
     }
+
     fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, time_step)?;
         let sp = self.sp.clone();
@@ -588,17 +677,13 @@ impl<SP: ContinuousProcess> Moment for ContinuousTrajectory<SP> {
 impl<SP: DiscreteProcess> Moment for DiscreteTrajectory<SP> {
     fn raw_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
-            return Err(SimulationError::InvalidParameters(
-                "particles must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got {}",
+                particles
+            ))
             .into());
         }
-        if order < 0 {
-            return Err(SimulationError::InvalidParameters(
-                "order must be non-negative".to_string(),
-            )
-            .into());
-        }
+
         if order == 0 {
             return Ok(0.0);
         }
@@ -621,6 +706,7 @@ impl<SP: DiscreteProcess> Moment for DiscreteTrajectory<SP> {
             / particles as f64;
         Ok(result)
     }
+
     fn central_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, 0.01)?;
         let sp = self.sp.clone();
@@ -645,17 +731,13 @@ impl<SP: DiscreteProcess> Moment for DiscreteTrajectory<SP> {
 impl<SP: PointProcess> Moment for PointTrajectory<SP> {
     fn raw_moment(&self, order: i32, particles: usize, _time_step: f64) -> XResult<f64> {
         if particles == 0 {
-            return Err(SimulationError::InvalidParameters(
-                "particles must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got {}",
+                particles
+            ))
             .into());
         }
-        if order < 0 {
-            return Err(SimulationError::InvalidParameters(
-                "order must be non-negative".to_string(),
-            )
-            .into());
-        }
+
         if order == 0 {
             return Ok(0.0);
         }
@@ -664,7 +746,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
 
         if self.duration.is_none() {
             return Err(SimulationError::InvalidParameters(
-                "duration must be provided".to_string(),
+                "The `duration` must be provided".to_string(),
             )
             .into());
         }
@@ -685,6 +767,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
             / particles as f64;
         Ok(result)
     }
+
     fn central_moment(&self, order: i32, particles: usize, _time_step: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, _time_step)?;
         let duration = self.duration.unwrap();
@@ -709,11 +792,16 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
 /// Inverse process of a continuous process
 #[derive(Clone)]
 pub struct InverseProcess<T: ContinuousProcess> {
+    /// The process
     process: T,
 }
 
 impl<T: ContinuousProcess> InverseProcess<T> {
-    /// Create a new inverse process
+    /// Create a new inverse process with given process
+    ///
+    /// # Arguments
+    ///
+    /// * `process` - The continuous process
     pub fn new(process: &T) -> Self {
         Self {
             process: process.clone(),
@@ -775,25 +863,22 @@ impl<T: ContinuousProcess> ContinuousProcess for InverseProcess<T> {
     }
 }
 
+/// The inverse process trait
 pub trait Inverse: ContinuousProcess {
+    /// Create a new `InverseProcess`
     fn inverse(&self) -> InverseProcess<Self> {
         InverseProcess::new(self)
     }
 }
 
-/// TAMSD
-///
-/// Time-averaged mean square displacement
-///
-/// # Fields
-///
-/// * `process` - The process to calculate the TAMSD of.
-/// * `duration` - The duration of the simulation.
-/// * `delta` - The slag length.
+/// TAMSD (time-averaged mean-squared displacement)
 #[derive(Debug, Clone)]
 pub struct TAMSD<T: ContinuousProcess> {
+    /// The continuous process
     process: T,
+    /// The duration
     duration: f64,
+    /// The slag length
     delta: f64,
 }
 
@@ -802,10 +887,10 @@ impl<T: ContinuousProcess> TAMSD<T> {
     ///
     /// # Arguments
     ///
-    /// * `process` - The process to calculate the TAMSD of.
+    /// * `process` - The continuous process to calculate the TAMSD of.
     /// * `duration` - The duration of the simulation.
-    /// * `delta` - The clip length.
-    pub fn new(process: T, duration: impl Into<f64>, delta: impl Into<f64>) -> XResult<Self> {
+    /// * `delta` - The slag length.
+    pub fn new(process: &T, duration: impl Into<f64>, delta: impl Into<f64>) -> XResult<Self> {
         let duration = duration.into();
         let delta = delta.into();
         if duration <= 0.0 {
@@ -831,7 +916,7 @@ impl<T: ContinuousProcess> TAMSD<T> {
             .into());
         }
         Ok(Self {
-            process,
+            process: process.clone(),
             duration,
             delta,
         })
@@ -847,13 +932,18 @@ impl<T: ContinuousProcess> TAMSD<T> {
         self.duration
     }
 
-    /// Get the clip length
+    /// Get the slag length
     pub fn delta(&self) -> f64 {
         self.delta
     }
 
     /// Simulate the TAMSD
-    pub fn simulate(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+    ///
+    /// # Arguments
+    ///
+    /// * `time_step` - The time step of the simulation.
+    /// * `quad_order` - The order of the Gauss-Legendre quadrature.
+    pub fn simulate(&self, time_step: f64, quad_order: usize) -> XResult<f64> {
         let legendre_quad = GaussLegendre::new(quad_order)?;
         let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
         let duration = self.duration;
@@ -863,48 +953,69 @@ impl<T: ContinuousProcess> TAMSD<T> {
         let result = nodes_weights
             .into_par_iter()
             .map(|(node, weight)| -> XResult<f64> {
-                let cov = sub_covariance(&sp, duration, node, particles, time_step)?;
-                Ok(cov * weight)
+                let slag_length = (slag / time_step).ceil() as usize;
+                let (_, x) = sp.simulate(node + slag, time_step)?;
+                let len = x.len();
+                let end_position = x.last();
+                let slag_position = x.get(len - slag_length - 1);
+                if end_position.is_none() || slag_position.is_none() {
+                    return Err(SimulationError::Unknown.into());
+                }
+                let end_position = *end_position.unwrap();
+                let slag_position = *slag_position.unwrap();
+
+                Ok((end_position - slag_position).powi(2) * weight)
             })
             .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
             .try_reduce(|| 0.0, |a, b| Ok(a + b))?
             / (duration - slag);
         Ok(result)
     }
+
+    /// Get the ensemble average of the TAMSD
+    ///
+    /// # Arguments
+    ///
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the simulation.
+    /// * `quad_order` - The order of the Gauss-Legendre quadrature.
+    pub fn mean(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+        Ok((0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> { self.simulate(time_step, quad_order) })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64)
+    }
+
+    /// Get the variance of the TAMSD
+    ///
+    /// # Arguments
+    ///
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the simulation.
+    /// * `quad_order` - The order of the Gauss-Legendre quadrature.
+    pub fn variance(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+        let mean = self.mean(particles, time_step, quad_order)?;
+        Ok((0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let value = self.simulate(time_step, quad_order)?;
+                Ok((value - mean).powi(2))
+            })
+            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            / particles as f64)
+    }
 }
 
-/// Calculate the covariance of one processes
-fn sub_covariance<T: ContinuousProcess>(
-    process: &T,
-    duration: impl Into<f64>,
-    slag: impl Into<f64>,
-    particles: usize,
-    time_step: f64,
-) -> XResult<f64> {
-    let duration: f64 = duration.into();
-    let slag: f64 = slag.into();
-    let sp = process.clone();
-    let slag_length = (slag / time_step).ceil() as usize;
-    let result = (0..particles)
-        .into_par_iter()
-        .map(|_| -> XResult<f64> {
-            let (_, x) = sp.simulate(duration + slag, time_step)?;
-            let len = x.len();
-            let end_position = x.last();
-            let slag_position = x.get(len - slag_length - 1);
-            if end_position.is_none() || slag_position.is_none() {
-                return Err(SimulationError::Unknown.into());
-            }
-            let end_position = *end_position.unwrap();
-            let slag_position = *slag_position.unwrap();
-            Ok((end_position - slag_position).powi(2))
-        })
-        .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-        .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-        / particles as f64;
-    Ok(result)
-}
-
+/// Transform the nodes and weights
+///
+/// # Arguments
+///
+/// * `a` - The lower bound of the interval.
+/// * `b` - The upper bound of the interval.
+/// * `pairs` - The nodes and weights pairs of the unit interval.
 fn nodes_weights_transform(
     a: impl Into<f64>,
     b: impl Into<f64>,
@@ -939,7 +1050,10 @@ mod tests {
     #[ignore]
     fn test_continuous_trajectory() {
         let sp = Bm::default();
-        let tamsd = sp.tamsd(100.0, 1.0, 10000, 0.1, 10).unwrap();
-        println!("{:?}", tamsd);
+        let tamsd = TAMSD::new(&sp, 100.0, 1.0).unwrap();
+        let value = tamsd.simulate(0.1, 10).unwrap();
+        println!("{:?}", value);
+        let eatamsd = tamsd.mean(10000, 0.1, 10).unwrap();
+        println!("{:?}", eatamsd);
     }
 }

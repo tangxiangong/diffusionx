@@ -1,32 +1,34 @@
 //! Subordinator simulation
 //!
-//! For Levy process, see [`crate::simulation::continuous::levy`].
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
 /// alpha-stable subordinator
 ///
-/// This struct represents an alpha-stable subordinator.
-///
 /// # Mathematical Formulation
 ///
 /// A subordinator is a Lévy process that is non-negative and has a non-decreasing sample path.
-///
-/// # Fields
-///
-/// * `alpha` - The stability index of the subordinator, whose value must be in the range (0, 1).
 #[derive(Debug, Clone)]
 pub struct Subordinator {
+    /// The stability index of the subordinator, whose value must be in the range (0, 1).
     alpha: f64,
 }
 
 impl Subordinator {
-    /// Create a new subordinator simulation
+    /// Create a new `Subordinator`
     ///
     /// # Arguments
     ///
     /// * `alpha` - The stability index of the subordinator, whose value must be in the range (0, 1).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::Subordinator;
+    ///
+    /// let subordinator = Subordinator::new(0.5).unwrap();
+    /// ```
     pub fn new(alpha: f64) -> XResult<Self> {
         if alpha <= 0.0 || alpha > 1.0 {
             return Err(SimulationError::InvalidParameters(format!(
@@ -38,39 +40,43 @@ impl Subordinator {
         Ok(Self { alpha })
     }
 
-    /// Get the stability index of the subordinator
+    /// Get the stability index
     pub fn index(&self) -> f64 {
         self.alpha
     }
 }
 
-/// impl `ContinuousProcess` trait for Subordinator
+/// impl `ContinuousProcess` trait for `Subordinator`
 impl ContinuousProcess for Subordinator {
     /// Simulate subordinator
     ///
     /// # Arguments
     ///
+    /// * `duration` - The duration of the subordinator simulation.
     /// * `time_step` - The time step of the subordinator simulation.
     ///
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::continuous::Subordinator;
+    /// use diffusionx::simulation::{continuous::Subordinator, prelude::*};
+    ///
     /// let subordinator = Subordinator::new(0.5).unwrap();
     /// let (t, x) = subordinator.simulate(1.0, 0.1).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "time_step must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got {}",
+                time_step
+            ))
             .into());
         }
         let duration = duration.into();
         if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
             .into());
         }
         simulate_subordinator(self.alpha, duration, time_step)
@@ -79,18 +85,17 @@ impl ContinuousProcess for Subordinator {
 
 /// Simulate subordinator
 ///
-/// This function simulates subordinator.
-///
 /// # Arguments
 ///
-/// * `alpha` - The stability index of the subordinator.
-/// * `duration` - The duration of the subordinator.
-/// * `time_step` - The time step of the subordinator.
+/// * `alpha` - The stability index
+/// * `duration` - The duration
+/// * `time_step` - The time step
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::subordinator::simulate_subordinator;
+///
 /// let (t, x) = simulate_subordinator(0.5, 1.0, 0.1).unwrap();
 /// ```
 pub fn simulate_subordinator(
@@ -113,48 +118,60 @@ pub fn simulate_subordinator(
 }
 
 /// Inverse alpha-stable subordinator
-///
-/// This struct represents an inverse alpha-stable subordinator.
-///
-/// # Fields
-///
-/// * `alpha` - The stability index of the subordinator.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::simulation::continuous::InvSubordinator;
-/// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
-/// ```
 #[derive(Debug, Clone)]
 pub struct InvSubordinator {
+    /// The stability index
     alpha: f64,
 }
 
 impl InvSubordinator {
-    /// Create a new inverse alpha-stable subordinator
+    /// Create a new `InvSubordinator`
     ///
     /// # Arguments
     ///
-    /// * `alpha` - The stability index of the subordinator.
+    /// * `alpha` - The stability index
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::InvSubordinator;
+    ///
+    /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
+    /// ```
     pub fn new(alpha: f64) -> XResult<Self> {
         if alpha <= 0.0 || alpha > 1.0 {
-            return Err(SimulationError::InvalidParameters(
-                "alpha must be in the range (0, 1)".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `alpha` must be in the range (0, 1], got {}",
+                alpha
+            ))
             .into());
         }
         Ok(Self { alpha })
     }
 
-    /// Get the stability index of the subordinator
+    /// Get the stability index
     pub fn index(&self) -> f64 {
         self.alpha
     }
 }
 
-/// impl `ContinuousProcess` trait for InvSubordinator
+/// impl `ContinuousProcess` trait for `InvSubordinator`
 impl ContinuousProcess for InvSubordinator {
+    /// Simulate inverse subordinator
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration
+    /// * `time_step` - The time step
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::{continuous::InvSubordinator, prelude::*};
+    ///
+    /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
+    /// let (t, x) = inv_subordinator.simulate(1.0, 0.1).unwrap();
+    /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
@@ -171,24 +188,23 @@ impl ContinuousProcess for InvSubordinator {
             ))
             .into());
         }
-        simulate_subordinator(self.alpha, duration, time_step)
+        simulate_invsubordinator(self.alpha, duration, time_step)
     }
 }
 
 /// Simulate inverse subordinator
 ///
-/// This function simulates inverse subordinator.
-///
 /// # Arguments
 ///
-/// * `alpha` - The stability index of the subordinator.
-/// * `duration` - The duration of the subordinator.
-/// * `time_step` - The time step of the subordinator.
+/// * `alpha` - The stability index
+/// * `duration` - The duration
+/// * `time_step` - The time step
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::subordinator::simulate_invsubordinator;
+///
 /// let (t, x) = simulate_invsubordinator(0.5, 1.0, 0.1).unwrap();
 /// ```
 pub fn simulate_invsubordinator(

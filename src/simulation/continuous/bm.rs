@@ -1,21 +1,15 @@
 //! Brownian motion simulation
 //!
-//! For Levy process, see [`crate::simulation::continuous::levy`].
 
 use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
 
 /// Brownian motion
-///
-/// This struct represents a Brownian motion.
-///
-/// # Fields
-///
-/// * `start_position` - The starting position of the Brownian motion.
-/// * `diffusion_coefficient` - The diffusion coefficient of the Brownian motion.
 #[derive(Debug, Clone)]
 pub struct Bm {
+    /// The starting position
     start_position: f64,
+    /// The diffusion coefficient
     diffusion_coefficient: f64,
 }
 
@@ -29,12 +23,12 @@ impl Default for Bm {
 }
 
 impl Bm {
-    /// Create a new Brownian motion simulation
+    /// Create a new `Bm`
     ///
     /// # Arguments
     ///
-    /// * `start_position` - The starting position of the Brownian motion.
-    /// * `diffusion_coefficient` - The diffusion coefficient of the Brownian motion.
+    /// * `start_position` - The starting position.
+    /// * `diffusion_coefficient` - The diffusion coefficient.
     pub fn new(
         start_position: impl Into<f64>,
         diffusion_coefficient: impl Into<f64>,
@@ -54,34 +48,31 @@ impl Bm {
         })
     }
 
-    /// Get the starting position of the Brownian motion simulation
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
-    /// Get the diffusion coefficient of the Brownian motion simulation
+    /// Get the diffusion coefficient
     pub fn diffusion_coefficient(&self) -> f64 {
         self.diffusion_coefficient
     }
 }
 
-/// impl `ContinuousProcess` trait for Brownian motion
+/// impl `ContinuousProcess` trait for `Bm`
 impl ContinuousProcess for Bm {
     /// Simulate Brownian motion
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the Brownian motion simulation.
-    /// * `time_step` - The time step of the Brownian motion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the Brownian motion simulation.
+    /// * `duration` - The duration of the trajectory.
+    /// * `time_step` - The time step of the simulation.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::{continuous::Bm, prelude::*};
+    ///
     /// let bm = Bm::default();
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -99,8 +90,6 @@ impl ContinuousProcess for Bm {
 
 /// Simulate Brownian motion
 ///
-/// This function simulates Brownian motion.
-///
 /// # Arguments
 ///
 /// * `start_position` - The starting position of the Brownian motion.
@@ -108,14 +97,11 @@ impl ContinuousProcess for Bm {
 /// * `duration` - The duration of the Brownian motion.
 /// * `time_step` - The time step of the Brownian motion.
 ///
-/// # Returns
-///
-/// A tuple containing the time and the position of the Brownian motion simulation.
-///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::bm::simulate_bm;
+///
 /// let start_position = 10.0;
 /// let diffusion_coefficient = 1.0;
 /// let time_step = 0.1;

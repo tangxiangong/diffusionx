@@ -9,32 +9,30 @@ use rayon::prelude::*;
 /// dx(t) = -theta x(t) dt + sigma dW(t), x(0) = x0
 ///
 /// where W(t) is the Wiener process, also called Brownian motion.
-///
-/// # Fields
-///
-/// - `theta`: the parameter controlling the strength of mean reversion.
-/// - `sigma`: the diffusion coefficient controlling the noise intensity.
-/// - `start_position`: the initial position x0 of the process.
 #[derive(Clone)]
 pub struct OrnsteinUhlenbeck {
+    /// The parameter controlling the strength of mean reversion.
     theta: f64,
+    /// The diffusion coefficient controlling the noise intensity.
     sigma: f64,
+    /// The starting position.
     start_position: f64,
 }
 
 impl OrnsteinUhlenbeck {
-    /// Create a new Ornstein-Uhlenbeck process
+    /// Create a new `OrnsteinUhlenbeck`
     ///
     /// # Arguments
     ///
-    /// - `theta`: the parameter controlling the strength of mean reversion.
-    /// - `sigma`: the diffusion coefficient controlling the noise intensity.
-    /// - `start_position`: the initial position x0 of the process.
+    /// * `theta` - The parameter controlling the strength of mean reversion.
+    /// * `sigma` - The diffusion coefficient controlling the noise intensity.
+    /// * `start_position` - The initial position x0 of the process.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::continuous::OrnsteinUhlenbeck;
+    ///
     /// let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
     /// ```
     pub fn new(theta: f64, sigma: f64, start_position: impl Into<f64>) -> XResult<Self> {
@@ -46,7 +44,7 @@ impl OrnsteinUhlenbeck {
         })
     }
 
-    /// Get the starting position of the Ornstein-Uhlenbeck process
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
@@ -56,14 +54,29 @@ impl OrnsteinUhlenbeck {
         self.theta
     }
 
-    /// Get the diffusion coefficient controlling the noise intensity
+    /// Get the diffusion coefficient
     pub fn sigma(&self) -> f64 {
         self.sigma
     }
 }
 
-/// impl `ContinuousProcess` trait for OrnsteinUhlenbeck
+/// impl `ContinuousProcess` trait for `OrnsteinUhlenbeck`
 impl ContinuousProcess for OrnsteinUhlenbeck {
+    /// Simulate the Ornstein-Uhlenbeck process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration.
+    /// * `time_step` - The time step.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::{continuous::OrnsteinUhlenbeck, prelude::*};
+    ///
+    /// let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
+    /// let (t, x) = ou.simulate(1.0, 0.01).unwrap();
+    /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         simulate_ou(
             self.theta,
@@ -83,18 +96,19 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
 ///
 /// where W(t) is the Wiener process, also called Brownian motion.
 ///
-/// # Fields
+/// # Arguments
 ///
-/// - `theta`: the drift coefficient of the Ornstein-Uhlenbeck process.
-/// - `sigma`: the diffusion coefficient of the Ornstein-Uhlenbeck process.
-/// - `start_position`: the starting position of the Ornstein-Uhlenbeck process.
-/// - `duration`: the duration of the simulation.
-/// - `time_step`: the time step of the simulation.
+/// * `theta` - The drift coefficient.
+/// * `sigma` - The diffusion coefficient.
+/// * `start_position` - The starting position.
+/// * `duration` - The duration.
+/// * `time_step` - The time step.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::ou::simulate_ou;
+///
 /// let (t, x) = simulate_ou(1.0, 1.0, 0.0, 1.0, 0.01).unwrap();
 /// ```
 pub fn simulate_ou(
@@ -139,7 +153,6 @@ mod tests {
     fn test_mean() {
         let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
         let _mean = ou.mean(1.0, 1000, 0.01).unwrap();
-        // 由于随机过程的特性，这里不做具体数值断言
     }
 
     #[test]

@@ -2,74 +2,45 @@
 
 [English](README.md) | 简体中文
 
-> DiffusionX 是一个多线程高性能的 Rust 随机数生成和随机过程模拟库，专为科学计算和量化金融应用设计。
+> DiffusionX 是一个多线程高性能的 Rust 随机数生成和随机过程模拟库。
 
 [![文档](https://img.shields.io/badge/文档-最新-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
 [![crates.io](https://img.shields.io/crates/v/diffusionx.svg)](https://crates.io/crates/diffusionx)
 [![许可证: MIT/Apache-2.0](https://img.shields.io/badge/许可证-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
-## 特性
-
-- **高性能**：针对计算效率进行优化，通过 [rayon](https://github.com/rayon-rs/rayon) 支持多线程并行计算
-- **全面**：丰富的随机分布和随机过程集合，适用于科学计算领域
-- **可扩展**：基于 trait 的架构设计，便于扩展自定义过程和分布
-- **文档完善**：详细的 API 文档，包含数学背景和使用示例
-- **类型安全**：利用 Rust 的类型系统确保编译时安全和正确性
-- **零成本抽象**：高效的抽象设计，最小化运行时开销
-
-## 可视化
-
-DiffusionX 使用 [plotters](https://crates.io/crates/plotters) 库提供内置的可视化功能：
-
-- **过程轨迹**：轻松可视化连续过程轨迹
-- **可定制化绘图**：配置绘图外观，包括颜色、尺寸和线条样式
-- **多种输出格式**：支持位图和 SVG 输出格式
-- **简洁 API**：基于 trait 的直观 API，便于可视化模拟结果
-
 ## 已实现功能
 
 ### 随机数生成
 
-- [x] 正态分布 - 具有指定均值和方差的高斯随机变量
-- [x] 均匀分布 - 指定范围内的均匀随机变量
-- [x] 指数分布 - 具有指定速率的指数等待时间
-- [x] 泊松分布 - 具有指定均值的离散计数分布
-- [x] alpha-稳定分布 - 具有指定稳定性、偏斜度、尺度和位置的重尾分布
+- [x] 正态分布
+- [x] 均匀分布
+- [x] 指数分布
+- [x] 泊松分布
+- [x] $\alpha$-稳定分布
 
-### 随机过程
+### 随机过程模拟
 
-- [x] 布朗运动 - 标准和广义布朗运动，具有漂移和扩散
-- [x] alpha-稳定 Lévy 过程 - 具有重尾特性的非高斯过程
-- [x] Cauchy 过程 - 具有稳定指数 1 的 Lévy 过程
-- [x] 从属过程 - 时间变换过程
-- [x] 逆从属过程 - 用于建模等待时间的过程
-- [x] 泊松过程 - 具有独立增量的计数过程
-- [x] 分数布朗运动 - 长程相关过程
-- [x] 连续时间随机游走 - 具有随机等待时间的跳跃过程
-- [x] Ornstein-Uhlenbeck 过程 - 均值回归过程
-- [x] Langevin 方程 - 具有摩擦和噪声的物理模型
-- [x] 广义 Langevin 方程 - 具有记忆效应的扩展模型
-- [x] 从属 Langevin 方程 - 时间变换的 Langevin 过程
-- [x] Lévy 游走 - 具有耦合跳跃长度和等待时间的超扩散过程
-- [x] 生灭过程 - 具有出生和死亡率的离散状态过程
-- [x] 随机游走 - 离散时间随机游走
-- [x] 布朗桥 - 布朗运动在终点处归零的随机过程
+- [x] 布朗运动
+- [x] $\alpha$-稳定莱维过程
+- [x] 柯西过程
+- [x] $\alpha$-稳定 subordinator
+- [x] 逆 $\alpha$-稳定 subordinator
+- [x] 泊松过程
+- [x] 分数布朗运动
+- [x] 连续时间随机游走
+- [x] Ornstein-Uhlenbeck 过程
+- [x] 朗之万方程
+- [x] 广义朗之万方程
+- [x] 从属朗之万方程
+- [x] 莱维游走 - 具有耦合跳跃长度和等待时间的超扩散过程
+- [x] 生灭过程
+- [x] 随机游走
+- [x] 布朗桥
 - [x] Brownian excursion
 - [x] Brownian meander
 - [x] 伽马过程
+- [x] 几何布朗运动
 
-## 安装
-
-添加以下内容到您的 `Cargo.toml`:
-```toml
-[dependencies]
-diffusionx = "*"  # 替换为最新版本
-```
-
-或者使用以下命令安装:
-```bash
-cargo add diffusionx
-```
 
 ## 使用
 
@@ -104,19 +75,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bm = Bm::default();
     // 创建持续时间为 1.0 的轨迹
     let traj = bm.duration(1.0)?;
-    // 模拟布朗运动轨迹，时间步长为 0.01
+    // 使用时间步长 0.01 模拟布朗运动轨迹
     let (times, positions) = traj.simulate(0.01)?;
+    println!("times: {:?}", times);
+    println!("positions: {:?}", positions);
 
     // 计算一阶原点矩，1000 个粒子，时间步长为 0.01
     let mean = traj.raw_moment(1, 1000, 0.01)?;
+    println!("mean: {mean}");
     // 计算二阶中心矩，1000 个粒子，时间步长为 0.01
     let msd = traj.central_moment(2, 1000, 0.01)?;
+    println!("MSD: {msd}");
     // 计算 TAMSD，100.0 的持续时间，1.0 的 delta，10000 个粒子，时间步长为 0.1，Gauss-Legendre 积分阶数为 10
-    let tamsd = bm.tamsd(100.0, 1.0, 10000, 0.1, 10)?;
-
-    // 计算边界为 -1.0 和 1.0 的首次通过时间
-    let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
-
+    let eatamsd = bm.eatamsd(100.0, 1.0, 10000, 0.1, 10)?;
+    println!("EATAMSD: {eatamsd}");
+    // 计算布朗运动首次通过时间，边界为 -1.0 和 1.0
+    let fpt = bm.fpt((-1.0, 1.0), 1000, 0.01)?;
+    println!("FPT: {fpt}");
     Ok(())
 }
 ```
@@ -190,53 +165,145 @@ DiffusionX 为随机过程提供强大的泛函分布模拟功能：
    ```rust
    #[derive(Clone)]
    struct MyProcess {
-       // 您的参数
-       // 应该是 `Send + Sync` 以支持并行计算
+       // 您的参数应该是 `Send + Sync` 以支持并行计算
    }
 
    impl ContinuousProcess for MyProcess {
        fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
-           // 实现您的模拟逻辑
-           todo!()
+           todo!() // 实现您的模拟逻辑
        }
    }
    ```
 
-2. 自动获得功能：
-    - 实现 `ContinuousProcess` trait 后自动获得 `ContinuousTrajectoryTrait` 功能
-    - `ContinuousTrajectory` 提供对 `Moment` trait 功能的访问
-    - 内置支持矩统计量计算
+2. 实现 `ContinuousProcess` trait 后自动实现
+    - 均值 `mean`
+    - 均方位移 `msd`
+    - 原点矩 `raw_moment`
+    - 中心矩 `central_moment`
+    - 首次通过时间 `fpt`
+    - 占据时间 `occupation_time`
+    - 时间平均均方位移 `tamsd`
+    - 可视化 `plot`
 
-示例：
+**示例：**
+
 ```rust
-let myprocess = MyProcess::default();
-let traj = myprocess.duration(10)?;
-// 计算一阶原点矩，1000 个粒子，时间步长为 0.01
-let mean = traj.raw_moment(1, 1000, 0.01)?;
+use diffusionx::{XError, XResult, random::normal, simulation::prelude::*, utils::write_csv};
+
+/// CIR
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Clone)]
+struct CIR {
+    speed: f64,
+    mean: f64,
+    volatility: f64,
+    start_position: f64,
+}
+
+impl CIR {
+    fn new(
+        speed: impl Into<f64>,
+        mean: impl Into<f64>,
+        volatility: impl Into<f64>,
+        start_position: impl Into<f64>,
+    ) -> XResult<Self> {
+        let speed: f64 = speed.into();
+        if speed <= 0.0 {
+            return Err(XError::InvalidParameters(format!(
+                "The `speed` must be greater than 0, but got {}",
+                speed
+            )));
+        }
+        Ok(Self {
+            speed,
+            mean: mean.into(),
+            volatility: volatility.into(),
+            start_position: start_position.into(),
+        })
+    }
+}
+
+impl ContinuousProcess for CIR {
+    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+        let duration = duration.into();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let initial_x = self.start_position.max(0.0);
+        let noises = normal::standard_rands(num_steps);
+
+        let t: Vec<f64> = (0..=num_steps).map(|i| i as f64 * time_step).collect();
+
+        let x = std::iter::once(initial_x)
+            .chain((0..num_steps).scan(initial_x, |state, i| {
+                let current_x = *state;
+                let drift = self.speed * (self.mean - current_x);
+                let diffusion = self.volatility * current_x.sqrt().max(0.0);
+
+                let next_x =
+                    current_x + drift * time_step + diffusion * noises[i] * time_step.sqrt();
+                *state = next_x.max(0.0);
+
+                Some(*state)
+            }))
+            .collect();
+
+        Ok((t, x))
+    }
+}
+
+fn main() -> XResudlt<()> {
+    let duration = 10;
+    let particles = 10_000;
+    let time_step = 0.01;
+    let cir = CIR::new(1, 1, 1, 0.5)?;
+    let traj = cir.duration(duration)?;
+    let (t, x) = cir.simulate(duration, time_step)?;
+    write_csv("tmp/CIR.csv", &t, &x)?;
+    // 均值
+    let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
+    println!("mean: {mean}");
+    // 均方位移
+    let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
+    println!("MSD: {msd}");
+    // 首次通过时间
+    let max_duration = 1000;
+    let fpt = cir.fpt((-1, 1), max_duration, time_step)?.unwrap_or(-1.0);
+    println!("FPT: {fpt}");
+    // 占据时间
+    let occupation_time = cir.occupation_time((-1, 1), duration, time_step)?;
+    println!("Occupation Time: {occupation_time}");
+    // 时间平均均方位移
+    let slag = 1;
+    let quad_order = 10;
+    let tamsd = TAMSD::new(&cir, duration, slag)?;
+    let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
+    println!("EATAMSD: {eatamsd}");
+
+    // 可视化
+    let config = PlotConfigBuilder::default()
+        .time_step(time_step)
+        .output_path("tmp/CIR.svg")
+        .caption("CIR")
+        .show_grid(false)
+        .x_label("t")
+        .y_label("r")
+        .legend("CIR")
+        .backend(PlotterBackend::SVG)
+        .build()
+        .unwrap();
+    traj.plot(&config)?;
+    Ok(())
+}
 ```
-
-3. 并行计算支持：
-    - 矩计算自动支持通过 Rayon 进行并行计算
-    - 统计量计算默认使用并行策略
-    - 可配置的并行性能优化
-
-4. 可视化支持：
-    - 简单代码即可实现轨迹可视化
-    - 高度可定制的绘图配置
-
-示例：
-```rust
-// 可视化布朗运动轨迹
-use diffusionx::visualize::{PlotConfigBuilder, Visualize};
-
-let bm = Bm::default().duration(10)?;
-let config = PlotConfigBuilder::default()
-.title("布朗运动")
-.output_path("brownian_motion.png")
-.build()?;
-
-bm.plot(&config)?;
+**结果：**
 ```
+mean: 0.9957644815350275
+MSD: 0.7441251895881059
+FPT: 0.38
+Occupation Time: 4.719999999999995
+EATAMSD: 0.6085042089895467
+```
+![CIR](./assets/CIR.svg)
 
 ## 基准测试
 相关内容请见 [py-diffusionx](https://github.com/tangxiangong/py-diffusionx) 的 **基准测试** 部分。

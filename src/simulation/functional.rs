@@ -11,24 +11,37 @@ use crate::{
 use rayon::prelude::*;
 
 /// First passage time
-///
-/// # Fields
-///
-/// * `sp` - The simulation object.
-/// * `domain` - The domain of the simulation.
 pub struct FirstPassageTime<SP> {
+    /// The stochastic process
     sp: SP,
+    /// The domain that the first passage time is interested in
     domain: (f64, f64),
 }
 
 impl<SP: Send + Sync + Clone> FirstPassageTime<SP> {
     /// Create a new first passage time
+    ///
+    /// # Arguments
+    ///
+    /// * `sp` - The stochastic process.
+    /// * `domain` - The domain that the first passage time is interested in.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::functional::FirstPassageTime;
+    /// use diffusionx::simulation::continuous::Bm;
+    ///
+    /// let sp = Bm::default();
+    /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
+    /// ```
     pub fn new(sp: &SP, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<Self> {
         let domain = (domain.0.into(), domain.1.into());
         if domain.0 >= domain.1 {
-            return Err(SimulationError::InvalidParameters(
-                "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{:?}`",
+                domain
+            ))
             .into());
         }
         Ok(Self {
@@ -43,19 +56,25 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
     ///
     /// # Arguments
     ///
-    /// * `max_duration` - The maximum duration of the simulation.
+    /// * `max_duration` - The maximum duration of the simulation. If the first passage time is not achieved within the maximum duration, the function will return `None`.
     /// * `time_step` - The time step of the simulation.
     ///
-    /// # Returns
+    /// # Example
     ///
-    /// `Option<f64>`
-    /// * None if the first passage time is not found within the maximum duration.
-    /// * A f64 representing the first passage time of the simulation.
+    /// ```rust
+    /// use diffusionx::simulation::functional::FirstPassageTime;
+    /// use diffusionx::simulation::continuous::Bm;
+    ///
+    /// let sp = Bm::default();
+    /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
+    /// let result = fpt.simulate(1000.0, 0.1).unwrap();
+    /// ```
     pub fn simulate(&self, max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>> {
         if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "time_step must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{}`",
+                time_step
+            ))
             .into());
         }
         let (a, b) = self.domain;
@@ -89,11 +108,16 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
     /// * `max_duration` - The maximum duration of the simulation.
     /// * `time_step` - The time step of the simulation.
     ///
-    /// # Returns
+    /// # Example
     ///
-    /// `Option<f64>`
-    /// * None if the raw moment is not found.
-    /// * A f64 representing the raw moment of the simulation.
+    /// ```rust
+    /// use diffusionx::simulation::functional::FirstPassageTime;
+    /// use diffusionx::simulation::continuous::Bm;
+    ///
+    /// let sp = Bm::default();
+    /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
+    /// let result = fpt.raw_moment(1, 1000, 1000.0, 0.1).unwrap();
+    /// ```
     pub fn raw_moment(
         &self,
         order: i32,
@@ -102,15 +126,17 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
         time_step: f64,
     ) -> XResult<Option<f64>> {
         if particles == 0 {
-            return Err(SimulationError::InvalidParameters(
-                "particles must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got `{}`",
+                particles
+            ))
             .into());
         }
         if order < 0 {
-            return Err(SimulationError::InvalidParameters(
-                "order must be non-negative".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `order` must be non-negative, got `{}`",
+                order
+            ))
             .into());
         }
         if order == 0 {
@@ -118,13 +144,14 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
         }
         let max_duration = max_duration.into();
         if max_duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "max_duration must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `max_duration` must be positive, got `{}`",
+                max_duration
+            ))
             .into());
         }
 
-        // 使用元组来同时跟踪总和和有效样本数
+        // Use tuple to track the sum and the number of valid samples
         let (sum, valid_count) = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<Option<f64>> {
@@ -161,11 +188,16 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
     /// * `max_duration` - The maximum duration of the simulation.
     /// * `time_step` - The time step of the simulation.
     ///
-    /// # Returns
+    /// # Example
     ///
-    /// `Option<f64>`
-    /// * None if the central moment is not found.
-    /// * A f64 representing the central moment of the simulation.
+    /// ```rust
+    /// use diffusionx::simulation::functional::FirstPassageTime;
+    /// use diffusionx::simulation::continuous::Bm;
+    ///
+    /// let sp = Bm::default();
+    /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
+    /// let result = fpt.central_moment(1, 1000, 1000.0, 0.1).unwrap();
+    /// ```
     pub fn central_moment(
         &self,
         order: i32,
@@ -208,21 +240,34 @@ impl<SP: ContinuousProcess> FirstPassageTime<SP> {
 }
 
 /// Occupation time
-///
-/// # Fields
-///
-/// * `sp` - The simulation object.
-/// * `domain` - The domain of the simulation.
-/// * `duration` - The duration of the simulation.
 #[derive(Debug, Clone)]
 pub struct OccupationTime<SP> {
+    /// The stochastic process
     sp: SP,
+    /// The domain that the occupation time is interested in
     domain: (f64, f64),
+    /// The duration of the simulation
     duration: f64,
 }
 
 impl<SP: Send + Sync + Clone> OccupationTime<SP> {
     /// Create a new occupation time
+    ///
+    /// # Arguments
+    ///
+    /// * `sp` - The stochastic process.
+    /// * `domain` - The domain that the occupation time is interested in.
+    /// * `duration` - The duration of the simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::functional::OccupationTime;
+    /// use diffusionx::simulation::continuous::Bm;
+    ///
+    /// let sp = Bm::default();
+    /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
+    /// ```
     pub fn new(
         sp: &SP,
         domain: (impl Into<f64>, impl Into<f64>),
@@ -231,15 +276,17 @@ impl<SP: Send + Sync + Clone> OccupationTime<SP> {
         let domain = (domain.0.into(), domain.1.into());
         let duration = duration.into();
         if domain.0 >= domain.1 {
-            return Err(SimulationError::InvalidParameters(
-                "domain must be a valid interval".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{:?}`",
+                domain
+            ))
             .into());
         }
         if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "duration must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got `{}`",
+                duration
+            ))
             .into());
         }
         Ok(Self {
@@ -256,6 +303,17 @@ impl<SP: ContinuousProcess> OccupationTime<SP> {
     /// # Arguments
     ///
     /// * `time_step` - The time step of the simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::functional::OccupationTime;
+    /// use diffusionx::simulation::continuous::Bm;
+    ///
+    /// let sp = Bm::default();
+    /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
+    /// let result = ot.simulate(0.1).unwrap();
+    /// ```
     pub fn simulate(&self, time_step: f64) -> XResult<f64> {
         let (t, x) = self.sp.simulate(self.duration, time_step)?;
         let (a, b) = self.domain;
@@ -283,17 +341,30 @@ impl<SP: ContinuousProcess> OccupationTime<SP> {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::functional::OccupationTime;
+    /// use diffusionx::simulation::continuous::Bm;
+    ///
+    /// let sp = Bm::default();
+    /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
+    /// let result = ot.raw_moment(1, 1000, 0.1).unwrap();
+    /// ```
     pub fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
         if particles == 0 {
-            return Err(SimulationError::InvalidParameters(
-                "particles must be positive".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got `{}`",
+                particles
+            ))
             .into());
         }
         if order < 0 {
-            return Err(SimulationError::InvalidParameters(
-                "order must be non-negative".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `order` must be non-negative, got `{}`",
+                order
+            ))
             .into());
         }
         if order == 0 {
@@ -319,6 +390,17 @@ impl<SP: ContinuousProcess> OccupationTime<SP> {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::functional::OccupationTime;
+    /// use diffusionx::simulation::continuous::Bm;
+    ///
+    /// let sp = Bm::default();
+    /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
+    /// let result = ot.central_moment(1, 1000, 0.1).unwrap();
+    /// ```
     pub fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, time_step)?;
         let result = (0..particles)
@@ -340,12 +422,6 @@ impl<SP: PointProcess> FirstPassageTime<SP> {
     /// # Arguments
     ///
     /// * `max_duration` - The maximum duration of the simulation.
-    ///
-    /// # Returns
-    ///
-    /// `Option<f64>`
-    /// * None if the first passage time is not found within the maximum duration.
-    /// * A f64 representing the first passage time of the simulation.
     pub fn simulate_p(&self, max_duration: impl Into<f64>) -> XResult<Option<f64>> {
         let (a, b) = self.domain;
         let sp = self.sp.clone();

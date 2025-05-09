@@ -1,4 +1,5 @@
 //! Poisson distribution random number generation
+//!
 
 use crate::{XError, XResult};
 use rand::{prelude::*, rng};
@@ -21,11 +22,13 @@ impl Poisson {
     ///
     /// # Arguments
     ///
-    /// * `lambda` - The rate parameter of the Poisson distribution
+    /// * `lambda` - The rate parameter of the Poisson distribution, must be greater than 0.
     ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::random::poisson::Poisson;
+    ///
     /// let lambda = 1.0;
     /// let poisson = Poisson::new(lambda).unwrap();
     /// ```
@@ -53,20 +56,15 @@ impl Poisson {
 
 /// Generate a Poisson random number
 ///
-/// This function generates a Poisson random number using the `Poisson` distribution.
-///
 /// # Arguments
 ///
-/// * `lambda` - The rate parameter of the Poisson distribution
-///
-/// # Returns
-///
-/// A `u64` value representing the generated random number.
+/// * `lambda` - The rate parameter of the Poisson distribution, must be greater than 0.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::poisson::rand;
+///
 /// let random = rand(1.0).unwrap();
 /// ```
 pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
@@ -77,21 +75,16 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
 
 /// Generate a vector of Poisson random numbers
 ///
-/// This function generates a vector of Poisson random numbers using the `Poisson` distribution.
-///
 /// # Arguments
 ///
-/// * `lambda` - The rate parameter of the Poisson distribution
-/// * `n` - The number of random numbers to generate
-///
-/// # Returns
-///
-/// A vector of `u64` values representing the generated random numbers.
+/// * `lambda` - The rate parameter of the Poisson distribution, must be greater than 0.
+/// * `n` - The number of random numbers to generate, must be greater than 0.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::poisson::rands;
+///
 /// let randoms = rands(1.0, 10).unwrap();
 /// ```
 pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<u64>> {
@@ -128,13 +121,13 @@ mod tests {
 
         assert!(
             (mean - lambda).abs() < 0.05,
-            "泊松分布的均值应接近{}，实际为{}",
+            "The mean of the Poisson distribution should be close to {}, got {}",
             lambda,
             mean
         );
         assert!(
             (variance - lambda).abs() < 0.1,
-            "泊松分布的方差应接近{}，实际为{}",
+            "The variance of the Poisson distribution should be close to {}, got {}",
             lambda,
             variance
         );
@@ -149,13 +142,13 @@ mod tests {
 
         assert!(
             (mean - lambda).abs() < 0.02,
-            "小λ值泊松分布的均值应接近{}，实际为{}",
+            "The mean of the Poisson distribution should be close to {}, got {}",
             lambda,
             mean
         );
         assert!(
             (variance - lambda).abs() < 0.05,
-            "小λ值泊松分布的方差应接近{}，实际为{}",
+            "The variance of the Poisson distribution should be close to {}, got {}",
             lambda,
             variance
         );
@@ -170,13 +163,13 @@ mod tests {
 
         assert!(
             (mean - lambda).abs() / lambda < 0.02,
-            "大λ值泊松分布的均值应接近{}，实际为{}",
+            "The mean of the Poisson distribution should be close to {}, got {}",
             lambda,
             mean
         );
         assert!(
             (variance - lambda).abs() / lambda < 0.05,
-            "大λ值泊松分布的方差应接近{}，实际为{}",
+            "The variance of the Poisson distribution should be close to {}, got {}",
             lambda,
             variance
         );

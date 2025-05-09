@@ -1,6 +1,5 @@
 //! Geometric Brownian motion simulation
 //!
-//! For Brownian motion, see [`crate::simulation::continuous::bm`].
 
 use crate::{SimulationError, XResult, simulation::prelude::*};
 use rayon::prelude::*;
@@ -8,18 +7,13 @@ use rayon::prelude::*;
 use super::Bm;
 
 /// Geometric Brownian motion
-///
-/// This struct represents a geometric Brownian motion.
-///
-/// # Fields
-///
-/// * `start_position` - The starting position of the geometric Brownian motion.
-/// * `mu` - The percentage drift of the geometric Brownian motion.
-/// * `sigma` - The percentage volatility of the geometric Brownian motion.
 #[derive(Debug, Clone)]
 pub struct GeometricBm {
+    /// The starting position
     start_position: f64,
+    /// The percentage drift
     mu: f64,
+    /// The percentage volatility
     sigma: f64,
 }
 
@@ -34,13 +28,13 @@ impl Default for GeometricBm {
 }
 
 impl GeometricBm {
-    /// Create a new geometric Brownian motion simulation
+    /// Create a new `GeometricBm`
     ///
     /// # Arguments
     ///
-    /// * `start_position` - The starting position of the geometric Brownian motion.
-    /// * `mu` - The percentage drift of the geometric Brownian motion.
-    /// * `sigma` - The percentage volatility of the geometric Brownian motion.
+    /// * `start_position` - The starting position.
+    /// * `mu` - The percentage drift.
+    /// * `sigma` - The percentage volatility.
     pub fn new(
         start_position: impl Into<f64>,
         mu: impl Into<f64>,
@@ -63,39 +57,36 @@ impl GeometricBm {
         })
     }
 
-    /// Get the starting position of the geometric Brownian motion simulation
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
-    /// Get the percentage drift of the geometric Brownian motion simulation
+    /// Get the percentage drift
     pub fn mu(&self) -> f64 {
         self.mu
     }
 
-    /// Get the percentage volatility of the geometric Brownian motion simulation
+    /// Get the percentage volatility
     pub fn sigma(&self) -> f64 {
         self.sigma
     }
 }
 
-/// impl `ContinuousProcess` trait for Brownian motion
+/// impl `ContinuousProcess` trait for `GeometricBm`
 impl ContinuousProcess for GeometricBm {
     /// Simulate geometric Brownian motion
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the geometric Brownian motion simulation.
-    /// * `time_step` - The time step of the geometric Brownian motion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the geometric Brownian motion simulation.
+    /// * `duration` - The duration.
+    /// * `time_step` - The time step.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::{continuous::GeometricBm, prelude::*};
+    ///
     /// let gbm = GeometricBm::default();
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -114,24 +105,19 @@ impl ContinuousProcess for GeometricBm {
 
 /// Simulate geometric Brownian motion
 ///
-/// This function simulates geometric Brownian motion.
-///
 /// # Arguments
 ///
-/// * `start_position` - The starting position of the geometric Brownian motion.
-/// * `mu` - The percentage drift of the geometric Brownian motion.
-/// * `sigma` - The percentage volatility of the geometric Brownian motion.
-/// * `duration` - The duration of the geometric Brownian motion.
-/// * `time_step` - The time step of the geometric Brownian motion.
-///
-/// # Returns
-///
-/// A tuple containing the time and the position of the geometric Brownian motion simulation.
+/// * `start_position` - The starting position.
+/// * `mu` - The percentage drift.
+/// * `sigma` - The percentage volatility.
+/// * `duration` - The duration.
+/// * `time_step` - The time step.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::geometric_bm::simulate_gbm;
+///
 /// let start_position = 10.0;
 /// let mu = 1.0;
 /// let sigma = 1.0;

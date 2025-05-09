@@ -1,74 +1,44 @@
 # DiffusionX
 
 English | [简体中文](README-zh.md)
-> DiffusionX is a multi-threaded high-performance Rust library for random number generation and stochastic process simulation, designed for scientific computing and quantitative finance applications.
+> DiffusionX is a multi-threaded high-performance Rust library for random number generation and stochastic process simulation.
 
 [![docs.rs](https://img.shields.io/badge/docs.rs-latest-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
 [![crates.io](https://img.shields.io/crates/v/diffusionx.svg)](https://crates.io/crates/diffusionx)
 [![License: MIT/Apache-2.0](https://img.shields.io/badge/License-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
-## Features
-
-- **High Performance**: Optimized for computational efficiency with multi-threading support via [rayon](https://github.com/rayon-rs/rayon)
-- **Comprehensive**: Extensive collection of random distributions and stochastic processes for scientific computing
-- **Extensible**: Trait-based architecture enabling easy extension with custom processes and distributions
-- **Well-documented**: Detailed API documentation with mathematical background and usage examples
-- **Type-safe**: Leverages Rust's type system for compile-time safety and correctness
-- **Zero-cost abstractions**: Efficient abstractions with minimal runtime overhead
-
-## Visualization
-
-DiffusionX provides built-in visualization capabilities using the [plotters](https://crates.io/crates/plotters) crate:
-
-- **Process Trajectories**: Easily visualize continuous process trajectories
-- **Customizable Plots**: Configure plot appearance including colors, dimensions, and line styles
-- **Multiple Backends**: Support for both BitMap and SVG output formats
-- **Simple API**: Intuitive trait-based API for visualizing simulation results
-
 ## Implemented
 
 ### Random Number Generation
 
-- [x] Normal distribution - Gaussian random variables with specified mean and variance
-- [x] Uniform distribution - Uniform random variables in specified ranges
-- [x] Exponential distribution - Exponential waiting times with specified rate
-- [x] Poisson distribution - Discrete count distribution with specified mean
-- [x] Alpha-stable distribution - Heavy-tailed distributions with specified stability, skewness, scale, and location
+- [x] Normal distribution
+- [x] Uniform distribution
+- [x] Exponential distribution
+- [x] Poisson distribution
+- [x] $\alpha$-stable distribution
 
-### Stochastic Processes
+### Stochastic Processes Simulation
 
-- [x] Brownian motion - Standard and generalized with drift and diffusion
-- [x] Alpha-stable Lévy process - Non-Gaussian processes with heavy tails
-- [x] Cauchy process - Lévy process with stable index 1
-- [x] Subordinator - Time-changed processes
-- [x] Inverse subordinator - Processes for modeling waiting times
-- [x] Poisson process - Counting processes with independent increments
-- [x] Fractional Brownian motion - Long-range dependent processes
-- [x] Continuous time random walk - Jump processes with random waiting times
-- [x] Ornstein-Uhlenbeck process - Mean-reverting processes
-- [x] Langevin equation - Physical models with friction and noise
-- [x] Generalized Langevin equation - Extended models with memory effects
-- [x] Subordinated Langevin equation - Time-changed Langevin processes
-- [x] Lévy walk - Superdiffusive processes with coupled jump lengths and waiting times
-- [x] Birth-death process - Discrete-state processes with birth and death rates
-- [x] Random walk - Discrete-time random walk
-- [x] Brownian bridge - Brownian motion conditioned to hit origin at the end
-- [x] Brownian excursion - Brownian motion conditioned to be positive and to take the value 0 at time 1
+- [x] Brownian motion
+- [x] $\alpha$-stable Lévy process
+- [x] Cauchy process
+- [x] $\alpha$-stable subordinator
+- [x] Inverse $\alpha$-stable subordinator
+- [x] Poisson process
+- [x] Fractional Brownian motion
+- [x] Continuous-time random walk
+- [x] Ornstein-Uhlenbeck process
+- [x] Langevin equation
+- [x] Generalized Langevin equation
+- [x] Subordinated Langevin equation
+- [x] Lévy walk
+- [x] Birth-death process
+- [x] Random walk
+- [x] Brownian excursion
 - [x] Brownian meander
-- [x] Gamma process - Non-negative process with independent and stationary increments
+- [x] Gamma process
+- [x] Geometric Brownian motion
 
-## Installation
-
-Add the following to your `Cargo.toml`:
-```toml
-[dependencies]
-diffusionx = "*"  # Replace with the latest version
-```
-
-Or use the following command to install:
-```bash
-cargo add diffusionx
-```
 
 ## Usage
 
@@ -105,17 +75,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let traj = bm.duration(1.0)?;
     // Simulate Brownian motion trajectory with time step 0.01
     let (times, positions) = traj.simulate(0.01)?;
+    println!("times: {:?}", times);
+    println!("positions: {:?}", positions);
 
     // Calculate first-order raw moment with 1000 particles and time step 0.01
     let mean = traj.raw_moment(1, 1000, 0.01)?;
+    println!("mean: {mean}");
     // Calculate second-order central moment with 1000 particles and time step 0.01
     let msd = traj.central_moment(2, 1000, 0.01)?;
+    println!("MSD: {msd}");
     // Calculate TAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1, and Gauss-Legendre quadrature order 10
-    let tamsd = bm.tamsd(100.0, 1.0, 10000, 0.1, 10)?;
-
+    let eatamsd = bm.eatamsd(100.0, 1.0, 10000, 0.1, 10)?;
+    println!("EATAMSD: {eatamsd}");
     // Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
-    let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
-
+    let fpt = bm.fpt((-1.0, 1.0), 1000, 0.01)?;
+    println!("fpt: {fpt}");
     Ok(())
 }
 ```
@@ -202,41 +176,134 @@ DiffusionX provides powerful functional distribution simulation for stochastic p
    }
    ```
 
-2. Automatic Feature Acquisition:
-    - Implementing `ContinuousProcess` trait automatically provides `ContinuousTrajectoryTrait` functionality
-    - `ContinuousTrajectory` provides access to the `Moment` trait functionality
-    - Built-in support for moment statistics calculation
+2. Implementing `ContinuousProcess` trait automatically provides
+    - mean `mean`
+    - msd `msd`
+    - raw moment `raw_moment`
+    - central moment `central_moment`
+    - first passage time `fpt`
+    - occupation time `occupation_time`
+    - TAMSD `tamsd`
+    - visualization `plot`
 
-Example:
+**Example:**
+
 ```rust
-let myprocess = MyProcess::default();
-let traj = myprocess.duration(10)?;
-// Calculate mean with 1000 particles and time step 0.01
-let mean = traj.raw_moment(1, 1000, 0.01)?;
+use diffusionx::{XError, XResult, random::normal, simulation::prelude::*, utils::write_csv};
+
+/// CIR
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Clone)]
+struct CIR {
+    speed: f64,
+    mean: f64,
+    volatility: f64,
+    start_position: f64,
+}
+
+impl CIR {
+    fn new(
+        speed: impl Into<f64>,
+        mean: impl Into<f64>,
+        volatility: impl Into<f64>,
+        start_position: impl Into<f64>,
+    ) -> XResult<Self> {
+        let speed: f64 = speed.into();
+        if speed <= 0.0 {
+            return Err(XError::InvalidParameters(format!(
+                "The `speed` must be greater than 0, but got {}",
+                speed
+            )));
+        }
+        Ok(Self {
+            speed,
+            mean: mean.into(),
+            volatility: volatility.into(),
+            start_position: start_position.into(),
+        })
+    }
+}
+
+impl ContinuousProcess for CIR {
+    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+        let duration = duration.into();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let initial_x = self.start_position.max(0.0);
+        let noises = normal::standard_rands(num_steps);
+
+        let t: Vec<f64> = (0..=num_steps).map(|i| i as f64 * time_step).collect();
+
+        let x = std::iter::once(initial_x)
+            .chain((0..num_steps).scan(initial_x, |state, i| {
+                let current_x = *state;
+                let drift = self.speed * (self.mean - current_x);
+                let diffusion = self.volatility * current_x.sqrt().max(0.0);
+
+                let next_x =
+                    current_x + drift * time_step + diffusion * noises[i] * time_step.sqrt();
+                *state = next_x.max(0.0);
+
+                Some(*state)
+            }))
+            .collect();
+
+        Ok((t, x))
+    }
+}
+
+fn main() -> XResult<()> {
+    let duration = 10;
+    let particles = 10_000;
+    let time_step = 0.01;
+    let cir = CIR::new(1, 1, 1, 0.5)?;
+    let traj = cir.duration(duration)?;
+    let (t, x) = cir.simulate(duration, time_step)?;
+    write_csv("tmp/CIR.csv", &t, &x)?;
+    // mean
+    let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
+    println!("mean: {mean}");
+    // msd
+    let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
+    println!("MSD: {msd}");
+    // FPT
+    let max_duration = 1000;
+    let fpt = cir.fpt((-1, 1), max_duration, time_step)?.unwrap_or(-1.0);
+    println!("FPT: {fpt}");
+    // occupation time
+    let occupation_time = cir.occupation_time((-1, 1), duration, time_step)?;
+    println!("Occupation Time: {occupation_time}");
+    // TAMSD
+    let slag = 1;
+    let quad_order = 10;
+    let tamsd = TAMSD::new(&cir, duration, slag)?;
+    let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
+    println!("EATAMSD: {eatamsd}");
+
+    let config = PlotConfigBuilder::default()
+        .time_step(time_step)
+        .output_path("tmp/CIR.svg")
+        .caption("CIR")
+        .show_grid(false)
+        .x_label("t")
+        .y_label("r")
+        .legend("CIR")
+        .backend(PlotterBackend::SVG)
+        .build()
+        .unwrap();
+    traj.plot(&config)?;
+    Ok(())
+}
 ```
-
-3. Parallel Computing Support:
-    - Automatic parallel computation for moment calculations using Rayon
-    - Default parallel strategy for statistical calculations
-    - Configurable parallelism for optimal performance
-
-4. Visualization Support:
-    - Easy trajectory visualization with minimal code
-    - Highly customizable plot configuration
-
-Example:
-```rust
-// Visualize a Brownian motion trajectory
-use diffusionx::visualize::{PlotConfigBuilder, Visualize};
-
-let bm = Bm::default().duration(10)?;
-let config = PlotConfigBuilder::default()
-.title("Brownian Motion")
-.output_path("brownian_motion.png")
-.build()?;
-
-bm.plot(&config)?; // Generates a plot with the specified configuration
+**Result:**
 ```
+mean: 0.9957644815350275
+MSD: 0.7441251895881059
+FPT: 0.38
+Occupation Time: 4.719999999999995
+EATAMSD: 0.6085042089895467
+```
+![CIR](./assets/CIR.svg)
 
 ## Benchmark
 The related content can be found in the **Benchmark** section of [py-diffusionx](https://github.com/tangxiangong/py-diffusionx).
