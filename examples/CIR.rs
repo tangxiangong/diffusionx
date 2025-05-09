@@ -71,28 +71,30 @@ fn main() -> XResult<()> {
     write_csv("tmp/CIR.csv", &t, &x)?;
     // mean
     let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
-    println!("mean: {:?}", mean);
+    println!("mean: {mean}");
     // msd
     let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
-    println!("MSD: {:?}", msd);
+    println!("MSD: {msd}");
     // FPT
     let max_duration = 1000;
     let fpt = cir.fpt((-1, 1), max_duration, time_step)?.unwrap_or(-1.0);
-    println!("FPT: {:?}", fpt);
+    println!("FPT: {fpt}");
     // occupation time
     let occupation_time = cir.occupation_time((-1, 1), duration, time_step)?;
-    println!("Occupation Time: {:?}", occupation_time);
+    println!("Occupation Time: {occupation_time}");
     // TAMSD
     let slag = 1;
     let quad_order = 10;
-    let tamsd = cir.tamsd(duration, slag, particles, time_step, quad_order)?;
-    println!("TAMSD: {:?}", tamsd);
+    let tamsd = TAMSD::new(&cir, duration, slag)?;
+    let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
+    println!("EATAMSD: {eatamsd}");
 
     // Visualization
     let config = PlotConfigBuilder::default()
         .time_step(time_step)
         .output_path("tmp/CIR.svg")
         .caption("CIR")
+        .show_grid(false)
         .x_label("t")
         .y_label("r")
         .legend("CIR")
