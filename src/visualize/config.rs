@@ -193,6 +193,7 @@ pub struct PlotConfig {
 }
 
 impl PlotConfig {
+    /// Plot the continuous trajectory
     pub(crate) fn plot<Backend: DrawingBackend, Process: ContinuousProcess>(
         &self,
         backend: Backend,
@@ -206,6 +207,7 @@ impl PlotConfig {
         set_config(self, backend, points, meta)
     }
 
+    /// Plot the stair trajectory
     pub(crate) fn stair<Backend: DrawingBackend, Process: PointProcess>(
         &self,
         backend: Backend,
@@ -231,6 +233,7 @@ impl PlotConfig {
     }
 }
 
+/// Set the configuration for the plot
 pub(crate) fn set_config<Backend: DrawingBackend>(
     config: &PlotConfig,
     backend: Backend,
