@@ -39,6 +39,7 @@
 - [x] Brownian excursion
 - [x] Brownian meander
 - [x] 伽马过程
+- [x] 几何布朗运动
 
 
 ## 使用
@@ -209,7 +210,7 @@ impl CIR {
         let speed: f64 = speed.into();
         if speed <= 0.0 {
             return Err(XError::InvalidParameters(format!(
-                "speed must be greater than 0, but got {}",
+                "The `speed` must be greater than 0, but got {}",
                 speed
             )));
         }

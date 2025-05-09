@@ -37,6 +37,7 @@ English | [简体中文](README-zh.md)
 - [x] Brownian excursion
 - [x] Brownian meander
 - [x] Gamma process
+- [x] Geometric Brownian motion
 
 
 ## Usage
@@ -210,7 +211,7 @@ impl CIR {
         let speed: f64 = speed.into();
         if speed <= 0.0 {
             return Err(XError::InvalidParameters(format!(
-                "speed must be greater than 0, but got {}",
+                "The `speed` must be greater than 0, but got {}",
                 speed
             )));
         }
