@@ -81,16 +81,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 计算一阶原点矩，1000 个粒子，时间步长为 0.01
     let mean = traj.raw_moment(1, 1000, 0.01)?;
-    println!("mean: {:?}", mean);
+    println!("mean: {mean}");
     // 计算二阶中心矩，1000 个粒子，时间步长为 0.01
     let msd = traj.central_moment(2, 1000, 0.01)?;
-    println!("msd: {:?}", msd);
+    println!("MSD: {msd}");
     // 计算 TAMSD，100.0 的持续时间，1.0 的 delta，10000 个粒子，时间步长为 0.1，Gauss-Legendre 积分阶数为 10
-    let tamsd = bm.tamsd(100.0, 1.0, 10000, 0.1, 10)?;
-    println!("tamsd: {:?}", tamsd);
+    let eatamsd = bm.eatamsd(100.0, 1.0, 10000, 0.1, 10)?;
+    println!("EATAMSD: {eatamsd}");
     // 计算布朗运动首次通过时间，边界为 -1.0 和 1.0
     let fpt = bm.fpt((-1.0, 1.0), 1000, 0.01)?;
-    println!("fpt: {:?}", fpt);
+    println!("FPT: {fpt}");
     Ok(())
 }
 ```
@@ -260,28 +260,30 @@ fn main() -> XResudlt<()> {
     write_csv("tmp/CIR.csv", &t, &x)?;
     // 均值
     let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
-    println!("mean: {:?}", mean);
+    println!("mean: {mean}");
     // 均方位移
     let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
-    println!("MSD: {:?}", msd);
+    println!("MSD: {msd}");
     // 首次通过时间
     let max_duration = 1000;
     let fpt = cir.fpt((-1, 1), max_duration, time_step)?.unwrap_or(-1.0);
-    println!("FPT: {:?}", fpt);
+    println!("FPT: {fpt}");
     // 占据时间
     let occupation_time = cir.occupation_time((-1, 1), duration, time_step)?;
-    println!("Occupation Time: {:?}", occupation_time);
+    println!("Occupation Time: {occupation_time}");
     // 时间平均均方位移
     let slag = 1;
     let quad_order = 10;
-    let tamsd = cir.tamsd(duration, slag, particles, time_step, quad_order)?;
-    println!("TAMSD: {:?}", tamsd);
+    let tamsd = TAMSD::new(&cir, duration, slag)?;
+    let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
+    println!("EATAMSD: {eatamsd}");
 
     // 可视化
     let config = PlotConfigBuilder::default()
         .time_step(time_step)
         .output_path("tmp/CIR.svg")
         .caption("CIR")
+        .show_grid(false)
         .x_label("t")
         .y_label("r")
         .legend("CIR")
@@ -292,6 +294,15 @@ fn main() -> XResudlt<()> {
     Ok(())
 }
 ```
+**结果：**
+```
+mean: 0.9957644815350275
+MSD: 0.7441251895881059
+FPT: 0.38
+Occupation Time: 4.719999999999995
+EATAMSD: 0.6085042089895467
+```
+![CIR](./assets/CIR.svg)
 
 ## 基准测试
 相关内容请见 [py-diffusionx](https://github.com/tangxiangong/py-diffusionx) 的 **基准测试** 部分。

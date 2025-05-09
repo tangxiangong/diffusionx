@@ -79,16 +79,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Calculate first-order raw moment with 1000 particles and time step 0.01
     let mean = traj.raw_moment(1, 1000, 0.01)?;
-    println!("mean: {:?}", mean);
+    println!("mean: {mean}");
     // Calculate second-order central moment with 1000 particles and time step 0.01
     let msd = traj.central_moment(2, 1000, 0.01)?;
-    println!("msd: {:?}", msd);
+    println!("MSD: {msd}");
     // Calculate TAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1, and Gauss-Legendre quadrature order 10
-    let tamsd = bm.tamsd(100.0, 1.0, 10000, 0.1, 10)?;
-    println!("tamsd: {:?}", tamsd);
+    let eatamsd = bm.eatamsd(100.0, 1.0, 10000, 0.1, 10)?;
+    println!("EATAMSD: {eatamsd}");
     // Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
     let fpt = bm.fpt((-1.0, 1.0), 1000, 0.01)?;
-    println!("fpt: {:?}", fpt);
+    println!("fpt: {fpt}");
     Ok(())
 }
 ```
@@ -261,27 +261,29 @@ fn main() -> XResult<()> {
     write_csv("tmp/CIR.csv", &t, &x)?;
     // mean
     let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
-    println!("mean: {:?}", mean);
+    println!("mean: {mean}");
     // msd
     let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
-    println!("MSD: {:?}", msd);
+    println!("MSD: {msd}");
     // FPT
     let max_duration = 1000;
     let fpt = cir.fpt((-1, 1), max_duration, time_step)?.unwrap_or(-1.0);
-    println!("FPT: {:?}", fpt);
+    println!("FPT: {fpt}");
     // occupation time
     let occupation_time = cir.occupation_time((-1, 1), duration, time_step)?;
-    println!("Occupation Time: {:?}", occupation_time);
+    println!("Occupation Time: {occupation_time}");
     // TAMSD
     let slag = 1;
     let quad_order = 10;
-    let tamsd = cir.tamsd(duration, slag, particles, time_step, quad_order)?;
-    println!("TAMSD: {:?}", tamsd);
+    let tamsd = TAMSD::new(&cir, duration, slag)?;
+    let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
+    println!("EATAMSD: {eatamsd}");
 
     let config = PlotConfigBuilder::default()
         .time_step(time_step)
         .output_path("tmp/CIR.svg")
         .caption("CIR")
+        .show_grid(false)
         .x_label("t")
         .y_label("r")
         .legend("CIR")
@@ -292,6 +294,15 @@ fn main() -> XResult<()> {
     Ok(())
 }
 ```
+**Result:**
+```
+mean: 0.9957644815350275
+MSD: 0.7441251895881059
+FPT: 0.38
+Occupation Time: 4.719999999999995
+EATAMSD: 0.6085042089895467
+```
+![CIR](./assets/CIR.svg)
 
 ## Benchmark
 The related content can be found in the **Benchmark** section of [py-diffusionx](https://github.com/tangxiangong/py-diffusionx).
