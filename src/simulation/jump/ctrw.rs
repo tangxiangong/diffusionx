@@ -1,3 +1,6 @@
+//! Continuous time random walk simulation
+//!
+
 use crate::{
     SimulationError, XResult,
     random::{exponential, normal, stable},
@@ -25,15 +28,13 @@ use crate::{
 ///
 /// CTRWs are widely used to model anomalous diffusion in complex systems, including
 /// transport in disordered media, financial time series, and biological processes.
-///
-/// # Fields
-/// - `alpha`: Between 0 and 1, the exponent of the waiting time distribution, when `alpha = 1` the waiting time is exponential, otherwise it is a power-law with tail index `alpha`.
-/// - `beta`: Between 0 and 2, the exponent of the jump length distribution, when `beta = 2` the jump length is normal, otherwise it is a power-law with tail index `beta`.
-/// - `start_position`: The starting position of the process.
 #[derive(Clone, Debug)]
 pub struct CTRW {
+    /// The alpha parameter of the stable distribution
     alpha: f64,
+    /// The beta parameter of the stable distribution
     beta: f64,
+    /// The starting position
     start_position: f64,
 }
 
@@ -48,13 +49,21 @@ impl Default for CTRW {
 }
 
 impl CTRW {
-    /// Create a new continuous time random walk
+    /// Create a new `CTRW`
     ///
     /// # Arguments
     ///
     /// * `alpha` - The alpha parameter of the stable distribution.
     /// * `beta` - The beta parameter of the stable distribution.
     /// * `start_position` - The starting position of the process.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::jump::CTRW;
+    ///
+    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
+    /// ```
     pub fn new(
         alpha: impl Into<f64>,
         beta: impl Into<f64>,
@@ -84,53 +93,19 @@ impl CTRW {
         })
     }
 
-    /// Get the alpha of the continuous time random walk
+    /// Get the stable index of the waiting time distribution
     pub fn alpha(&self) -> f64 {
         self.alpha
     }
 
-    /// Get the beta of the continuous time random walk
+    /// Get the stable index of the jump length distribution
     pub fn beta(&self) -> f64 {
         self.beta
     }
 
-    /// Get the start position of the continuous time random walk
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
-    }
-
-    /// Simulate the continuous time random walk
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::jump::CTRW;
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let (t, x) = ctrw.simulate(10.0).unwrap();
-    /// ```
-    pub fn simulate(&self, duration: impl Into<f64>) -> XResult<Pair> {
-        simulate_ctrw_with_duration(self.alpha, self.beta, duration, self.start_position)
-    }
-
-    /// Simulate the continuous time random walk
-    ///
-    /// # Arguments
-    ///
-    /// * `num_step` - The number of steps of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::jump::CTRW;
-    /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let (t, x) = ctrw.simulate_with_step(1000).unwrap();
-    /// ```
-    pub fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
-        simulate_ctrw_with_step(self.alpha, self.beta, num_step, self.start_position)
     }
 }
 
@@ -155,6 +130,21 @@ impl PointProcess for CTRW {
 }
 
 /// Simulate the continuous time random walk
+///
+/// # Arguments
+///
+/// * `alpha` - The alpha parameter of the stable distribution.
+/// * `beta` - The beta parameter of the stable distribution.
+/// * `num_step` - The number of steps.
+/// * `start_position` - The starting position.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::jump::ctrw::simulate_ctrw_with_step;
+///
+/// let (t, x) = simulate_ctrw_with_step(0.5, 1.0, 1000, 0.0).unwrap();
+/// ```
 pub fn simulate_ctrw_with_step(
     alpha: f64,
     beta: f64,
@@ -177,6 +167,21 @@ pub fn simulate_ctrw_with_step(
 }
 
 /// Simulate the continuous time random walk
+///
+/// # Arguments
+///
+/// * `alpha` - The alpha parameter of the stable distribution.
+/// * `beta` - The beta parameter of the stable distribution.
+/// * `duration` - The duration of the simulation.
+/// * `start_position` - The starting position.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::jump::ctrw::simulate_ctrw_with_duration;
+///
+/// let (t, x) = simulate_ctrw_with_duration(0.5, 1.0, 10.0, 0.0).unwrap();
+/// ```
 pub fn simulate_ctrw_with_duration(
     alpha: f64,
     beta: f64,
@@ -227,7 +232,7 @@ mod tests {
     #[test]
     fn test_simulate_ctrw_with_duration() {
         let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-        let (_t, _x) = ctrw.simulate(10.0).unwrap();
+        let (_t, _x) = ctrw.simulate_with_duration(10.0).unwrap();
     }
 
     #[test]

@@ -1,4 +1,5 @@
 //! Birth-death process simulation
+//!
 
 use crate::{
     SimulationError, XResult,
@@ -10,29 +11,32 @@ use rayon::prelude::*;
 
 /// Birth-death process
 ///
-/// This struct represents a Birth-death process.
-///
 /// # Mathematical Formulation
 ///
 /// The Birth-death process is a process that describes the number of particles in a system that can either birth or die.
-///
-/// # Fields
-///
-/// * `lambda` - The rate of birth.
-/// * `mu` - The rate of death.
 #[derive(Debug, Clone)]
 pub struct BirthDeath {
+    /// The rate of birth
     lambda: f64,
+    /// The rate of death
     mu: f64,
 }
 
 impl BirthDeath {
-    /// Create a new Birth-death process simulation.
+    /// Create a new `BirthDeath`
     ///
     /// # Arguments
     ///
     /// * `lambda` - The rate of birth.
     /// * `mu` - The rate of death.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::jump::BirthDeath;
+    ///
+    /// let birth_death = BirthDeath::new(1.0, 1.0).unwrap();
+    /// ```
     pub fn new(lambda: impl Into<f64>, mu: impl Into<f64>) -> XResult<Self> {
         let lambda = lambda.into();
         let mu = mu.into();
@@ -53,19 +57,33 @@ impl BirthDeath {
         Ok(Self { lambda, mu })
     }
 
-    /// Get the rate of birth.
+    /// Get the rate of birth
     pub fn lambda(&self) -> f64 {
         self.lambda
     }
 
-    /// Get the rate of death.
+    /// Get the rate of death
     pub fn mu(&self) -> f64 {
         self.mu
     }
 }
 
-/// impl `PointProcess` trait for BirthDeath
+/// impl `PointProcess` trait for `BirthDeath`
 impl PointProcess for BirthDeath {
+    /// Simulate the Birth-death process with a given number of steps
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::{jump::BirthDeath, prelude::*};
+    ///
+    /// let birth_death = BirthDeath::new(1.0, 1.0).unwrap();
+    /// let (t, x) = birth_death.simulate_with_step(100).unwrap();
+    /// ```
     fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_birth_death_with_step(self.lambda, self.mu, num_step)
     }
@@ -77,7 +95,15 @@ impl PointProcess for BirthDeath {
 ///
 /// * `lambda` - The rate of birth.
 /// * `mu` - The rate of death.
-/// * `num_step` - The number of steps of the simulation.
+/// * `num_step` - The number of steps
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::jump::birth_death::simulate_birth_death_with_step;
+///
+/// let (t, x) = simulate_birth_death_with_step(1.0, 1.0, 100).unwrap();
+/// ```
 pub fn simulate_birth_death_with_step(
     lambda: impl Into<f64>,
     mu: impl Into<f64>,
@@ -102,6 +128,14 @@ pub fn simulate_birth_death_with_step(
 /// * `lambda` - The rate of birth.
 /// * `mu` - The rate of death.
 /// * `duration` - The duration of the simulation.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::jump::birth_death::simulate_birth_death_with_duration;
+///
+/// let (t, x) = simulate_birth_death_with_duration(1.0, 1.0, 100.0).unwrap();
+/// ```
 pub fn simulate_birth_death_with_duration(
     lambda: impl Into<f64>,
     mu: impl Into<f64>,

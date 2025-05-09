@@ -3,41 +3,60 @@
 use crate::{SimulationError, XResult, random::exponential, simulation::prelude::*, utils::cumsum};
 
 /// Poisson process
-///
-/// This struct represents a Poisson process.
-///
-/// # Fields
-///
-/// * `lambda` - The rate of the Poisson process.
 #[derive(Debug, Clone)]
 pub struct Poisson {
+    /// The rate of the Poisson process
     lambda: f64,
 }
 
 impl Poisson {
-    /// Create a new Poisson process simulation.
+    /// Create a new `Poisson`
     ///
     /// # Arguments
     ///
     /// * `lambda` - The rate of the Poisson process.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::jump::Poisson;
+    ///
+    /// let poisson = Poisson::new(1.0).unwrap();
+    /// ```
     pub fn new(lambda: impl Into<f64>) -> XResult<Self> {
         let lambda = lambda.into();
         if lambda <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "lambda must be greater than 0".to_string(),
-            )
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `lambda` must be greater than 0, but got {}",
+                lambda
+            ))
             .into());
         }
         Ok(Self { lambda })
     }
 
-    /// Get the rate of the Poisson process.
+    /// Get the rate
     pub fn lambda(&self) -> f64 {
         self.lambda
     }
 }
 
+/// impl `PointProcess` trait for `Poisson`
 impl PointProcess for Poisson {
+    /// Simulate the Poisson process with a given number of steps
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::{jump::Poisson, prelude::*};
+    ///
+    /// let poisson = Poisson::new(1.0).unwrap();
+    /// let (t, x) = poisson.simulate_with_step(1000).unwrap();
+    /// ```
     fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_poisson_with_step(self.lambda, num_step)
     }
@@ -49,6 +68,14 @@ impl PointProcess for Poisson {
 ///
 /// * `lambda` - The rate of the Poisson process.
 /// * `num_step` - The number of steps of the simulation.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::jump::poisson::simulate_poisson_with_step;
+///
+/// let (t, x) = simulate_poisson_with_step(1.0, 1000).unwrap();
+/// ```
 pub fn simulate_poisson_with_step(lambda: impl Into<f64>, num_step: usize) -> XResult<Pair> {
     let lambda = lambda.into();
     let durations = exponential::rands(lambda, num_step)?;
@@ -57,12 +84,20 @@ pub fn simulate_poisson_with_step(lambda: impl Into<f64>, num_step: usize) -> XR
     Ok((t, x))
 }
 
-/// Simulate the Poisson process with a given number of steps
+/// Simulate the Poisson process with a given duration
 ///
 /// # Arguments
 ///
 /// * `lambda` - The rate of the Poisson process.
 /// * `duration` - The duration of the simulation.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::jump::poisson::simulate_poisson_with_duration;
+///
+/// let (t, x) = simulate_poisson_with_duration(1.0, 100.0).unwrap();
+/// ```
 pub fn simulate_poisson_with_duration(
     lambda: impl Into<f64>,
     duration: impl Into<f64>,
