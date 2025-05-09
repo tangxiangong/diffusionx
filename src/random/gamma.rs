@@ -27,12 +27,14 @@ impl Gamma {
     ///
     /// # Arguments
     ///
-    /// * `shape` - The shape parameter of the gamma distribution
-    /// * `scale` - The scale parameter of the gamma distribution
+    /// * `shape` - The shape parameter of the gamma distribution, must be greater than 0.
+    /// * `scale` - The scale parameter of the gamma distribution, must be greater than 0.
     ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::random::gamma::Gamma;
+    ///
     /// let shape = 1.0;
     /// let scale = 2.0;
     /// let gamma = Gamma::new(shape, scale).unwrap();
@@ -69,15 +71,13 @@ impl Gamma {
     ///
     /// # Arguments
     ///
-    /// * `n` - The number of random numbers to generate
-    ///
-    /// # Returns
-    ///
-    /// A vector of `f64` values representing the generated random numbers.
+    /// * `n` - The number of random numbers to generate, must be greater than 0.
     ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::random::gamma::Gamma;
+    ///
     /// let gamma = Gamma::new(1.0, 1.0).unwrap();
     /// let randoms = gamma.samples(10).unwrap();
     /// ```
@@ -88,16 +88,16 @@ impl Gamma {
 
 /// Generate a gamma random number
 ///
-/// This function generates a gamma random number using the `Gamma` distribution.
+/// # Arguments
 ///
-/// # Returns
-///
-/// A `f64` value representing the generated random number.
+/// * `shape` - The shape parameter of the gamma distribution, must be greater than 0.
+/// * `scale` - The scale parameter of the gamma distribution, must be greater than 0.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::gamma::rand;
+///
 /// let random = rand(1.0, 1.0).unwrap();
 /// ```
 pub fn rand(shape: impl Into<f64>, scale: impl Into<f64>) -> XResult<f64> {
@@ -110,16 +110,17 @@ pub fn rand(shape: impl Into<f64>, scale: impl Into<f64>) -> XResult<f64> {
 
 /// Generate a vector of gamma random numbers
 ///
-/// This function generates a vector of gamma random numbers using the `Gamma` distribution.
+/// # Arguments
 ///
-/// # Returns
-///
-/// A vector of `f64` values representing the generated random numbers.
+/// * `shape` - The shape parameter of the gamma distribution, must be greater than 0.
+/// * `scale` - The scale parameter of the gamma distribution, must be greater than 0.
+/// * `n` - The number of random numbers to generate, must be greater than 0.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::gamma::rands;
+///
 /// let randoms = rands(1.0, 1.0, 10).unwrap();
 /// ```
 pub fn rands(shape: impl Into<f64>, scale: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {

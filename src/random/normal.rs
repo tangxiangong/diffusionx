@@ -1,5 +1,6 @@
 //! Normal random number generation
 //! For other stable distributions, see [crate::random::stable].
+//!
 
 use crate::{XError, XResult};
 use rand::{prelude::*, rng};
@@ -27,12 +28,14 @@ impl Normal {
     ///
     /// # Arguments
     ///
-    /// * `mu` - The mean of the normal distribution
-    /// * `sigma` - The standard deviation of the normal distribution
+    /// * `mu` - The mean of the normal distribution.
+    /// * `sigma` - The standard deviation of the normal distribution, must be greater than 0.
     ///
     /// # Example
     ///
     /// ```rust
+    /// use diffusionx::random::normal::Normal;
+    ///
     /// let mu = 1.0;
     /// let sigma = 2.0;
     /// let normal = Normal::new(mu, sigma).unwrap();
@@ -63,16 +66,14 @@ impl Normal {
     ///
     /// # Arguments
     ///
-    /// * `n` - The number of random numbers to generate
-    ///
-    /// # Returns
-    ///
-    /// A vector of `f64` values representing the generated random numbers.
+    /// * `n` - The number of random numbers to generate, must be greater than 0.
     ///
     /// # Example
     ///
     /// ```rust
-    /// let normal = Normal::new(0.0, 1.0).unwrap();
+    /// use diffusionx::random::normal::Normal;
+    ///
+    /// let normal = Normal::default();
     /// let randoms = normal.samples(10).unwrap();
     /// ```
     pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
@@ -86,16 +87,11 @@ impl Normal {
 
 /// Generate a standard normal random number
 ///
-/// This function generates a standard normal random number using the `StandardNormal` distribution.
-///
-/// # Returns
-///
-/// A `f64` value representing the generated random number.
-///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::normal::standard_rand;
+///
 /// let random = standard_rand();
 /// ```
 pub fn standard_rand() -> f64 {
@@ -104,16 +100,11 @@ pub fn standard_rand() -> f64 {
 
 /// Generate a vector of standard normal random numbers
 ///
-/// This function generates a vector of standard normal random numbers using the `StandardNormal` distribution.
-///
-/// # Returns
-///
-/// A vector of `f64` values representing the generated random numbers.
-///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::normal::standard_rands;
+///
 /// let randoms = standard_rands(10);
 /// ```
 pub fn standard_rands(n: usize) -> Vec<f64> {
@@ -126,16 +117,16 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 
 /// Generate a normal random number
 ///
-/// This function generates a normal random number using the `Normal` distribution.
+/// # Arguments
 ///
-/// # Returns
-///
-/// A `f64` value representing the generated random number.
+/// * `mean` - The mean of the normal distribution.
+/// * `std_dev` - The standard deviation of the normal distribution, must be greater than 0.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::normal::rand;
+///
 /// let random = rand(0.0, 1.0).unwrap();
 /// ```
 pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
@@ -147,16 +138,17 @@ pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
 
 /// Generate a vector of normal random numbers
 ///
-/// This function generates a vector of normal random numbers using the `Normal` distribution.
+/// # Arguments
 ///
-/// # Returns
-///
-/// A vector of `f64` values representing the generated random numbers.
+/// * `mean` - The mean of the normal distribution.
+/// * `std_dev` - The standard deviation of the normal distribution, must be greater than 0.
+/// * `n` - The number of random numbers to generate, must be greater than 0.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::random::normal::rands;
+///
 /// let randoms = rands(0.0, 1.0, 10).unwrap();
 /// ```
 pub fn rands(mean: impl Into<f64>, std_dev: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
@@ -209,12 +201,12 @@ mod tests {
 
         assert!(
             mean.abs() < 0.01,
-            "标准正态分布的均值应接近0，实际为{}",
+            "The mean of the standard normal distribution should be close to 0, got {}",
             mean
         );
         assert!(
             (std_dev - 1.0).abs() < 0.01,
-            "标准正态分布的标准差应接近1，实际为{}",
+            "The standard deviation of the standard normal distribution should be close to 1, got {}",
             std_dev
         );
     }
@@ -230,13 +222,13 @@ mod tests {
 
         assert!(
             (mean - mu).abs() < 0.05,
-            "正态分布的均值应接近{}，实际为{}",
+            "The mean of the normal distribution should be close to {}, got {}",
             mu,
             mean
         );
         assert!(
             (std_dev - sigma).abs() < 0.05,
-            "正态分布的标准差应接近{}，实际为{}",
+            "The standard deviation of the normal distribution should be close to {}, got {}",
             sigma,
             std_dev
         );
