@@ -1,6 +1,5 @@
 //! Brownian excursion simulation
 //!
-//! For Brownian motion and Brownian bridge, see [`crate::simulation::continuous::bm`] and [`crate::simulation::continuous::brownian_bridge`], respectively.
 
 use crate::{SimulationError, XResult, simulation::prelude::*, utils::minmax};
 use rayon::prelude::*;
@@ -8,8 +7,6 @@ use rayon::prelude::*;
 use super::BrownianBridge;
 
 /// Brownian excursion
-///
-/// This struct represents a Brownian excursion.
 #[derive(Debug, Clone)]
 pub struct BrownianExcursion;
 
@@ -21,14 +18,11 @@ impl BrownianExcursion {
     /// * `domain` - The domain of the Brownian excursion simulation.
     /// * `time_step` - The time step of the Brownian excursion simulation.
     ///
-    /// # Returns
-    ///
-    /// A f64 representing the first passage time of the Brownian excursion simulation.
-    ///
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
+    /// use diffusionx::simulation::continuous::BrownianExcursion;
+    ///
     /// let be = BrownianExcursion;
     /// let fpt = be.fpt((-1.0, 1.0), 0.1).unwrap();
     /// ```
@@ -56,23 +50,20 @@ impl BrownianExcursion {
     }
 }
 
-/// impl `ContinuousProcess` trait for Brownian excursion
+/// impl `ContinuousProcess` trait for `BrownianExcursion`
 impl ContinuousProcess for BrownianExcursion {
     /// Simulate Brownian excursion
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the Brownian excursion simulation.
-    /// * `time_step` - The time step of the Brownian excursion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the Brownian excursion simulation.
+    /// * `duration` - The duration of the trajectory.
+    /// * `time_step` - The time step of the simulation.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
+    ///
     /// let be = BrownianExcursion;
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -85,21 +76,16 @@ impl ContinuousProcess for BrownianExcursion {
 
 /// Simulate Brownian excursion
 ///
-/// This function simulates Brownian excursion.
-///
 /// # Arguments
 ///
-/// * `duration` - The duration of the Brownian excursion.
-/// * `time_step` - The time step of the Brownian excursion.
-///
-/// # Returns
-///
-/// A tuple containing the time and the position of the Brownian excursion simulation.
+/// * `duration` - The duration of the trajectory.
+/// * `time_step` - The time step of the simulation.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::brownian_excursion::simulate_brownian_excursion;
+///
 /// let time_step = 0.1;
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_excursion(duration, time_step).unwrap();
@@ -110,7 +96,6 @@ pub fn simulate_brownian_excursion(
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     let duration: f64 = duration.into();
     if duration <= 0.0 || duration > 1.0 {
-        // Duration must be positive and not exceed 1.0
         return Err(SimulationError::InvalidParameters(format!(
             "The `duration` must be in (0.0, 1.0], got {}",
             duration

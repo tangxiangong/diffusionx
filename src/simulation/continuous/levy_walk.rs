@@ -16,15 +16,13 @@ use rayon::prelude::*;
 /// direction and a new flight time τ from a probability distribution ψ(τ) ~ τ^(-1-α)
 /// with 0 < α < 1. The flight length is proportional to the flight time: l = vτ,
 /// where v is the constant velocity.
-///
-/// # Fields
-/// - `alpha`: Between 0 and 1, the exponent of the waiting time distribution, when `alpha = 1` the waiting time is exponential, otherwise it is a power-law with tail index `alpha`.
-/// - `velocity`: The velocity of the walker.
-/// - `start_position`: The starting position of the process.
 #[derive(Clone, Debug)]
 pub struct LevyWalk {
+    /// The waiting time distribution exponent
     alpha: f64,
+    /// The velocity
     velocity: f64,
+    /// The starting position
     start_position: f64,
 }
 
@@ -39,18 +37,19 @@ impl Default for LevyWalk {
 }
 
 impl LevyWalk {
-    /// Create a new LevyWalk
+    /// Create a new `LevyWalk`
     ///
     /// # Arguments
     ///
-    /// - `alpha`: The alpha of the Levy walk.
-    /// - `velocity`: The velocity of the Levy walk.
-    /// - `start_position`: The starting position of the Levy walk.
+    /// * `alpha` - The alpha of the Levy walk.
+    /// * `velocity` - The velocity of the Levy walk.
+    /// * `start_position` - The starting position of the Levy walk.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::continuous::LevyWalk;
+    ///
     /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
     /// ```
     pub fn new(
@@ -63,14 +62,14 @@ impl LevyWalk {
         let start_position = start_position.into();
         if alpha <= 0.0 || alpha > 1.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "alpha must be between 0 and 1, got {}",
+                "The `alpha` must be between 0 and 1, got {}",
                 alpha
             ))
             .into());
         }
         if velocity <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "velocity must be positive, got {}",
+                "The `velocity` must be positive, got {}",
                 velocity
             ))
             .into());
@@ -82,17 +81,17 @@ impl LevyWalk {
         })
     }
 
-    /// Get the alpha of the Levy walk
+    /// Get the waiting time distribution exponent
     pub fn alpha(&self) -> f64 {
         self.alpha
     }
 
-    /// Get the velocity of the Levy walk
+    /// Get the velocity
     pub fn velocity(&self) -> f64 {
         self.velocity
     }
 
-    /// Get the start position of the Lévy walk
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
@@ -127,7 +126,8 @@ impl ContinuousProcess for LevyWalk {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::LevyWalk;
+    /// use diffusionx::simulation::{continuous::LevyWalk, prelude::*};
+    ///
     /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = levy_walk.simulate(10.0, 0.1).unwrap();
     /// ```
@@ -140,15 +140,16 @@ impl ContinuousProcess for LevyWalk {
 ///
 /// # Arguments
 ///
-/// * `alpha` - The alpha of the Lévy walk.
-/// * `velocity` - The velocity of the Lévy walk.
-/// * `num_step` - The number of steps of the Lévy walk.
-/// * `start_position` - The starting position of the Lévy walk.
+/// * `alpha` - The waiting time distribution exponent.
+/// * `velocity` - The velocity.
+/// * `num_step` - The number of steps.
+/// * `start_position` - The starting position.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::levy_walk::simulate_levy_walk_with_step;
+///
 /// let (t, x) = simulate_levy_walk_with_step(0.5, 1.0, 1000, 0.0).unwrap();
 /// ```
 pub fn simulate_levy_walk_with_step(
@@ -186,15 +187,16 @@ pub fn simulate_levy_walk_with_step(
 ///
 /// # Arguments
 ///
-/// * `alpha` - The alpha of the Lévy walk.
-/// * `velocity` - The velocity of the Lévy walk.
-/// * `duration` - The duration of the Lévy walk.
-/// * `start_position` - The starting position of the Lévy walk.
+/// * `alpha` - The waiting time distribution exponent.
+/// * `velocity` - The velocity.
+/// * `duration` - The duration.
+/// * `start_position` - The starting position.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::levy_walk::simulate_levy_walk_with_duration;
+///
 /// let (t, x) = simulate_levy_walk_with_duration(0.5, 1.0, 10.0, 0.0).unwrap();
 /// ```
 pub fn simulate_levy_walk_with_duration(

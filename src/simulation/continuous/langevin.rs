@@ -9,20 +9,17 @@ use rayon::prelude::*;
 /// dx(t) = f(x(t), t) dt + g(x(t), t) dW(t), x(0) = x0
 ///
 /// where W(t) is the Weiner process or called Brownian motion.
-///
-/// # Fields
-///
-/// - `drift_func`: the drift function of the Langevin equation, f(x, t).
-/// - `diffusion_func`: the diffusion function of the Langevin equation, g(x, t).
-/// - `start_position`: the starting position of the Langevin equation, x0.
 #[derive(Clone)]
 pub struct Langevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
     G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
 {
+    /// The drift function
     drift_func: D,
+    /// The diffusion function
     diffusion_func: G,
+    /// The starting position
     start_position: f64,
 }
 
@@ -31,22 +28,23 @@ where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
     G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
 {
-    /// Create a new Langevin
+    /// Create a new `Langevin`
     ///
     /// # Arguments
     ///
-    /// - `drift_func`: the drift function of the Langevin equation.
-    /// - `diffusion_func`: the diffusion function of the Langevin equation.
-    /// - `start_position`: the starting position of the Langevin equation.
+    /// * `drift_func` - The drift function.
+    /// * `diffusion_func` - The diffusion function.
+    /// * `start_position` - The starting position.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::continuous::Langevin;
+    ///
     /// let drift = |x: f64, _t: f64| x;
     /// let diffusion = |_x: f64, _t: f64| 1.0;
     /// let start_position = 0.0;
-    /// let langevin = Langevin::new(drift, diffusion, start_position);
+    /// let langevin = Langevin::new(drift, diffusion, start_position).unwrap();
     /// ```
     pub fn new(drift_func: D, diffusion_func: G, start_position: impl Into<f64>) -> XResult<Self> {
         let start_position = start_position.into();
@@ -57,28 +55,46 @@ where
         })
     }
 
-    /// Get the starting position of the Langevin
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
-    /// Get the drift function of the Langevin
+    /// Get the drift function
     pub fn drift_func(&self) -> &D {
         &self.drift_func
     }
 
-    /// Get the diffusion function of the Langevin
+    /// Get the diffusion function
     pub fn diffusion_func(&self) -> &G {
         &self.diffusion_func
     }
 }
 
-/// impl `ContinuousProcess` trait for Langevin equation
+/// impl `ContinuousProcess` trait for `Langevin`
 impl<D, G> ContinuousProcess for Langevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
     G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
 {
+    /// Simulate the Langevin equation
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration.
+    /// * `time_step` - The time step.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::Langevin;
+    ///
+    /// let drift = |x: f64, _t: f64| x;
+    /// let diffusion = |_x: f64, _t: f64| 1.0;
+    /// let start_position = 0.0;
+    /// let langevin = Langevin::new(drift, diffusion, start_position).unwrap();
+    /// let (t, x) = langevin.simulate(1.0, 0.01).unwrap();
+    /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         simulate_langevin(
             &self.drift_func,
@@ -92,13 +108,24 @@ where
 
 /// Simulate the Langevin equation
 ///
-/// # Fields
+/// # Arguments
 ///
-/// - `drift`: the drift function of the Langevin equation.
-/// - `diffusion`: the diffusion function of the Langevin equation.
-/// - `start_position`: the starting position of the Langevin equation.
-/// - `duration`: the duration of the simulation.
-/// - `time_step`: the time step of the simulation.
+/// * `drift` - The drift function.
+/// * `diffusion` - The diffusion function.
+/// * `start_position` - The starting position.
+/// * `duration` - The duration.
+/// * `time_step` - The time step.
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::simulation::continuous::langevin::simulate_langevin;
+///
+/// let drift = |x: f64, _t: f64| x;
+/// let diffusion = |_x: f64, _t: f64| 1.0;
+/// let start_position = 0.0;
+/// let (t, x) = simulate_langevin(&drift, &diffusion, start_position, 1.0, 0.01).unwrap();
+/// ```
 pub fn simulate_langevin<D, G>(
     drift: &D,
     diffusion: &G,

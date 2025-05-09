@@ -1,4 +1,5 @@
 //! Fractional Brownian motion simulation
+//!
 
 use crate::{
     SimulationError, XResult,
@@ -9,26 +10,29 @@ use crate::{
 use rayon::prelude::*;
 
 /// Fractional Brownian motion
-///
-/// This struct represents a Fractional Brownian motion.
-///
-/// # Fields
-///
-/// * `start_position` - The starting position of the Fractional Brownian motion.
-/// * `hurst_exponent` - The Hurst exponent of the Fractional Brownian motion.
 #[derive(Debug, Clone)]
 pub struct Fbm {
+    /// The starting position
     start_position: f64,
+    /// The Hurst exponent
     hurst_exponent: f64,
 }
 
 impl Fbm {
-    /// Create a new Fractional Brownian motion simulation
+    /// Create a new `Fbm`
     ///
     /// # Arguments
     ///
-    /// * `start_position` - The starting position of the Fractional Brownian motion.
-    /// * `hurst_exponent` - The Hurst exponent of the Fractional Brownian motion.
+    /// * `start_position` - The starting position.
+    /// * `hurst_exponent` - The Hurst exponent.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::Fbm;
+    ///
+    /// let fbm = Fbm::new(10.0, 0.5).unwrap();
+    /// ```
     pub fn new(start_position: impl Into<f64>, hurst_exponent: f64) -> XResult<Self> {
         let start_position = start_position.into();
         if hurst_exponent <= 0.0 || hurst_exponent >= 1.0 {
@@ -44,37 +48,34 @@ impl Fbm {
         })
     }
 
-    /// Get the starting position of the Fractional Brownian motion simulation
+    /// Get the starting position
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
 
-    /// Get the Hurst exponent of the Fractional Brownian motion simulation
+    /// Get the Hurst exponent
     pub fn hurst_exponent(&self) -> f64 {
         self.hurst_exponent
     }
 }
 
-/// impl `ContinuousProcess` trait for Fractional Brownian motion
+/// impl `ContinuousProcess` trait for `Fbm`
 impl ContinuousProcess for Fbm {
     /// Simulate Fractional Brownian motion
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the Fractional Brownian motion simulation.
-    /// * `time_step` - The time step of the Fractional Brownian motion simulation.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the Fractional Brownian motion simulation.
+    /// * `duration` - The duration of the trajectory.
+    /// * `time_step` - The time step of the simulation.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::{continuous::Fbm, prelude::*};
+    ///
     /// let fbm = Fbm::new(10.0, 0.5).unwrap();
-    /// let duration = 1.0;
     /// let time_step = 0.1;
+    /// let duration = 1.0;
     /// let (t, x) = fbm.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
@@ -87,25 +88,20 @@ impl ContinuousProcess for Fbm {
     }
 }
 
-/// Simulate Fractional Brownian motion
-///
-/// This function simulates Fractional Brownian motion.
+/// Simulate FBM
 ///
 /// # Arguments
 ///
-/// * `start_position` - The starting position of the Fractional Brownian motion.
-/// * `hurst_exponent` - The Hurst exponent of the Fractional Brownian motion.
-/// * `duration` - The duration of the Fractional Brownian motion.
-/// * `time_step` - The time step of the Fractional Brownian motion.
-///
-/// # Returns
-///
-/// A tuple containing the time and the position of the Fractional Brownian motion simulation.
+/// * `start_position` - The starting position.
+/// * `hurst_exponent` - The Hurst exponent.
+/// * `duration` - The duration of the trajectory.
+/// * `time_step` - The time step of the simulation.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::fbm::simulate_fbm;
+///
 /// let start_position = 10.0;
 /// let hurst_exponent = 0.5;
 /// let duration = 1.0;

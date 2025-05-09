@@ -1,6 +1,5 @@
 //! Brownian meander simulation
 //!
-//! For Brownian motion, Brownian bridge, Brownian excursion, see [`crate::simulation::continuous::bm`], [`crate::simulation::continuous::brownian_bridge`], and [`crate::simulation::continuous::brownian_excursion`], respectively.
 
 use crate::{SimulationError, XResult, simulation::prelude::*, utils::float_eq};
 use rayon::prelude::*;
@@ -8,8 +7,6 @@ use rayon::prelude::*;
 use super::Bm;
 
 /// Brownian meander
-///
-/// This struct represents a Brownian meander.
 #[derive(Debug, Clone)]
 pub struct BrownianMeander;
 
@@ -19,16 +16,13 @@ impl BrownianMeander {
     /// # Arguments
     ///
     /// * `domain` - The domain of the Brownian meander simulation.
-    /// * `time_step` - The time step of the Brownian meander simulation.
-    ///
-    /// # Returns
-    ///
-    /// A f64 representing the first passage time of the Brownian meander simulation.
+    /// * `time_step` - The time step of the simulation.
     ///
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::{continuous::BrownianMeander, prelude::*};
+    /// use diffusionx::simulation::continuous::BrownianMeander;
+    ///
     /// let bm = BrownianMeander;
     /// let fpt = bm.fpt((-1.0, 1.0), 0.1).unwrap();
     /// ```
@@ -56,23 +50,24 @@ impl BrownianMeander {
     }
 }
 
-/// impl `ContinuousProcess` trait for Brownian meander
+/// impl `ContinuousProcess` trait for `BrownianMeander`
 impl ContinuousProcess for BrownianMeander {
     /// Simulate Brownian meander
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the Brownian meander simulation.
-    /// * `time_step` - The time step of the Brownian meander simulation.
+    /// * `duration` - The duration of the trajectory.
+    /// * `time_step` - The time step of the simulation.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::{continuous::BrownianMeander, prelude::*};
+    ///
     /// let bm = BrownianMeander;
     /// let time_step = 0.1;
     /// let duration = 1.0;
-    /// let (t, x) = be.simulate(duration, time_step).unwrap();
+    /// let (t, x) = bm.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
         simulate_brownian_meander(duration.into(), time_step)
@@ -81,17 +76,16 @@ impl ContinuousProcess for BrownianMeander {
 
 /// Simulate Brownian meander
 ///
-/// This function simulates Brownian meander.
-///
 /// # Arguments
 ///
-/// * `duration` - The duration of the Brownian meander.
-/// * `time_step` - The time step of the Brownian meander.
+/// * `duration` - The duration of the trajectory.
+/// * `time_step` - The time step of the simulation.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::brownian_meander::simulate_brownian_meander;
+///
 /// let time_step = 0.1;
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_meander(duration, time_step).unwrap();

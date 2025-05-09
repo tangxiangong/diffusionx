@@ -1,6 +1,5 @@
 //! Brownian bridge simulation
 //!
-//! For Brownian motion, see [`crate::simulation::continuous::bm`].
 
 use crate::{SimulationError, XResult, simulation::prelude::*};
 use rayon::prelude::*;
@@ -8,28 +7,23 @@ use rayon::prelude::*;
 use super::Bm;
 
 /// Brownian bridge
-///
-/// This struct represents a Brownian bridge.
 #[derive(Debug, Clone)]
 pub struct BrownianBridge;
 
-/// impl `ContinuousProcess` trait for Brownian bridge
+/// impl `ContinuousProcess` trait for `BrownianBridge`
 impl ContinuousProcess for BrownianBridge {
     /// Simulate Brownian bridge
     ///
     /// # Arguments
     ///
-    /// * `duration` - The duration of the Brownian bridge simulation.
-    /// * `time_step` - The time step of the Brownian bridge simulation.
-    ///
-    /// # Returns
-    ///
-    /// A tuple containing the time and the position of the Brownian bridge simulation.
+    /// * `duration` - The duration of the trajectory.
+    /// * `time_step` - The time step of the simulation.
     ///
     /// # Example
     ///
     /// ```rust
     /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
+    ///
     /// let bb = BrownianBridge;
     /// let time_step = 0.1;
     /// let duration = 1.0;
@@ -42,21 +36,16 @@ impl ContinuousProcess for BrownianBridge {
 
 /// Simulate Brownian bridge
 ///
-/// This function simulates Brownian bridge.
-///
 /// # Arguments
 ///
-/// * `duration` - The duration of the Brownian bridge.
-/// * `time_step` - The time step of the Brownian bridge.
-///
-/// # Returns
-///
-/// A tuple containing the time and the position of the Brownian bridge simulation.
+/// * `duration` - The duration of the trajectory.
+/// * `time_step` - The time step of the simulation.
 ///
 /// # Example
 ///
 /// ```rust
 /// use diffusionx::simulation::continuous::brownian_bridge::simulate_brownian_bridge;
+///
 /// let time_step = 0.1;
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_bridge(duration, time_step).unwrap();
