@@ -13,8 +13,7 @@
 //! - `calculate_int_stats`: Calculate the mean and variance of an integer array.
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
 //!
-
-use crate::{PlotterError, XResult};
+use crate::{XError, XResult};
 use num_traits::Num;
 use std::path::Path;
 
@@ -90,7 +89,7 @@ pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
 /// Ensure the output directory exists, or create it if it doesn't exist.
 pub(crate) fn ensure_output_dir(path: &Path) -> XResult<()> {
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| PlotterError::ConfigError(e.to_string()))?;
+        std::fs::create_dir_all(parent).map_err(|e| XError::Other(e.to_string()))?;
     }
     Ok(())
 }
