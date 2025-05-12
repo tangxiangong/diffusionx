@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### 🐛 Bug Fixes
+
+- Update error handling in ensure_output_dir function
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.3.11
+- Bump version to 0.3.12 in Cargo.toml
+
 ## [0.3.11] - 2025-05-09
 
 ### 🚀 Features
