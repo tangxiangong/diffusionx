@@ -19,7 +19,7 @@ impl Poisson {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::jump::Poisson;
+    /// use diffusionx::simulation::point::Poisson;
     ///
     /// let poisson = Poisson::new(1.0).unwrap();
     /// ```
@@ -52,7 +52,7 @@ impl PointProcess for Poisson {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::{jump::Poisson, prelude::*};
+    /// use diffusionx::simulation::{point::Poisson, prelude::*};
     ///
     /// let poisson = Poisson::new(1.0).unwrap();
     /// let (t, x) = poisson.simulate_with_step(1000).unwrap();
@@ -72,7 +72,7 @@ impl PointProcess for Poisson {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::jump::poisson::simulate_poisson_with_step;
+/// use diffusionx::simulation::point::poisson::simulate_poisson_with_step;
 ///
 /// let (t, x) = simulate_poisson_with_step(1.0, 1000).unwrap();
 /// ```
@@ -94,7 +94,7 @@ pub fn simulate_poisson_with_step(lambda: impl Into<f64>, num_step: usize) -> XR
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::jump::poisson::simulate_poisson_with_duration;
+/// use diffusionx::simulation::point::poisson::simulate_poisson_with_duration;
 ///
 /// let (t, x) = simulate_poisson_with_duration(1.0, 100.0).unwrap();
 /// ```

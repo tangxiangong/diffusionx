@@ -873,16 +873,16 @@ pub trait Inverse: ContinuousProcess {
 
 /// TAMSD (time-averaged mean-squared displacement)
 #[derive(Debug, Clone)]
-pub struct TAMSD<T: ContinuousProcess> {
+pub struct TAMSD<SP: Clone> {
     /// The continuous process
-    process: T,
+    process: SP,
     /// The duration
     duration: f64,
     /// The slag length
     delta: f64,
 }
 
-impl<T: ContinuousProcess> TAMSD<T> {
+impl<SP: Clone> TAMSD<SP> {
     /// Create a new TAMSD
     ///
     /// # Arguments
@@ -890,7 +890,7 @@ impl<T: ContinuousProcess> TAMSD<T> {
     /// * `process` - The continuous process to calculate the TAMSD of.
     /// * `duration` - The duration of the simulation.
     /// * `delta` - The slag length.
-    pub fn new(process: &T, duration: impl Into<f64>, delta: impl Into<f64>) -> XResult<Self> {
+    pub fn new(process: &SP, duration: impl Into<f64>, delta: impl Into<f64>) -> XResult<Self> {
         let duration = duration.into();
         let delta = delta.into();
         if duration <= 0.0 {
@@ -923,7 +923,7 @@ impl<T: ContinuousProcess> TAMSD<T> {
     }
 
     /// Get the process
-    pub fn process(&self) -> &T {
+    pub fn process(&self) -> &SP {
         &self.process
     }
 
@@ -936,7 +936,9 @@ impl<T: ContinuousProcess> TAMSD<T> {
     pub fn delta(&self) -> f64 {
         self.delta
     }
+}
 
+impl<SP: ContinuousProcess> TAMSD<SP> {
     /// Simulate the TAMSD
     ///
     /// # Arguments
@@ -1008,6 +1010,80 @@ impl<T: ContinuousProcess> TAMSD<T> {
             / particles as f64)
     }
 }
+
+// TODO: Implement the TAMSD for point processes
+// impl<SP: PointProcess> TAMSD<SP> {
+//     /// Simulate the TAMSD
+//     ///
+//     /// # Arguments
+//     ///
+//     /// * `time_step` - The time step of the simulation.
+//     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
+//     pub fn simulate_p(&self, quad_order: usize) -> XResult<f64> {
+//         let legendre_quad = GaussLegendre::new(quad_order)?;
+//         let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
+//         let duration = self.duration;
+//         let slag = self.delta;
+//         let nodes_weights = nodes_weights_transform(0.0, duration - slag, &nodes_weights_pairs);
+//         let sp = self.process.clone();
+//         let result = nodes_weights
+//             .into_par_iter()
+//             .map(|(node, weight)| -> XResult<f64> {
+//                 let slag_length = (slag / time_step).ceil() as usize;
+//                 let (_, x) = sp.simulate(node + slag, time_step)?;
+//                 let len = x.len();
+//                 let end_position = x.last();
+//                 let slag_position = x.get(len - slag_length - 1);
+//                 if end_position.is_none() || slag_position.is_none() {
+//                     return Err(SimulationError::Unknown.into());
+//                 }
+//                 let end_position = *end_position.unwrap();
+//                 let slag_position = *slag_position.unwrap();
+
+//                 Ok((end_position - slag_position).powi(2) * weight)
+//             })
+//             .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+//             .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+//             / (duration - slag);
+//         Ok(result)
+//     }
+
+//     /// Get the ensemble average of the TAMSD
+//     ///
+//     /// # Arguments
+//     ///
+//     /// * `particles` - The number of particles.
+//     /// * `time_step` - The time step of the simulation.
+//     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
+//     pub fn mean(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+//         Ok((0..particles)
+//             .into_par_iter()
+//             .map(|_| -> XResult<f64> { self.simulate(time_step, quad_order) })
+//             .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+//             .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+//             / particles as f64)
+//     }
+
+//     /// Get the variance of the TAMSD
+//     ///
+//     /// # Arguments
+//     ///
+//     /// * `particles` - The number of particles.
+//     /// * `time_step` - The time step of the simulation.
+//     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
+//     pub fn variance(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+//         let mean = self.mean(particles, time_step, quad_order)?;
+//         Ok((0..particles)
+//             .into_par_iter()
+//             .map(|_| -> XResult<f64> {
+//                 let value = self.simulate(time_step, quad_order)?;
+//                 Ok((value - mean).powi(2))
+//             })
+//             .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
+//             .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+//             / particles as f64)
+//     }
+// }
 
 /// Transform the nodes and weights
 ///

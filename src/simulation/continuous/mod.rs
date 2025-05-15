@@ -4,7 +4,6 @@
 //! - Fractional Brownian motion [Fbm]
 //! - Generalized Langevin equation [GeneralizedLangevin]
 //! - Langevin equation [Langevin]
-//! - Levy walk [LevyWalk]
 //! - Levy process [Levy] and [AsymmetricLevy]
 //! - Cauchy process [Cauchy] and [AsymmetricCauchy]
 //! - Ornstein-Uhlenbeck process [OrnsteinUhlenbeck]
@@ -28,9 +27,6 @@ pub use generalized_langevin::*;
 
 pub mod langevin;
 pub use langevin::*;
-
-pub mod levy_walk;
-pub use levy_walk::*;
 
 pub mod levy;
 pub use levy::*;
