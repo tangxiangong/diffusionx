@@ -60,7 +60,7 @@ impl CTRW {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::jump::CTRW;
+    /// use diffusionx::simulation::point::CTRW;
     ///
     /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
     /// ```
@@ -120,9 +120,10 @@ impl PointProcess for CTRW {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::jump::CTRW;
+    /// use diffusionx::simulation::point::CTRW;
+    ///
     /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
-    /// let (t, x) = ctrw.simulate(10.0, 0.1).unwrap();
+    /// let (t, x) = ctrw.simulate_with_step(1000).unwrap();
     /// ```
     fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_ctrw_with_step(self.alpha, self.beta, num_step, self.start_position)
@@ -141,7 +142,7 @@ impl PointProcess for CTRW {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::jump::ctrw::simulate_ctrw_with_step;
+/// use diffusionx::simulation::point::ctrw::simulate_ctrw_with_step;
 ///
 /// let (t, x) = simulate_ctrw_with_step(0.5, 1.0, 1000, 0.0).unwrap();
 /// ```
@@ -178,7 +179,7 @@ pub fn simulate_ctrw_with_step(
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::jump::ctrw::simulate_ctrw_with_duration;
+/// use diffusionx::simulation::point::ctrw::simulate_ctrw_with_duration;
 ///
 /// let (t, x) = simulate_ctrw_with_duration(0.5, 1.0, 10.0, 0.0).unwrap();
 /// ```

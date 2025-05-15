@@ -21,9 +21,10 @@
 //! - Gamma process
 //! - Geometric Brownian motion
 //!
-//! # Jump processes
+//! # Point processes
 //!
 //! - Poisson process
+//! - Lévy walk
 //! - Continuous time random walk
 //! - Birth-death process
 //!
@@ -38,7 +39,7 @@ pub mod traits;
 
 pub mod continuous;
 
-pub mod jump;
+pub mod point;
 
 pub mod discrete;
 

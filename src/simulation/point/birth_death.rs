@@ -33,7 +33,7 @@ impl BirthDeath {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::jump::BirthDeath;
+    /// use diffusionx::simulation::point::BirthDeath;
     ///
     /// let birth_death = BirthDeath::new(1.0, 1.0).unwrap();
     /// ```
@@ -79,7 +79,7 @@ impl PointProcess for BirthDeath {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::{jump::BirthDeath, prelude::*};
+    /// use diffusionx::simulation::{point::BirthDeath, prelude::*};
     ///
     /// let birth_death = BirthDeath::new(1.0, 1.0).unwrap();
     /// let (t, x) = birth_death.simulate_with_step(100).unwrap();
@@ -132,7 +132,7 @@ pub fn simulate_birth_death_with_step(
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::jump::birth_death::simulate_birth_death_with_duration;
+/// use diffusionx::simulation::point::birth_death::simulate_birth_death_with_duration;
 ///
 /// let (t, x) = simulate_birth_death_with_duration(1.0, 1.0, 100.0).unwrap();
 /// ```

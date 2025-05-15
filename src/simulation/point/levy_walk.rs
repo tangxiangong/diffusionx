@@ -48,7 +48,7 @@ impl LevyWalk {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::continuous::LevyWalk;
+    /// use diffusionx::simulation::point::LevyWalk;
     ///
     /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
     /// ```
@@ -95,27 +95,10 @@ impl LevyWalk {
     pub fn start_position(&self) -> f64 {
         self.start_position
     }
-
-    /// Simulate the Lévy walk with step
-    ///
-    /// # Arguments
-    ///
-    /// * `num_step` - The number of steps of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::LevyWalk;
-    /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-    /// let (t, x) = levy_walk.simulate_with_step(1000).unwrap();
-    /// ```
-    pub fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
-        simulate_levy_walk_with_step(self.alpha, self.velocity, num_step, self.start_position)
-    }
 }
 
-/// impl `ContinuousProcess` trait for LevyWalk
-impl ContinuousProcess for LevyWalk {
+/// impl `PointProcess` trait for LevyWalk
+impl PointProcess for LevyWalk {
     /// Simulate the Lévy walk
     ///
     /// # Arguments
@@ -131,7 +114,11 @@ impl ContinuousProcess for LevyWalk {
     /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = levy_walk.simulate(10.0, 0.1).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, _time_step: f64) -> XResult<Pair> {
+    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
+        simulate_levy_walk_with_step(self.alpha, self.velocity, num_step, self.start_position)
+    }
+
+    fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<Pair> {
         simulate_levy_walk_with_duration(self.alpha, self.velocity, duration, self.start_position)
     }
 }
@@ -148,7 +135,7 @@ impl ContinuousProcess for LevyWalk {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::continuous::levy_walk::simulate_levy_walk_with_step;
+/// use diffusionx::simulation::point::levy_walk::simulate_levy_walk_with_step;
 ///
 /// let (t, x) = simulate_levy_walk_with_step(0.5, 1.0, 1000, 0.0).unwrap();
 /// ```
@@ -195,7 +182,7 @@ pub fn simulate_levy_walk_with_step(
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::continuous::levy_walk::simulate_levy_walk_with_duration;
+/// use diffusionx::simulation::point::levy_walk::simulate_levy_walk_with_duration;
 ///
 /// let (t, x) = simulate_levy_walk_with_duration(0.5, 1.0, 10.0, 0.0).unwrap();
 /// ```
@@ -253,43 +240,43 @@ mod tests {
     #[test]
     fn test_simulate_levy_walk_with_duration() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let (_t, _x) = levy_walk.simulate(10.0, 0.1).unwrap();
+        let (_t, _x) = levy_walk.simulate_with_duration(10.0).unwrap();
     }
 
     #[test]
     fn test_mean() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _mean = levy_walk.mean(1.0, 1000, 0.1).unwrap();
+        let _mean = levy_walk.mean(1.0, 1000).unwrap();
     }
 
     #[test]
     fn test_msd() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _msd = levy_walk.msd(1.0, 1000, 0.1).unwrap();
+        let _msd = levy_walk.msd(1.0, 1000).unwrap();
     }
 
     #[test]
     fn test_raw_moment() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _moment = levy_walk.raw_moment(1.0, 1, 1000, 0.1).unwrap();
+        let _moment = levy_walk.raw_moment(1.0, 1, 1000).unwrap();
     }
 
     #[test]
     fn test_central_moment() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _moment = levy_walk.central_moment(1.0, 2, 1000, 0.1).unwrap();
+        let _moment = levy_walk.central_moment(1.0, 2, 1000).unwrap();
     }
 
     #[test]
     fn test_fpt() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _fpt = levy_walk.fpt((-1.0, 1.0), 1000.0, 0.1).unwrap();
+        let _fpt = levy_walk.fpt((-1.0, 1.0), 1000.0).unwrap();
     }
 
     #[test]
     fn test_occupation_time() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let ot = levy_walk.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
+        let ot = levy_walk.occupation_time((-1.0, 1.0), 1000.0).unwrap();
         assert!((0.0..=1000.0).contains(&ot));
     }
 
