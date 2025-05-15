@@ -27,14 +27,15 @@ impl<CP: ContinuousProcess> Visualize for ContinuousTrajectory<CP> {
     /// * `config`: The configuration for the plot.
     fn plot(&self, config: &PlotConfig) -> XResult<()> {
         ensure_output_dir(&config.output_path)?;
+        let traj = self.simulate(config.time_step)?;
         match config.backend {
             PlotterBackend::BitMap => {
                 let backend = BitMapBackend::new(&config.output_path, config.size);
-                config.plot(backend, self)
+                config.plot(backend, traj)
             }
             PlotterBackend::SVG => {
                 let backend = SVGBackend::new(&config.output_path, config.size);
-                config.plot(backend, self)
+                config.plot(backend, traj)
             }
         }
     }
@@ -45,14 +46,23 @@ impl<P: PointProcess> Visualize for PointTrajectory<P> {
     /// Plot the point trajectory.
     fn plot(&self, config: &PlotConfig) -> XResult<()> {
         ensure_output_dir(&config.output_path)?;
+        let traj = self.simulate_with_duration()?;
         match config.backend {
             PlotterBackend::BitMap => {
                 let backend = BitMapBackend::new(&config.output_path, config.size);
-                config.stair(backend, self)
+                if config.stairs {
+                    config.stair(backend, traj)
+                } else {
+                    config.plot(backend, traj)
+                }
             }
             PlotterBackend::SVG => {
                 let backend = SVGBackend::new(&config.output_path, config.size);
-                config.stair(backend, self)
+                if config.stairs {
+                    config.stair(backend, traj)
+                } else {
+                    config.plot(backend, traj)
+                }
             }
         }
     }
@@ -140,7 +150,7 @@ pub fn stair(times: &[f64], positions: &[i64], config: &PlotConfig) -> XResult<(
 mod tests {
     use super::*;
     use crate::{
-        simulation::{continuous::OrnsteinUhlenbeck, jump::Poisson},
+        simulation::{continuous::OrnsteinUhlenbeck, point::Poisson},
         visualize::PlotConfigBuilder,
     };
 

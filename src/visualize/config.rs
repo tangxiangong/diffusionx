@@ -1,4 +1,4 @@
-use crate::{XResult, simulation::prelude::*, utils::minmax};
+use crate::{XResult, utils::minmax};
 use derive_builder::Builder;
 use plotters::{prelude::*, style::Color as _};
 use std::{ops::Range, path::PathBuf};
@@ -190,16 +190,20 @@ pub struct PlotConfig {
     /// spacing: The spacing between markers
     #[builder(default = "[1, 1]", setter(into))]
     pub(crate) dot_style: [u32; 2],
+
+    /// Whether to show stairs
+    #[builder(default = "true")]
+    pub(crate) stairs: bool,
 }
 
 impl PlotConfig {
     /// Plot the continuous trajectory
-    pub(crate) fn plot<Backend: DrawingBackend, Process: ContinuousProcess>(
+    pub(crate) fn plot<Backend: DrawingBackend>(
         &self,
         backend: Backend,
-        traj: &ContinuousTrajectory<Process>,
+        traj: (Vec<f64>, Vec<f64>),
     ) -> XResult<()> {
-        let (times, positions) = traj.simulate(self.time_step)?;
+        let (times, positions) = traj;
         let max_time = *times.last().unwrap();
         let (min_x, max_x) = minmax(&positions);
         let meta = (max_time, min_x, max_x);
@@ -208,12 +212,12 @@ impl PlotConfig {
     }
 
     /// Plot the stair trajectory
-    pub(crate) fn stair<Backend: DrawingBackend, Process: PointProcess>(
+    pub(crate) fn stair<Backend: DrawingBackend>(
         &self,
         backend: Backend,
-        traj: &PointTrajectory<Process>,
+        traj: (Vec<f64>, Vec<f64>),
     ) -> XResult<()> {
-        let (times, positions) = traj.simulate_with_duration()?;
+        let (times, positions) = traj;
         let max_time = *times.last().unwrap();
         let (min_x, max_x) = minmax(&positions);
         let meta = (max_time, min_x, max_x);
