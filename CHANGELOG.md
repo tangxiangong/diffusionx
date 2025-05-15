@@ -2,7 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.3.13] - 2025-05-15
+
+### 🚀 Features
+
+- Rename module `jump` to `point`,  change `LevyWalk` into `point`
+
+### 💼 Other
+
+- Update CTRW module import from `jump` to `point`
+
+### 🚜 Refactor
+
+- Update TAMSD struct to use generic process type
+- Remove optional CSV feature and clean up error handling
+- Update PlotConfig to include stairs option and simplify trajectory handling
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.3.13 in Cargo.toml
+
+## [0.3.12] - 2025-05-12
 
 ### 🐛 Bug Fixes
 
@@ -12,6 +32,7 @@ All notable changes to this project will be documented in this file.
 
 - Update CHANGELOG for version 0.3.11
 - Bump version to 0.3.12 in Cargo.toml
+- Update CHANGELOG for version 0.3.12
 
 ## [0.3.11] - 2025-05-09
 
