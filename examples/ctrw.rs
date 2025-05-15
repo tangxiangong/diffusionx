@@ -1,4 +1,4 @@
-use diffusionx::simulation::{jump::CTRW, prelude::*};
+use diffusionx::simulation::{point::CTRW, prelude::*};
 
 fn main() {
     println!("===== Example of CTRW Simulation =====");
