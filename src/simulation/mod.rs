@@ -20,11 +20,11 @@
 //! - Brownian meander
 //! - Gamma process
 //! - Geometric Brownian motion
+//! - Lévy walk
 //!
 //! # Point processes
 //!
 //! - Poisson process
-//! - Lévy walk
 //! - Continuous time random walk
 //! - Birth-death process
 //!
