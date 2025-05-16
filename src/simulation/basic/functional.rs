@@ -51,7 +51,7 @@ impl<SP: Send + Sync + Clone> FirstPassageTime<SP> {
     }
 }
 
-impl<SP: ContinuousProcess> FirstPassageTime<SP> {
+impl<SP: ContinuousProcess + Clone> FirstPassageTime<SP> {
     /// Simulate the first passage time
     ///
     /// # Arguments
@@ -297,7 +297,7 @@ impl<SP: Send + Sync + Clone> OccupationTime<SP> {
     }
 }
 
-impl<SP: ContinuousProcess> OccupationTime<SP> {
+impl<SP: ContinuousProcess + Clone> OccupationTime<SP> {
     /// Simulate the occupation time
     ///
     /// # Arguments
@@ -416,7 +416,7 @@ impl<SP: ContinuousProcess> OccupationTime<SP> {
     }
 }
 
-impl<SP: PointProcess> FirstPassageTime<SP> {
+impl<SP: PointProcess + Clone> FirstPassageTime<SP> {
     /// Simulate the first passage time
     ///
     /// # Arguments
@@ -556,7 +556,7 @@ impl<SP: PointProcess> FirstPassageTime<SP> {
     }
 }
 
-impl<SP: PointProcess> OccupationTime<SP> {
+impl<SP: PointProcess + Clone> OccupationTime<SP> {
     pub fn simulate_p(&self) -> XResult<f64> {
         let (t, x) = self.sp.simulate_with_duration(self.duration)?;
         let (a, b) = self.domain;

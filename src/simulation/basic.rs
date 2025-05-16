@@ -34,3 +34,6 @@ pub use tamsd::*;
 
 mod inverse;
 pub use inverse::*;
+
+mod functional;
+pub use functional::*;

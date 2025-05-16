@@ -42,5 +42,3 @@ pub mod continuous;
 pub mod point;
 
 pub mod discrete;
-
-pub mod functional;
