@@ -15,8 +15,8 @@
 //!
 use crate::{XError, XResult};
 use num_traits::Num;
+use rayon::prelude::*;
 use std::path::Path;
-
 /// Calculate the cumulative sum of a vector
 ///
 /// Returns a vector of cumulative sums
@@ -183,6 +183,76 @@ pub fn calculate_bool_mean(samples: &[bool]) -> f64 {
     samples.iter().filter(|&&x| x).count() as f64 / samples.len() as f64
 }
 
+/// Generate a vector of evenly spaced numbers over a specified range
+///
+/// # Arguments
+///
+/// * `start` - The starting value of the range
+/// * `end` - The ending value of the range
+/// * `step` - The step size between numbers
+pub fn linspace(start: f64, end: f64, step: f64) -> Vec<f64> {
+    let mut result = Vec::new();
+    let mut current = start;
+    while current < end {
+        result.push(current);
+        current += step;
+    }
+    if !approx_eq(current - step, end, 1e-5) {
+        result.push(end);
+    }
+    result
+}
+
+pub fn linear_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if t.len() != x.len() {
+        return Err(XError::Other(
+            "t and x must have the same length".to_string(),
+        ));
+    }
+
+    let tmp: Vec<(f64, f64)> = t
+        .windows(2)
+        .zip(x.windows(2))
+        .flat_map(|(t_window, x_window)| {
+            let t_range = linspace(t_window[0], t_window[1], step);
+            let lens = t_range.len();
+            let x_step = (x_window[1] - x_window[0]) / (lens - 1) as f64;
+            let x_range = linspace(x_window[0], x_window[1], x_step);
+            t_range.into_iter().zip(x_range)
+        })
+        .collect();
+
+    let interpolated_t = tmp.par_iter().map(|(t, _)| *t).collect();
+    let interpolated_x = tmp.par_iter().map(|(_, x)| *x).collect();
+
+    Ok((interpolated_t, interpolated_x))
+}
+
+pub fn flatten_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if t.len() != x.len() {
+        return Err(XError::Other(
+            "t and x must have the same length".to_string(),
+        ));
+    }
+
+    let tmp: Vec<(f64, f64)> = t
+        .windows(2)
+        .zip(x.windows(2))
+        .flat_map(|(t_window, x_window)| {
+            let t_range = linspace(t_window[0], t_window[1], step);
+            let lens = t_range.len();
+            let mut x_range = vec![x_window[0]; lens];
+            x_range[lens - 1] = x_window[1];
+            t_range.into_iter().zip(x_range)
+        })
+        .collect();
+
+    let interpolated_t = tmp.par_iter().map(|(t, _)| *t).collect();
+    let interpolated_x = tmp.par_iter().map(|(_, x)| *x).collect();
+
+    Ok((interpolated_t, interpolated_x))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -272,5 +342,21 @@ mod tests {
         let arr = vec![];
         let result = minmax(&arr);
         assert_eq!(result, (f64::MAX, f64::MIN));
+    }
+
+    #[test]
+    fn test_linspace() {
+        let result = linspace(0.0, 1.0, 0.1);
+        println!("{:?}", result);
+        let result = linspace(0.0, 1.05, 0.1);
+        println!("{:?}", result);
+    }
+
+    #[test]
+    fn test_interpolate() {
+        let t = vec![0.0, 1.0, 2.0];
+        let x = vec![1.0, 3.0, 5.0];
+        let result = linear_interpolate(&t, &x, 0.1).unwrap();
+        println!("{:?}", result);
     }
 }
