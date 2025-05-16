@@ -41,7 +41,7 @@ impl Subordinator {
     }
 
     /// Get the stability index
-    pub fn index(&self) -> f64 {
+    pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 }
@@ -150,7 +150,7 @@ impl InvSubordinator {
     }
 
     /// Get the stability index
-    pub fn index(&self) -> f64 {
+    pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 }

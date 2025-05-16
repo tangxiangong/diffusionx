@@ -49,12 +49,12 @@ impl Bm {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the diffusion coefficient
-    pub fn diffusion_coefficient(&self) -> f64 {
+    pub fn get_diffusion_coefficient(&self) -> f64 {
         self.diffusion_coefficient
     }
 }
@@ -130,7 +130,7 @@ pub fn simulate_bm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::prelude::{ContinuousTrajectoryTrait, Moment};
+    use crate::simulation::prelude::Moment;
 
     #[test]
     fn test_simulate_bm() {

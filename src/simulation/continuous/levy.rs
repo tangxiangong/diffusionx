@@ -63,17 +63,17 @@ impl AsymmetricLevy {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the stability index
-    pub fn index(&self) -> f64 {
+    pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 
     /// Get the asymmetry parameter
-    pub fn asymmetry(&self) -> f64 {
+    pub fn get_beta(&self) -> f64 {
         self.beta
     }
 }
@@ -204,12 +204,12 @@ impl Levy {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the stability index
-    pub fn index(&self) -> f64 {
+    pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 }

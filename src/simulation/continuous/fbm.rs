@@ -49,12 +49,12 @@ impl Fbm {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the Hurst exponent
-    pub fn hurst_exponent(&self) -> f64 {
+    pub fn get_hurst_exponent(&self) -> f64 {
         self.hurst_exponent
     }
 }
@@ -144,7 +144,7 @@ pub fn simulate_fbm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::prelude::{ContinuousTrajectoryTrait, Moment};
+    use crate::simulation::prelude::Moment;
 
     #[test]
     fn test_simulate_bm() {

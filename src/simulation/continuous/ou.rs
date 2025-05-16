@@ -45,17 +45,17 @@ impl OrnsteinUhlenbeck {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the parameter controlling the strength of mean reversion
-    pub fn theta(&self) -> f64 {
+    pub fn get_theta(&self) -> f64 {
         self.theta
     }
 
     /// Get the diffusion coefficient
-    pub fn sigma(&self) -> f64 {
+    pub fn get_sigma(&self) -> f64 {
         self.sigma
     }
 }
@@ -81,7 +81,7 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
         simulate_ou(
             self.theta,
             self.sigma,
-            self.start_position(),
+            self.start_position,
             duration,
             time_step,
         )

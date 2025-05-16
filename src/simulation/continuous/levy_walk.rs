@@ -82,17 +82,17 @@ impl LevyWalk {
     }
 
     /// Get the waiting time distribution exponent
-    pub fn alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 
     /// Get the velocity
-    pub fn velocity(&self) -> f64 {
+    pub fn get_velocity(&self) -> f64 {
         self.velocity
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 

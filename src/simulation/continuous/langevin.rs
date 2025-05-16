@@ -56,17 +56,17 @@ where
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the drift function
-    pub fn drift_func(&self) -> &D {
+    pub fn get_drift_func(&self) -> &D {
         &self.drift_func
     }
 
     /// Get the diffusion function
-    pub fn diffusion_func(&self) -> &G {
+    pub fn get_diffusion_func(&self) -> &G {
         &self.diffusion_func
     }
 }
@@ -99,7 +99,7 @@ where
         simulate_langevin(
             &self.drift_func,
             &self.diffusion_func,
-            self.start_position(),
+            self.start_position,
             duration,
             time_step,
         )

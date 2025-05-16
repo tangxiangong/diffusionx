@@ -151,7 +151,7 @@ pub fn simulate_brownian_meander(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::prelude::{ContinuousTrajectoryTrait, Moment};
+    use crate::simulation::prelude::Moment;
 
     #[test]
     fn test_simulate_bm() {

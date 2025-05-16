@@ -58,17 +58,17 @@ impl GeometricBm {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the percentage drift
-    pub fn mu(&self) -> f64 {
+    pub fn get_mu(&self) -> f64 {
         self.mu
     }
 
     /// Get the percentage volatility
-    pub fn sigma(&self) -> f64 {
+    pub fn get_sigma(&self) -> f64 {
         self.sigma
     }
 }
@@ -150,7 +150,7 @@ pub fn simulate_gbm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::prelude::{ContinuousTrajectoryTrait, Moment};
+    use crate::simulation::prelude::Moment;
 
     #[test]
     fn test_simulate_gbm() {

@@ -48,12 +48,12 @@ impl AsymmetricCauchy {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the asymmetry parameter
-    pub fn asymmetry(&self) -> f64 {
+    pub fn get_asymmetry(&self) -> f64 {
         self.beta
     }
 }
@@ -159,7 +159,7 @@ impl Cauchy {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 }

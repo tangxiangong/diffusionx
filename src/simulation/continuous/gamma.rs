@@ -53,12 +53,12 @@ impl Gamma {
     }
 
     /// Get the shape parameter
-    pub fn shape(&self) -> f64 {
+    pub fn get_shape(&self) -> f64 {
         self.shape
     }
 
     /// Get the rate parameter
-    pub fn rate(&self) -> f64 {
+    pub fn get_rate(&self) -> f64 {
         self.rate
     }
 }
