@@ -14,6 +14,7 @@
 //! - Brownian meander [BrownianMeander]
 //! - Gamma process [Gamma]
 //! - Geometric Brownian motion [GeometricBm]
+//! - Lévy walk [LevyWalk]
 //!
 
 pub mod bm;
@@ -54,3 +55,6 @@ pub use gamma::*;
 
 pub mod geometric_bm;
 pub use geometric_bm::*;
+
+pub mod levy_walk;
+pub use levy_walk::*;
