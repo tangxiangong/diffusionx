@@ -45,17 +45,17 @@ impl OrnsteinUhlenbeck {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the parameter controlling the strength of mean reversion
-    pub fn theta(&self) -> f64 {
+    pub fn get_theta(&self) -> f64 {
         self.theta
     }
 
     /// Get the diffusion coefficient
-    pub fn sigma(&self) -> f64 {
+    pub fn get_sigma(&self) -> f64 {
         self.sigma
     }
 }
@@ -77,11 +77,11 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
     /// let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
     /// let (t, x) = ou.simulate(1.0, 0.01).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_ou(
             self.theta,
             self.sigma,
-            self.start_position(),
+            self.start_position,
             duration,
             time_step,
         )
@@ -114,19 +114,18 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
 pub fn simulate_ou(
     theta: f64,
     sigma: f64,
-    start_position: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
     // 直接实现OU过程的数值模拟
-    let duration = duration.into();
     let num = (duration / time_step).ceil() as usize;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
     let mut x = vec![0.0; num + 1];
-    x[0] = start_position.into();
+    x[0] = start_position;
     let noise = normal::standard_rands(num);
 
     for i in 1..=num {

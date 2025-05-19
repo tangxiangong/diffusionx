@@ -53,12 +53,12 @@ impl Gamma {
     }
 
     /// Get the shape parameter
-    pub fn shape(&self) -> f64 {
+    pub fn get_shape(&self) -> f64 {
         self.shape
     }
 
     /// Get the rate parameter
-    pub fn rate(&self) -> f64 {
+    pub fn get_rate(&self) -> f64 {
         self.rate
     }
 }
@@ -82,7 +82,7 @@ impl ContinuousProcess for Gamma {
     /// let duration = 1.0;
     /// let (t, x) = gamma.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got {}",
@@ -90,7 +90,6 @@ impl ContinuousProcess for Gamma {
             ))
             .into());
         }
-        let duration = duration.into();
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got {}",
@@ -125,10 +124,9 @@ impl ContinuousProcess for Gamma {
 pub fn simulate_gamma(
     shape: f64,
     rate: f64,
-    duration: impl Into<f64>,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let duration = duration.into();
     let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()

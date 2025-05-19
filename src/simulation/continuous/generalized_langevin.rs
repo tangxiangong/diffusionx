@@ -77,52 +77,23 @@ where
         })
     }
 
-    /// Simulate the Generalized Langevin equation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the simulation.
-    /// * `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::GeneralizedLangevin, prelude::*};
-    ///
-    /// let langevin = GeneralizedLangevin::new(|x, _t| x, |_x, _t| 1.0, 0.0, 1.7)
-    ///     .unwrap();
-    /// let duration = 1.0;
-    /// let time_step = 0.01;
-    /// let (t, x) = langevin.simulate(duration, time_step).unwrap();
-    /// ```
-    pub fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        simulate_generalized_langevin(
-            &self.drift_func,
-            &self.diffusion_func,
-            self.start_position(),
-            self.alpha,
-            duration,
-            time_step,
-        )
-    }
-
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the drift function
-    pub fn drift_func(&self) -> &D {
+    pub fn get_drift_func(&self) -> &D {
         &self.drift_func
     }
 
     /// Get the diffusion function
-    pub fn diffusion_func(&self) -> &G {
+    pub fn get_diffusion_func(&self) -> &G {
         &self.diffusion_func
     }
 
     /// Get the stability index
-    pub fn alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 }
@@ -151,11 +122,11 @@ where
     /// let time_step = 0.01;
     /// let (t, x) = langevin.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_generalized_langevin(
             &self.drift_func,
             &self.diffusion_func,
-            self.start_position(),
+            self.start_position,
             self.alpha,
             duration,
             time_step,
@@ -190,24 +161,22 @@ where
 pub fn simulate_generalized_langevin<D, G>(
     drift: &D,
     diffusion: &G,
-    start_position: impl Into<f64>,
-    alpha: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    alpha: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<Pair>
 where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let duration = duration.into();
-    let alpha = alpha.into();
     let num = (duration / time_step).ceil() as usize;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
 
-    let initial_x = start_position.into();
+    let initial_x = start_position;
     let noise = stable::sym_standard_rands(alpha, num)?;
 
     // 使用迭代器风格生成路径
@@ -298,22 +267,22 @@ where
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the drift function
-    pub fn drift_func(&self) -> &D {
+    pub fn get_drift_func(&self) -> &D {
         &self.drift_func
     }
 
     /// Get the diffusion function
-    pub fn diffusion_func(&self) -> &G {
+    pub fn get_diffusion_func(&self) -> &G {
         &self.diffusion_func
     }
 
     /// Get the stability index
-    pub fn alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 }
@@ -344,11 +313,11 @@ where
     /// let time_step = 0.01;
     /// let (t, x) = langevin.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_subordinated_langevin(
             &self.drift_func,
             &self.diffusion_func,
-            self.start_position(),
+            self.start_position,
             self.alpha,
             duration,
             time_step,
@@ -383,24 +352,22 @@ where
 pub fn simulate_subordinated_langevin<D, G>(
     drift: &D,
     diffusion: &G,
-    start_position: impl Into<f64>,
-    alpha: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    alpha: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<Pair>
 where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let duration = duration.into();
-    let alpha = alpha.into();
     let num = (duration / time_step).ceil() as usize;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
 
-    let initial_x = start_position.into();
+    let initial_x = start_position;
     let (_, s) = Subordinator::new(alpha)?.simulate(duration, time_step)?;
     let noise = normal::standard_rands(num);
 

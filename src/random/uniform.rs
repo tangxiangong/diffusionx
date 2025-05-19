@@ -186,7 +186,7 @@ mod tests {
     fn test_unit_randoms() {
         let n = 1000000;
         let randoms = standard_rands(n);
-        assert_eq!(randoms.len(), n);
+        assert_eq!(randoms.len() as usize, n);
         assert!(randoms.iter().all(|x| (0.0..1.0).contains(x)));
     }
 
@@ -214,7 +214,7 @@ mod tests {
     fn test_inclusive_range_randoms() {
         let n = 1000000;
         let randoms = inclusive_range_rands(0..=10, n).unwrap();
-        assert_eq!(randoms.len(), n);
+        assert_eq!(randoms.len() as usize, n);
         assert!(randoms.iter().all(|x| (0..=10).contains(x)));
     }
 

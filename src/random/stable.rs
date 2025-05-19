@@ -84,12 +84,12 @@ impl StandardStable {
     }
 
     /// Get the index of stability
-    pub fn index(&self) -> f64 {
+    pub fn get_index(&self) -> f64 {
         self.alpha
     }
 
     /// Get the skewness parameter
-    pub fn skewness(&self) -> f64 {
+    pub fn get_skewness(&self) -> f64 {
         self.beta
     }
 
@@ -247,22 +247,22 @@ impl Stable {
     }
 
     /// Get the index of stability
-    pub fn index(&self) -> f64 {
+    pub fn get_index(&self) -> f64 {
         self.alpha
     }
 
     /// Get the skewness parameter
-    pub fn skewness(&self) -> f64 {
+    pub fn get_skewness(&self) -> f64 {
         self.beta
     }
 
     /// Get the scale parameter
-    pub fn scale(&self) -> f64 {
+    pub fn get_scale(&self) -> f64 {
         self.sigma
     }
 
     /// Get the location parameter
-    pub fn location(&self) -> f64 {
+    pub fn get_location(&self) -> f64 {
         self.mu
     }
 
@@ -326,7 +326,7 @@ impl StandardSkewStable {
     }
 
     /// Get the index of stability
-    pub fn index(&self) -> f64 {
+    pub fn get_index(&self) -> f64 {
         self.0
     }
 
@@ -392,7 +392,7 @@ impl SymmetricStandardStable {
     }
 
     /// Get the index of stability
-    pub fn index(&self) -> f64 {
+    pub fn get_index(&self) -> f64 {
         self.0
     }
 

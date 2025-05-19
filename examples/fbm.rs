@@ -1,5 +1,5 @@
 use diffusionx::{
-    simulation::{continuous::Fbm, prelude::*},
+    simulation::{continuous::FBM, prelude::*},
     visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
 };
 
@@ -8,13 +8,13 @@ fn main() {
 
     // Create different Hurst index fractional Brownian motions
     // Hurst index H = 0.3 (anti-persistent process)
-    let fbm1 = Fbm::new(0.0, 0.3).unwrap();
+    let fbm1 = FBM::new(0.0, 0.3).unwrap();
 
     // Hurst index H = 0.5 (standard Brownian motion)
-    let fbm2 = Fbm::new(0.0, 0.5).unwrap();
+    let fbm2 = FBM::new(0.0, 0.5).unwrap();
 
     // Hurst index H = 0.7 (persistent/long-range correlated process)
-    let fbm3 = Fbm::new(0.0, 0.7).unwrap();
+    let fbm3 = FBM::new(0.0, 0.7).unwrap();
 
     // Time settings
     let t_max = 10.0; // Maximum time

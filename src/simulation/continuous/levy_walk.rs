@@ -2,7 +2,7 @@ use crate::{
     SimulationError, XResult,
     random::{exponential, stable},
     simulation::prelude::*,
-    utils::cumsum,
+    utils::{cumsum, linear_interpolate},
 };
 use rand::{prelude::*, rng};
 use rayon::prelude::*;
@@ -82,23 +82,20 @@ impl LevyWalk {
     }
 
     /// Get the waiting time distribution exponent
-    pub fn alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 
     /// Get the velocity
-    pub fn velocity(&self) -> f64 {
+    pub fn get_velocity(&self) -> f64 {
         self.velocity
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
-}
 
-/// impl `PointProcess` trait for LevyWalk
-impl PointProcess for LevyWalk {
     /// Simulate the Lévy walk
     ///
     /// # Arguments
@@ -114,12 +111,19 @@ impl PointProcess for LevyWalk {
     /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = levy_walk.simulate(10.0, 0.1).unwrap();
     /// ```
-    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
+    pub fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
         simulate_levy_walk_with_step(self.alpha, self.velocity, num_step, self.start_position)
     }
 
-    fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<Pair> {
+    pub fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<Pair> {
         simulate_levy_walk_with_duration(self.alpha, self.velocity, duration, self.start_position)
+    }
+}
+
+impl ContinuousProcess for LevyWalk {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+        let (t, x) = self.simulate_with_duration(duration)?;
+        linear_interpolate(&t, &x, time_step)
     }
 }
 
@@ -246,37 +250,37 @@ mod tests {
     #[test]
     fn test_mean() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _mean = levy_walk.mean(1.0, 1000).unwrap();
+        let _mean = levy_walk.mean(1.0, 1000, 0.1).unwrap();
     }
 
     #[test]
     fn test_msd() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _msd = levy_walk.msd(1.0, 1000).unwrap();
+        let _msd = levy_walk.msd(1.0, 1000, 0.1).unwrap();
     }
 
     #[test]
     fn test_raw_moment() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _moment = levy_walk.raw_moment(1.0, 1, 1000).unwrap();
+        let _moment = levy_walk.raw_moment(1.0, 1, 1000, 0.1).unwrap();
     }
 
     #[test]
     fn test_central_moment() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _moment = levy_walk.central_moment(1.0, 2, 1000).unwrap();
+        let _moment = levy_walk.central_moment(1.0, 2, 1000, 0.1).unwrap();
     }
 
     #[test]
     fn test_fpt() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let _fpt = levy_walk.fpt((-1.0, 1.0), 1000.0).unwrap();
+        let _fpt = levy_walk.fpt((-1.0, 1.0), 1000.0, 0.1).unwrap();
     }
 
     #[test]
     fn test_occupation_time() {
         let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
-        let ot = levy_walk.occupation_time((-1.0, 1.0), 1000.0).unwrap();
+        let ot = levy_walk.occupation_time((-1.0, 1.0), 1000.0, 0.1).unwrap();
         assert!((0.0..=1000.0).contains(&ot));
     }
 

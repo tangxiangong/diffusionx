@@ -19,7 +19,7 @@ pub trait Visualize {
 }
 
 /// Implement the `Visualize` trait for `ContinuousTrajectory`.
-impl<CP: ContinuousProcess> Visualize for ContinuousTrajectory<CP> {
+impl<'a, CP: ContinuousProcess> Visualize for ContinuousTrajectory<'a, CP> {
     /// Plot the continuous trajectory.
     ///
     /// # Arguments
@@ -42,7 +42,7 @@ impl<CP: ContinuousProcess> Visualize for ContinuousTrajectory<CP> {
 }
 
 /// Implement the `Visualize` trait for `PointTrajectory`.
-impl<P: PointProcess> Visualize for PointTrajectory<P> {
+impl<'a, P: PointProcess> Visualize for PointTrajectory<'a, P> {
     /// Plot the point trajectory.
     fn plot(&self, config: &PlotConfig) -> XResult<()> {
         ensure_output_dir(&config.output_path)?;
@@ -158,7 +158,8 @@ mod tests {
     #[ignore]
     fn test_stair() {
         let duration = 10.0;
-        let process = Poisson::new(1.0).unwrap().duration(duration).unwrap();
+        let process = Poisson::new(1.0).unwrap();
+        let traj = process.duration(duration).unwrap();
         let config = PlotConfigBuilder::default()
             .backend(PlotterBackend::SVG)
             .output_path("tmp/poisson.svg")
@@ -167,17 +168,15 @@ mod tests {
             .title("Poisson")
             .build()
             .unwrap();
-        process.plot(&config).unwrap();
+        traj.plot(&config).unwrap();
     }
 
     #[test]
     #[ignore]
     fn test_plot() {
         let duration = 100.0;
-        let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0)
-            .unwrap()
-            .duration(duration)
-            .unwrap();
+        let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
+        let traj = ou.duration(duration).unwrap();
         let config = PlotConfigBuilder::default()
             .time_step(0.01)
             .backend(PlotterBackend::SVG)
@@ -189,6 +188,6 @@ mod tests {
             .title_font_style(FontStyle::Bold)
             .build()
             .unwrap();
-        ou.plot(&config).unwrap()
+        traj.plot(&config).unwrap()
     }
 }

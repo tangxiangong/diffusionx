@@ -56,17 +56,17 @@ where
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the drift function
-    pub fn drift_func(&self) -> &D {
+    pub fn get_drift_func(&self) -> &D {
         &self.drift_func
     }
 
     /// Get the diffusion function
-    pub fn diffusion_func(&self) -> &G {
+    pub fn get_diffusion_func(&self) -> &G {
         &self.diffusion_func
     }
 }
@@ -95,11 +95,11 @@ where
     /// let langevin = Langevin::new(drift, diffusion, start_position).unwrap();
     /// let (t, x) = langevin.simulate(1.0, 0.01).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_langevin(
             &self.drift_func,
             &self.diffusion_func,
-            self.start_position(),
+            self.start_position,
             duration,
             time_step,
         )
@@ -129,22 +129,21 @@ where
 pub fn simulate_langevin<D, G>(
     drift: &D,
     diffusion: &G,
-    start_position: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<Pair>
 where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let duration = duration.into();
     let num = (duration / time_step).ceil() as usize;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
 
-    let initial_x = start_position.into();
+    let initial_x = start_position;
     let noise = normal::standard_rands(num);
 
     // 使用迭代器风格生成路径

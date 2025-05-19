@@ -49,12 +49,12 @@ impl Bm {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the diffusion coefficient
-    pub fn diffusion_coefficient(&self) -> f64 {
+    pub fn get_diffusion_coefficient(&self) -> f64 {
         self.diffusion_coefficient
     }
 }
@@ -78,11 +78,11 @@ impl ContinuousProcess for Bm {
     /// let duration = 1.0;
     /// let (t, x) = bm.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_bm(
             self.start_position,
             self.diffusion_coefficient,
-            duration.into(),
+            duration,
             time_step,
         )
     }
@@ -109,14 +109,11 @@ impl ContinuousProcess for Bm {
 /// let (t, x) = simulate_bm(start_position, diffusion_coefficient, duration, time_step).unwrap();
 /// ```
 pub fn simulate_bm(
-    start_position: impl Into<f64>,
-    diffusion_coefficient: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    diffusion_coefficient: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let start_position = start_position.into();
-    let diffusion_coefficient = diffusion_coefficient.into();
-    let duration = duration.into();
     let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
@@ -130,7 +127,7 @@ pub fn simulate_bm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::prelude::{ContinuousTrajectoryTrait, Moment};
+    use crate::simulation::prelude::Moment;
 
     #[test]
     fn test_simulate_bm() {

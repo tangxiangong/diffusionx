@@ -11,14 +11,14 @@ use rayon::prelude::*;
 
 /// Fractional Brownian motion
 #[derive(Debug, Clone)]
-pub struct Fbm {
+pub struct FBM {
     /// The starting position
     start_position: f64,
     /// The Hurst exponent
     hurst_exponent: f64,
 }
 
-impl Fbm {
+impl FBM {
     /// Create a new `Fbm`
     ///
     /// # Arguments
@@ -49,18 +49,18 @@ impl Fbm {
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 
     /// Get the Hurst exponent
-    pub fn hurst_exponent(&self) -> f64 {
+    pub fn get_hurst_exponent(&self) -> f64 {
         self.hurst_exponent
     }
 }
 
 /// impl `ContinuousProcess` trait for `Fbm`
-impl ContinuousProcess for Fbm {
+impl ContinuousProcess for FBM {
     /// Simulate Fractional Brownian motion
     ///
     /// # Arguments
@@ -78,7 +78,7 @@ impl ContinuousProcess for Fbm {
     /// let duration = 1.0;
     /// let (t, x) = fbm.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_fbm(
             self.start_position,
             self.hurst_exponent,
@@ -109,13 +109,11 @@ impl ContinuousProcess for Fbm {
 /// let (t, x) = simulate_fbm(start_position, hurst_exponent, duration, time_step).unwrap();
 /// ```
 pub fn simulate_fbm(
-    start_position: impl Into<f64>,
+    start_position: f64,
     hurst_exponent: f64,
-    duration: impl Into<f64>,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let start_position = start_position.into();
-    let duration = duration.into();
     let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
@@ -144,11 +142,11 @@ pub fn simulate_fbm(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::prelude::{ContinuousTrajectoryTrait, Moment};
+    use crate::simulation::prelude::Moment;
 
     #[test]
     fn test_simulate_bm() {
-        let fbm = Fbm::new(10.0, 0.5).unwrap();
+        let fbm = FBM::new(10.0, 0.5).unwrap();
         let duration = 1.0;
         let time_step = 0.1;
         let (t, x) = fbm.simulate(duration, time_step).unwrap();
@@ -158,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_raw_moment() {
-        let fbm = Fbm::new(10.0, 0.5).unwrap();
+        let fbm = FBM::new(10.0, 0.5).unwrap();
         let duration = 1.0;
         let time_step = 0.1;
         let traj = fbm.duration(duration).unwrap();
@@ -168,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_fpt() {
-        let fbm = Fbm::new(0.0, 0.5).unwrap();
+        let fbm = FBM::new(0.0, 0.5).unwrap();
         let time_step = 0.1;
         let fpt = fbm.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
         println!("fpt: {:?}", fpt);
@@ -176,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_occupation_time() {
-        let fbm = Fbm::new(0.0, 0.5).unwrap();
+        let fbm = FBM::new(0.0, 0.5).unwrap();
         let time_step = 0.1;
         let ot = fbm.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
         println!("ot: {:?}", ot);
@@ -185,6 +183,6 @@ mod tests {
     #[test]
     fn test_send_sync() {
         fn assert_send_sync<T: Send + Sync>() {}
-        assert_send_sync::<Fbm>();
+        assert_send_sync::<FBM>();
     }
 }

@@ -44,12 +44,12 @@ impl Poisson {
     }
 
     /// Get the rate parameter
-    pub fn lambda(&self) -> f64 {
+    pub fn get_lambda(&self) -> f64 {
         self.lambda
     }
 
     /// Generate a vector of Poisson random numbers
-    pub fn samples(&self, n: usize) -> XResult<Vec<u64>> {
+    pub fn samples(&self, n: usize) -> XResult<Vec<usize>> {
         rands(self.lambda, n)
     }
 }
@@ -67,10 +67,10 @@ impl Poisson {
 ///
 /// let random = rand(1.0).unwrap();
 /// ```
-pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
-    let lambda = lambda.into();
+pub fn rand(lambda: impl Into<f64>) -> XResult<usize> {
+    let lambda: f64 = lambda.into();
     let poisson = rand_distr::Poisson::new(lambda)?;
-    Ok(rng().sample(poisson) as u64)
+    Ok(rng().sample(poisson) as usize)
 }
 
 /// Generate a vector of Poisson random numbers
@@ -87,12 +87,12 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<u64> {
 ///
 /// let randoms = rands(1.0, 10).unwrap();
 /// ```
-pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<u64>> {
-    let lambda = lambda.into();
+pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<usize>> {
+    let lambda: f64 = lambda.into();
     let poisson = rand_distr::Poisson::new(lambda)?;
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(poisson) as u64)
+        .map_init(rng, |r, _| r.sample(poisson) as usize)
         .collect())
 }
 

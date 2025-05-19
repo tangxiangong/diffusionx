@@ -53,12 +53,12 @@ impl Normal {
     }
 
     /// Get the mean
-    pub fn mu(&self) -> f64 {
+    pub fn get_mu(&self) -> f64 {
         self.mu
     }
 
     /// Get the standard deviation
-    pub fn sigma(&self) -> f64 {
+    pub fn get_sigma(&self) -> f64 {
         self.sigma
     }
 

@@ -45,7 +45,7 @@ impl Exponential {
     }
 
     /// Get the rate parameter
-    pub fn lambda(&self) -> f64 {
+    pub fn get_lambda(&self) -> f64 {
         self.lambda
     }
 
