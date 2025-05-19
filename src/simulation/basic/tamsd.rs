@@ -112,7 +112,7 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn mean(&self, particles: u64, time_step: f64, quad_order: usize) -> XResult<f64> {
+    pub fn mean(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
         Ok((0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> { self.simulate(time_step, quad_order) })
@@ -128,7 +128,7 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn variance(&self, particles: u64, time_step: f64, quad_order: usize) -> XResult<f64> {
+    pub fn variance(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
         let mean = self.mean(particles, time_step, quad_order)?;
         Ok((0..particles)
             .into_par_iter()

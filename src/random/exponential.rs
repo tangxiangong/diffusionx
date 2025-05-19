@@ -63,7 +63,7 @@ impl Exponential {
     /// let exp = Exponential::new(2).unwrap();
     /// let randoms = exp.samples(10).unwrap();
     /// ```
-    pub fn samples(&self, n: u64) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
         if self.lambda == 1.0 {
             Ok(standard_rands(n))
         } else {
@@ -98,7 +98,7 @@ pub fn standard_rand() -> f64 {
 ///
 /// let randoms = standard_rands(10);
 /// ```
-pub fn standard_rands(n: u64) -> Vec<f64> {
+pub fn standard_rands(n: usize) -> Vec<f64> {
     let dist = Exp1;
     (0..n)
         .into_par_iter()
@@ -139,7 +139,7 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<f64> {
 ///
 /// let randoms = rands(1.0, 10).unwrap();
 /// ```
-pub fn rands(lambda: impl Into<f64>, n: u64) -> XResult<Vec<f64>> {
+pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
     let lambda = lambda.into();
     let exp = Exp::new(lambda)?;
     Ok((0..n)

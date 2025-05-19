@@ -38,7 +38,7 @@ pub fn standard_rand() -> f64 {
 /// assert_eq!(randoms.len(), 10);
 /// assert!(randoms.iter().all(|x| (0.0..1.0).contains(x)));
 /// ```
-pub fn standard_rands(n: u64) -> Vec<f64> {
+pub fn standard_rands(n: usize) -> Vec<f64> {
     let dist = StandardUniform;
     (0..n)
         .into_par_iter()
@@ -118,7 +118,7 @@ where
 /// assert_eq!(randoms.len(), 10);
 /// assert!(randoms.iter().all(|x| (0..=10).contains(x)));
 /// ```
-pub fn inclusive_range_rands<T>(range: RangeInclusive<T>, n: u64) -> XResult<Vec<T>>
+pub fn inclusive_range_rands<T>(range: RangeInclusive<T>, n: usize) -> XResult<Vec<T>>
 where
     T: SampleUniform + Send + Sync,
     Uniform<T>: Copy,
@@ -160,7 +160,7 @@ pub fn bool_rand(p: f64) -> XResult<bool> {
 /// let randoms = bool_rands(0.5, 10).unwrap();
 /// println!("randoms: {:?}", randoms);
 /// ```
-pub fn bool_rands(p: f64, n: u64) -> XResult<Vec<bool>> {
+pub fn bool_rands(p: f64, n: usize) -> XResult<Vec<bool>> {
     if !(0.0..=1.0).contains(&p) {
         return Err(XError::BoolSampleError);
     }
@@ -186,7 +186,7 @@ mod tests {
     fn test_unit_randoms() {
         let n = 1000000;
         let randoms = standard_rands(n);
-        assert_eq!(randoms.len() as u64, n);
+        assert_eq!(randoms.len() as usize, n);
         assert!(randoms.iter().all(|x| (0.0..1.0).contains(x)));
     }
 
@@ -214,7 +214,7 @@ mod tests {
     fn test_inclusive_range_randoms() {
         let n = 1000000;
         let randoms = inclusive_range_rands(0..=10, n).unwrap();
-        assert_eq!(randoms.len() as u64, n);
+        assert_eq!(randoms.len() as usize, n);
         assert!(randoms.iter().all(|x| (0..=10).contains(x)));
     }
 

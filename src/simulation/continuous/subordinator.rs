@@ -107,7 +107,7 @@ pub fn simulate_subordinator(
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let noise = stable::skew_rands(alpha, num_steps as u64)?
+    let noise = stable::skew_rands(alpha, num_steps as usize)?
         .into_par_iter()
         .map(|x| x * time_step.powf(1.0 / alpha))
         .collect::<Vec<_>>();

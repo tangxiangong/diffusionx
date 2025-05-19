@@ -119,14 +119,14 @@ pub fn simulate_ou(
     time_step: f64,
 ) -> XResult<Pair> {
     // 直接实现OU过程的数值模拟
-    let num = (duration / time_step).ceil() as u64;
+    let num = (duration / time_step).ceil() as usize;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
     let mut x = vec![0.0; num as usize + 1];
     x[0] = start_position;
-    let noise = normal::standard_rands(num as u64);
+    let noise = normal::standard_rands(num as usize);
 
     for i in 1..=num {
         // OU特定的更新方程

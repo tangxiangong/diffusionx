@@ -164,8 +164,8 @@ impl CirculantEmbedding {
         };
 
         // Generate a random Gaussian vector (components for complex noise)
-        let z_real = normal::standard_rands(m as u64);
-        let mut z_imag = normal::standard_rands(m as u64);
+        let z_real = normal::standard_rands(m as usize);
+        let mut z_imag = normal::standard_rands(m as usize);
 
         // Special handling for real output: Z_k = conj(Z_{m-k})
         // This implies z_imag[0] = 0 and z_imag[m/2] = 0 (if m is even)

@@ -114,7 +114,7 @@ pub fn simulate_bm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let num_steps = (duration / time_step).ceil() as u64;
+    let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
         .map(|i| time_step * i as f64)

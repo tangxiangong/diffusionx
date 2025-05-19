@@ -14,7 +14,7 @@ pub trait Moment {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
-    fn raw_moment(&self, order: i32, particles: u64, time_step: f64) -> XResult<f64>;
+    fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64>;
 
     /// Get the central moment of the simulation
     ///
@@ -23,11 +23,11 @@ pub trait Moment {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
-    fn central_moment(&self, order: i32, particles: u64, time_step: f64) -> XResult<f64>;
+    fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64>;
 }
 
 impl<'a, SP: ContinuousProcess> Moment for ContinuousTrajectory<'a, SP> {
-    fn raw_moment(&self, order: i32, particles: u64, time_step: f64) -> XResult<f64> {
+    fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got {}",
@@ -58,7 +58,7 @@ impl<'a, SP: ContinuousProcess> Moment for ContinuousTrajectory<'a, SP> {
         Ok(result)
     }
 
-    fn central_moment(&self, order: i32, particles: u64, time_step: f64) -> XResult<f64> {
+    fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, time_step)?;
         let duration = self.duration;
         let result = (0..particles)
@@ -79,7 +79,7 @@ impl<'a, SP: ContinuousProcess> Moment for ContinuousTrajectory<'a, SP> {
 }
 
 impl<'a, SP: DiscreteProcess> Moment for DiscreteTrajectory<'a, SP> {
-    fn raw_moment(&self, order: i32, particles: u64, _: f64) -> XResult<f64> {
+    fn raw_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got {}",
@@ -110,7 +110,7 @@ impl<'a, SP: DiscreteProcess> Moment for DiscreteTrajectory<'a, SP> {
         Ok(result)
     }
 
-    fn central_moment(&self, order: i32, particles: u64, _: f64) -> XResult<f64> {
+    fn central_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, 0.01)?;
         let num_step = self.num_step;
         let result = (0..particles)
@@ -131,7 +131,7 @@ impl<'a, SP: DiscreteProcess> Moment for DiscreteTrajectory<'a, SP> {
 }
 
 impl<'a, SP: PointProcess> Moment for PointTrajectory<'a, SP> {
-    fn raw_moment(&self, order: i32, particles: u64, _: f64) -> XResult<f64> {
+    fn raw_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got {}",
@@ -168,7 +168,7 @@ impl<'a, SP: PointProcess> Moment for PointTrajectory<'a, SP> {
         Ok(result)
     }
 
-    fn central_moment(&self, order: i32, particles: u64, _time_step: f64) -> XResult<f64> {
+    fn central_moment(&self, order: i32, particles: usize, _time_step: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, _time_step)?;
         let duration = self.duration.unwrap();
         let result = (0..particles)

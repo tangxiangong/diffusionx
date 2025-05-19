@@ -170,7 +170,7 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let num = (duration / time_step).ceil() as u64;
+    let num = (duration / time_step).ceil() as usize;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
@@ -361,7 +361,7 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let num = (duration / time_step).ceil() as u64;
+    let num = (duration / time_step).ceil() as usize;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)

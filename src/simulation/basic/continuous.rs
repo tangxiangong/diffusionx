@@ -22,7 +22,7 @@ pub trait ContinuousProcess: Send + Sync + Sized {
     /// * `duration` - The duration of the simulation.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
-    fn mean(&self, duration: f64, particles: u64, time_step: f64) -> XResult<f64> {
+    fn mean(&self, duration: f64, particles: usize, time_step: f64) -> XResult<f64> {
         let traj = self.duration(duration)?;
         traj.raw_moment(1, particles, time_step)
     }
@@ -34,7 +34,7 @@ pub trait ContinuousProcess: Send + Sync + Sized {
     /// * `duration` - The duration of the simulation.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
-    fn msd(&self, duration: f64, particles: u64, time_step: f64) -> XResult<f64> {
+    fn msd(&self, duration: f64, particles: usize, time_step: f64) -> XResult<f64> {
         let traj = self.duration(duration)?;
         traj.central_moment(2, particles, time_step)
     }
@@ -51,7 +51,7 @@ pub trait ContinuousProcess: Send + Sync + Sized {
         &self,
         duration: f64,
         order: i32,
-        particles: u64,
+        particles: usize,
         time_step: f64,
     ) -> XResult<f64> {
         let traj = self.duration(duration)?;
@@ -70,7 +70,7 @@ pub trait ContinuousProcess: Send + Sync + Sized {
         &self,
         duration: f64,
         order: i32,
-        particles: u64,
+        particles: usize,
         time_step: f64,
     ) -> XResult<f64> {
         let traj = self.duration(duration)?;
@@ -127,7 +127,7 @@ pub trait ContinuousProcess: Send + Sync + Sized {
         &self,
         duration: f64,
         delta: f64,
-        particles: u64,
+        particles: usize,
         time_step: f64,
         quad_order: usize,
     ) -> XResult<f64> {

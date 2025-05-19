@@ -118,7 +118,7 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     pub fn raw_moment(
         &self,
         order: i32,
-        particles: u64,
+        particles: usize,
         max_duration: impl Into<f64>,
         time_step: f64,
     ) -> XResult<Option<f64>> {
@@ -188,7 +188,7 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     pub fn central_moment(
         &self,
         order: i32,
-        particles: u64,
+        particles: usize,
         max_duration: impl Into<f64>,
         time_step: f64,
     ) -> XResult<Option<f64>> {

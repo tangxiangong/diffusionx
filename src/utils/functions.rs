@@ -162,9 +162,9 @@ pub fn calculate_stats(samples: &[f64]) -> (f64, f64) {
 ///
 /// * `samples` - The integer array to calculate the mean and variance of
 #[cfg(test)]
-pub fn calculate_int_stats(samples: &[u64]) -> (f64, f64) {
+pub fn calculate_int_stats(samples: &[usize]) -> (f64, f64) {
     let n = samples.len() as f64;
-    let mean = samples.iter().sum::<u64>() as f64 / n;
+    let mean = samples.iter().sum::<usize>() as f64 / n;
     let variance = samples
         .iter()
         .map(|&x| (x as f64 - mean).powi(2))

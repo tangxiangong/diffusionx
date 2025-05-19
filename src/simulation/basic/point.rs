@@ -13,7 +13,7 @@ pub trait PointProcess: Send + Sync + Sized {
     ///
     /// * `duration` - The duration of the simulation.
     fn simulate_with_duration(&self, duration: f64) -> XResult<Pair> {
-        let mut num_step = duration.ceil() as u64;
+        let mut num_step = duration.ceil() as usize;
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;
             if t.last().is_none() {
@@ -47,7 +47,7 @@ pub trait PointProcess: Send + Sync + Sized {
     ///
     /// * `duration` - The duration of the simulation.
     /// * `particles` - The number of particles.
-    fn mean(&self, duration: f64, particles: u64) -> XResult<f64> {
+    fn mean(&self, duration: f64, particles: usize) -> XResult<f64> {
         let traj = self.duration(duration)?;
         traj.raw_moment(1, particles, 0.1)
     }
@@ -58,7 +58,7 @@ pub trait PointProcess: Send + Sync + Sized {
     ///
     /// * `duration` - The duration of the simulation.
     /// * `particles` - The number of particles.
-    fn msd(&self, duration: f64, particles: u64) -> XResult<f64> {
+    fn msd(&self, duration: f64, particles: usize) -> XResult<f64> {
         let traj = self.duration(duration)?;
         traj.central_moment(2, particles, 0.1)
     }
@@ -70,7 +70,7 @@ pub trait PointProcess: Send + Sync + Sized {
     /// * `duration` - The duration of the simulation.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn raw_moment(&self, duration: f64, order: i32, particles: u64) -> XResult<f64> {
+    fn raw_moment(&self, duration: f64, order: i32, particles: usize) -> XResult<f64> {
         let traj = self.duration(duration)?;
         traj.raw_moment(order, particles, 0.1)
     }
@@ -82,7 +82,7 @@ pub trait PointProcess: Send + Sync + Sized {
     /// * `duration` - The duration of the simulation.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn central_moment(&self, duration: f64, order: i32, particles: u64) -> XResult<f64> {
+    fn central_moment(&self, duration: f64, order: i32, particles: usize) -> XResult<f64> {
         let traj = self.duration(duration)?;
         traj.central_moment(order, particles, 0.1)
     }
@@ -114,7 +114,7 @@ pub trait PointProcess: Send + Sync + Sized {
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the simulation.
-    fn simulate_with_step(&self, num_step: u64) -> XResult<Pair>;
+    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair>;
 }
 
 /// Point process trajectory
@@ -125,7 +125,7 @@ pub struct PointTrajectory<'a, SP: PointProcess> {
     /// The duration of the trajectory
     pub(crate) duration: Option<f64>,
     /// The number of steps of the trajectory
-    pub(crate) num_step: Option<u64>,
+    pub(crate) num_step: Option<usize>,
 }
 
 pub trait PointTrajectoryTrait: PointProcess + Sized {
@@ -144,7 +144,7 @@ pub trait PointTrajectoryTrait: PointProcess + Sized {
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the trajectory
-    fn step(&self, num_step: u64) -> XResult<PointTrajectory<'_, Self>> {
+    fn step(&self, num_step: usize) -> XResult<PointTrajectory<'_, Self>> {
         let traj = PointTrajectory::with_step(self, num_step)?;
         Ok(traj)
     }
@@ -164,7 +164,7 @@ impl<'a, SP: PointProcess> PointTrajectory<'a, SP> {
     }
 
     /// Get the number of steps of the trajectory
-    pub fn get_num_step(&self) -> Option<u64> {
+    pub fn get_num_step(&self) -> Option<usize> {
         self.num_step
     }
 
@@ -193,7 +193,7 @@ impl<'a, SP: PointProcess> PointTrajectory<'a, SP> {
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the trajectory
-    pub fn with_step(sp: &'a SP, num_step: u64) -> XResult<Self> {
+    pub fn with_step(sp: &'a SP, num_step: usize) -> XResult<Self> {
         if num_step == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `num_step` must be positive, got {}",
