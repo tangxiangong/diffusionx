@@ -121,7 +121,7 @@ impl LevyWalk {
 }
 
 impl ContinuousProcess for LevyWalk {
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let (t, x) = self.simulate_with_duration(duration)?;
         linear_interpolate(&t, &x, time_step)
     }
@@ -150,9 +150,9 @@ pub fn simulate_levy_walk_with_step(
     start_position: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     let waiting_times = if alpha == 1.0 {
-        exponential::rands(1.0, num_step)?
+        exponential::rands(1.0, num_step as u64)?
     } else {
-        stable::skew_rands(alpha, num_step)?
+        stable::skew_rands(alpha, num_step as u64)?
     };
     let directions = (0..num_step)
         .into_par_iter()

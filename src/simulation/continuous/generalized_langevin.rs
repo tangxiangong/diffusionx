@@ -122,7 +122,7 @@ where
     /// let time_step = 0.01;
     /// let (t, x) = langevin.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_generalized_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -161,18 +161,16 @@ where
 pub fn simulate_generalized_langevin<D, G>(
     drift: &D,
     diffusion: &G,
-    start_position: impl Into<f64>,
-    alpha: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    alpha: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<Pair>
 where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let duration = duration.into();
-    let alpha = alpha.into();
-    let num = (duration / time_step).ceil() as usize;
+    let num = (duration / time_step).ceil() as u64;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
@@ -185,11 +183,11 @@ where
     let x = std::iter::once(initial_x)
         .chain((0..num).scan(initial_x, |state, i| {
             let current_x = *state;
-            let current_t = t[i];
+            let current_t = t[i as usize];
 
             let next_x = current_x
                 + drift(current_x, current_t) * time_step
-                + diffusion(current_x, current_t) * noise[i] * time_step.powf(1.0 / alpha);
+                + diffusion(current_x, current_t) * noise[i as usize] * time_step.powf(1.0 / alpha);
 
             *state = next_x;
             Some(next_x)
@@ -315,7 +313,7 @@ where
     /// let time_step = 0.01;
     /// let (t, x) = langevin.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_subordinated_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -354,18 +352,16 @@ where
 pub fn simulate_subordinated_langevin<D, G>(
     drift: &D,
     diffusion: &G,
-    start_position: impl Into<f64>,
-    alpha: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    alpha: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<Pair>
 where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let duration = duration.into();
-    let alpha = alpha.into();
-    let num = (duration / time_step).ceil() as usize;
+    let num = (duration / time_step).ceil() as u64;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
@@ -379,12 +375,12 @@ where
     let x = std::iter::once(initial_x)
         .chain((0..num).scan(initial_x, |state, i| {
             let current_x = *state;
-            let current_t = t[i];
-            let delta_t = s[i + 1] - s[i];
+            let current_t = t[i as usize];
+            let delta_t = s[i as usize + 1] - s[i as usize];
 
             let next_x = current_x
                 + drift(current_x, current_t) * delta_t
-                + diffusion(current_x, current_t) * noise[i] * delta_t.sqrt();
+                + diffusion(current_x, current_t) * noise[i as usize] * delta_t.sqrt();
 
             *state = next_x;
             Some(next_x)

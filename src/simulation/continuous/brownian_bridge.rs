@@ -29,8 +29,8 @@ impl ContinuousProcess for BrownianBridge {
     /// let duration = 1.0;
     /// let (t, x) = bb.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        simulate_brownian_bridge(duration.into(), time_step)
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+        simulate_brownian_bridge(duration, time_step)
     }
 }
 
@@ -50,11 +50,7 @@ impl ContinuousProcess for BrownianBridge {
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_bridge(duration, time_step).unwrap();
 /// ```
-pub fn simulate_brownian_bridge(
-    duration: impl Into<f64>,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let duration: f64 = duration.into();
+pub fn simulate_brownian_bridge(duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
     let bm = Bm::default();
     let (t, traj) = bm.simulate(duration, time_step)?;
     let end_position = match traj.last() {

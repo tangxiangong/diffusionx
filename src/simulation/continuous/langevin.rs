@@ -95,7 +95,7 @@ where
     /// let langevin = Langevin::new(drift, diffusion, start_position).unwrap();
     /// let (t, x) = langevin.simulate(1.0, 0.01).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -129,33 +129,32 @@ where
 pub fn simulate_langevin<D, G>(
     drift: &D,
     diffusion: &G,
-    start_position: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<Pair>
 where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let duration = duration.into();
-    let num = (duration / time_step).ceil() as usize;
+    let num = (duration / time_step).ceil() as u64;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
 
-    let initial_x = start_position.into();
+    let initial_x = start_position;
     let noise = normal::standard_rands(num);
 
     // 使用迭代器风格生成路径
     let x = std::iter::once(initial_x)
         .chain((0..num).scan(initial_x, |state, i| {
             let current_x = *state;
-            let current_t = t[i];
+            let current_t = t[i as usize];
 
             let next_x = current_x
                 + drift(current_x, current_t) * time_step
-                + diffusion(current_x, current_t) * noise[i] * time_step.sqrt();
+                + diffusion(current_x, current_t) * noise[i as usize] * time_step.sqrt();
 
             *state = next_x;
             Some(next_x)

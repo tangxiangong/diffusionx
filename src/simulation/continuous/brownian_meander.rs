@@ -26,11 +26,7 @@ impl BrownianMeander {
     /// let bm = BrownianMeander;
     /// let fpt = bm.fpt((-1.0, 1.0), 0.1).unwrap();
     /// ```
-    pub fn fpt(
-        &self,
-        domain: (impl Into<f64>, impl Into<f64>),
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
+    pub fn fpt(&self, domain: (f64, f64), time_step: f64) -> XResult<Option<f64>> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got {}",
@@ -38,10 +34,9 @@ impl BrownianMeander {
             ))
             .into());
         }
-        let a: f64 = domain.0.into();
-        let b: f64 = domain.1.into();
+        let (a, b) = domain;
 
-        let (t, x) = self.simulate(1, time_step)?;
+        let (t, x) = self.simulate(1.0, time_step)?;
         if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
             Ok(Some(t[index]))
         } else {
@@ -69,8 +64,8 @@ impl ContinuousProcess for BrownianMeander {
     /// let duration = 1.0;
     /// let (t, x) = bm.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        simulate_brownian_meander(duration.into(), time_step)
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+        simulate_brownian_meander(duration, time_step)
     }
 }
 
@@ -90,11 +85,7 @@ impl ContinuousProcess for BrownianMeander {
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_meander(duration, time_step).unwrap();
 /// ```
-pub fn simulate_brownian_meander(
-    duration: impl Into<f64>,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let duration: f64 = duration.into();
+pub fn simulate_brownian_meander(duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
     if duration <= 0.0 || duration > 1.0 {
         // Duration must be positive and not exceed 1.0
         return Err(SimulationError::InvalidParameters(format!(

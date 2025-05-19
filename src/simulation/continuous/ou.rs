@@ -77,7 +77,7 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
     /// let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
     /// let (t, x) = ou.simulate(1.0, 0.01).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_ou(
             self.theta,
             self.sigma,
@@ -114,24 +114,24 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
 pub fn simulate_ou(
     theta: f64,
     sigma: f64,
-    start_position: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
     // 直接实现OU过程的数值模拟
-    let duration = duration.into();
-    let num = (duration / time_step).ceil() as usize;
+    let num = (duration / time_step).ceil() as u64;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let mut x = vec![0.0; num + 1];
-    x[0] = start_position.into();
-    let noise = normal::standard_rands(num);
+    let mut x = vec![0.0; num as usize + 1];
+    x[0] = start_position;
+    let noise = normal::standard_rands(num as u64);
 
     for i in 1..=num {
         // OU特定的更新方程
-        x[i] = x[i - 1] - theta * x[i - 1] * time_step + sigma * noise[i - 1] * time_step.sqrt();
+        x[i as usize] = x[i as usize - 1] - theta * x[i as usize - 1] * time_step
+            + sigma * noise[i as usize - 1] * time_step.sqrt();
     }
 
     Ok((t, x))

@@ -92,12 +92,12 @@ impl ContinuousProcess for GeometricBm {
     /// let duration = 1.0;
     /// let (t, x) = gbm.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_gbm(
             self.start_position,
             self.mu,
             self.sigma,
-            duration.into(),
+            duration,
             time_step,
         )
     }
@@ -126,16 +126,12 @@ impl ContinuousProcess for GeometricBm {
 /// let (t, x) = simulate_gbm(start_position, mu, sigma, duration, time_step).unwrap();
 /// ```
 pub fn simulate_gbm(
-    start_position: impl Into<f64>,
-    mu: impl Into<f64>,
-    sigma: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    mu: f64,
+    sigma: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let start_position = start_position.into();
-    let mu = mu.into();
-    let sigma = sigma.into();
-    let duration = duration.into();
     let bm = Bm::default();
     let (t, b) = bm.simulate(duration, time_step)?;
     let tmp = mu - sigma * sigma / 2.0;

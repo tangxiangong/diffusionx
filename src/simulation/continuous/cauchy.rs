@@ -77,7 +77,7 @@ impl ContinuousProcess for AsymmetricCauchy {
     /// let duration = 1.0;
     /// let (t, x) = cauchy.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got {}",
@@ -85,7 +85,6 @@ impl ContinuousProcess for AsymmetricCauchy {
             ))
             .into());
         }
-        let duration = duration.into();
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got {}",
@@ -116,9 +115,9 @@ impl ContinuousProcess for AsymmetricCauchy {
 /// let (t, x) = simulate_asymmetric_cauchy(0.0, 0.4, duration, time_step).unwrap();
 /// ```
 pub fn simulate_asymmetric_cauchy(
-    start_position: impl Into<f64>,
-    beta: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    beta: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     simulate_asymmetric_levy(start_position, 1.0, beta, duration, time_step)
@@ -183,7 +182,7 @@ impl ContinuousProcess for Cauchy {
     /// let duration = 1.0;
     /// let (t, x) = cauchy.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got {}",
@@ -191,7 +190,6 @@ impl ContinuousProcess for Cauchy {
             ))
             .into());
         }
-        let duration = duration.into();
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got {}",
@@ -221,8 +219,8 @@ impl ContinuousProcess for Cauchy {
 /// let (t, x) = simulate_cauchy(0.0, duration, time_step).unwrap();
 /// ```
 pub fn simulate_cauchy(
-    start_position: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     simulate_levy(start_position, 1.0, duration, time_step)

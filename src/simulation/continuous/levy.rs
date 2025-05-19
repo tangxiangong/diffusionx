@@ -95,7 +95,7 @@ impl ContinuousProcess for AsymmetricLevy {
     /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
     /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got {}",
@@ -103,7 +103,6 @@ impl ContinuousProcess for AsymmetricLevy {
             ))
             .into());
         }
-        let duration = duration.into();
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got {}",
@@ -140,22 +139,18 @@ impl ContinuousProcess for AsymmetricLevy {
 /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
 /// ```
 pub fn simulate_asymmetric_levy(
-    start_position: impl Into<f64>,
-    alpha: impl Into<f64>,
-    beta: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    alpha: f64,
+    beta: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let start_position = start_position.into();
-    let alpha = alpha.into();
-    let beta = beta.into();
-    let duration = duration.into();
     let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let noise = stable::standard_rands(alpha, beta, num_steps)?
+    let noise = stable::standard_rands(alpha, beta, num_steps as u64)?
         .into_par_iter()
         .map(|x| x * time_step.powf(1.0 / alpha))
         .collect::<Vec<_>>();
@@ -231,7 +226,7 @@ impl ContinuousProcess for Levy {
     /// let levy = Levy::new(0.0, 1.5).unwrap();
     /// let (t, x) = levy.simulate(1.0, 0.1).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got {}",
@@ -239,7 +234,6 @@ impl ContinuousProcess for Levy {
             ))
             .into());
         }
-        let duration = duration.into();
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got {}",
@@ -268,20 +262,17 @@ impl ContinuousProcess for Levy {
 /// let (t, x) = simulate_levy(0.0, 1.5, 1.0, 0.1).unwrap();
 /// ```
 pub fn simulate_levy(
-    start_position: impl Into<f64>,
-    alpha: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    alpha: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let start_position = start_position.into();
-    let alpha = alpha.into();
-    let duration = duration.into();
     let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let noise = stable::standard_rands(alpha, 0.0, num_steps)?
+    let noise = stable::standard_rands(alpha, 0.0, num_steps as u64)?
         .into_par_iter()
         .map(|x| x * time_step.powf(1.0 / alpha))
         .collect::<Vec<_>>();

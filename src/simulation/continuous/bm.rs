@@ -78,11 +78,11 @@ impl ContinuousProcess for Bm {
     /// let duration = 1.0;
     /// let (t, x) = bm.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_bm(
             self.start_position,
             self.diffusion_coefficient,
-            duration.into(),
+            duration,
             time_step,
         )
     }
@@ -109,15 +109,12 @@ impl ContinuousProcess for Bm {
 /// let (t, x) = simulate_bm(start_position, diffusion_coefficient, duration, time_step).unwrap();
 /// ```
 pub fn simulate_bm(
-    start_position: impl Into<f64>,
-    diffusion_coefficient: impl Into<f64>,
-    duration: impl Into<f64>,
+    start_position: f64,
+    diffusion_coefficient: f64,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let start_position = start_position.into();
-    let diffusion_coefficient = diffusion_coefficient.into();
-    let duration = duration.into();
-    let num_steps = (duration / time_step).ceil() as usize;
+    let num_steps = (duration / time_step).ceil() as u64;
     let t = (0..=num_steps)
         .into_par_iter()
         .map(|i| time_step * i as f64)

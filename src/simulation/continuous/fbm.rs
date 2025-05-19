@@ -78,7 +78,7 @@ impl ContinuousProcess for Fbm {
     /// let duration = 1.0;
     /// let (t, x) = fbm.simulate(duration, time_step).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_fbm(
             self.start_position,
             self.hurst_exponent,
@@ -109,13 +109,11 @@ impl ContinuousProcess for Fbm {
 /// let (t, x) = simulate_fbm(start_position, hurst_exponent, duration, time_step).unwrap();
 /// ```
 pub fn simulate_fbm(
-    start_position: impl Into<f64>,
+    start_position: f64,
     hurst_exponent: f64,
-    duration: impl Into<f64>,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let start_position = start_position.into();
-    let duration = duration.into();
     let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
@@ -130,7 +128,7 @@ pub fn simulate_fbm(
 
     // Generate fBn
     let noise = if hurst_exponent == 0.5 {
-        normal::rands(0.0, 2.0 * time_step, num_steps)?
+        normal::rands(0.0, 2.0 * time_step, num_steps as u64)?
     } else {
         circulant.generate()?
     };

@@ -63,7 +63,7 @@ impl ContinuousProcess for Subordinator {
     /// let subordinator = Subordinator::new(0.5).unwrap();
     /// let (t, x) = subordinator.simulate(1.0, 0.1).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got {}",
@@ -71,7 +71,6 @@ impl ContinuousProcess for Subordinator {
             ))
             .into());
         }
-        let duration = duration.into();
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got {}",
@@ -100,16 +99,15 @@ impl ContinuousProcess for Subordinator {
 /// ```
 pub fn simulate_subordinator(
     alpha: f64,
-    duration: impl Into<f64>,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let duration = duration.into();
     let num_steps = (duration / time_step).ceil() as usize;
     let t = (0..=num_steps)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let noise = stable::skew_rands(alpha, num_steps)?
+    let noise = stable::skew_rands(alpha, num_steps as u64)?
         .into_par_iter()
         .map(|x| x * time_step.powf(1.0 / alpha))
         .collect::<Vec<_>>();
@@ -172,7 +170,7 @@ impl ContinuousProcess for InvSubordinator {
     /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
     /// let (t, x) = inv_subordinator.simulate(1.0, 0.1).unwrap();
     /// ```
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got {}",
@@ -180,7 +178,6 @@ impl ContinuousProcess for InvSubordinator {
             ))
             .into());
         }
-        let duration = duration.into();
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got {}",
@@ -209,10 +206,10 @@ impl ContinuousProcess for InvSubordinator {
 /// ```
 pub fn simulate_invsubordinator(
     alpha: f64,
-    duration: impl Into<f64>,
+    duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let mut mut_duration = duration.into();
+    let mut mut_duration = duration;
     let duration = mut_duration;
     let (t, s) = loop {
         let (t, s) = simulate_subordinator(alpha, mut_duration, time_step)?;
