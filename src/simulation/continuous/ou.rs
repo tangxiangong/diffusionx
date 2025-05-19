@@ -124,14 +124,13 @@ pub fn simulate_ou(
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let mut x = vec![0.0; num as usize + 1];
+    let mut x = vec![0.0; num + 1];
     x[0] = start_position;
-    let noise = normal::standard_rands(num as usize);
+    let noise = normal::standard_rands(num);
 
     for i in 1..=num {
         // OU特定的更新方程
-        x[i as usize] = x[i as usize - 1] - theta * x[i as usize - 1] * time_step
-            + sigma * noise[i as usize - 1] * time_step.sqrt();
+        x[i] = x[i - 1] - theta * x[i - 1] * time_step + sigma * noise[i - 1] * time_step.sqrt();
     }
 
     Ok((t, x))

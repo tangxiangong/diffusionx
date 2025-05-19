@@ -150,7 +150,7 @@ pub fn simulate_asymmetric_levy(
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let noise = stable::standard_rands(alpha, beta, num_steps as usize)?
+    let noise = stable::standard_rands(alpha, beta, num_steps)?
         .into_par_iter()
         .map(|x| x * time_step.powf(1.0 / alpha))
         .collect::<Vec<_>>();
@@ -272,7 +272,7 @@ pub fn simulate_levy(
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let noise = stable::standard_rands(alpha, 0.0, num_steps as usize)?
+    let noise = stable::standard_rands(alpha, 0.0, num_steps)?
         .into_par_iter()
         .map(|x| x * time_step.powf(1.0 / alpha))
         .collect::<Vec<_>>();

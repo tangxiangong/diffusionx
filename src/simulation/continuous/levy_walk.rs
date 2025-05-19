@@ -150,9 +150,9 @@ pub fn simulate_levy_walk_with_step(
     start_position: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     let waiting_times = if alpha == 1.0 {
-        exponential::rands(1.0, num_step as usize)?
+        exponential::rands(1.0, num_step)?
     } else {
-        stable::skew_rands(alpha, num_step as usize)?
+        stable::skew_rands(alpha, num_step)?
     };
     let directions = (0..num_step)
         .into_par_iter()

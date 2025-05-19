@@ -28,7 +28,6 @@ impl<'a, T: ContinuousProcess> InverseProcess<'a, T> {
 impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let mut mut_duration = duration;
-        let duration = mut_duration;
         let (t, s) = loop {
             let (t, s) = self.process.simulate(mut_duration, time_step)?;
             let last = match s.last() {

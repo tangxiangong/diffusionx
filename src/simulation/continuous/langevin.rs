@@ -150,11 +150,11 @@ where
     let x = std::iter::once(initial_x)
         .chain((0..num).scan(initial_x, |state, i| {
             let current_x = *state;
-            let current_t = t[i as usize];
+            let current_t = t[i];
 
             let next_x = current_x
                 + drift(current_x, current_t) * time_step
-                + diffusion(current_x, current_t) * noise[i as usize] * time_step.sqrt();
+                + diffusion(current_x, current_t) * noise[i] * time_step.sqrt();
 
             *state = next_x;
             Some(next_x)

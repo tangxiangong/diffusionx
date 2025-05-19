@@ -176,18 +176,18 @@ where
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
 
-    let initial_x = start_position.into();
+    let initial_x = start_position;
     let noise = stable::sym_standard_rands(alpha, num)?;
 
     // 使用迭代器风格生成路径
     let x = std::iter::once(initial_x)
         .chain((0..num).scan(initial_x, |state, i| {
             let current_x = *state;
-            let current_t = t[i as usize];
+            let current_t = t[i];
 
             let next_x = current_x
                 + drift(current_x, current_t) * time_step
-                + diffusion(current_x, current_t) * noise[i as usize] * time_step.powf(1.0 / alpha);
+                + diffusion(current_x, current_t) * noise[i] * time_step.powf(1.0 / alpha);
 
             *state = next_x;
             Some(next_x)
@@ -367,7 +367,7 @@ where
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
 
-    let initial_x = start_position.into();
+    let initial_x = start_position;
     let (_, s) = Subordinator::new(alpha)?.simulate(duration, time_step)?;
     let noise = normal::standard_rands(num);
 
@@ -375,12 +375,12 @@ where
     let x = std::iter::once(initial_x)
         .chain((0..num).scan(initial_x, |state, i| {
             let current_x = *state;
-            let current_t = t[i as usize];
-            let delta_t = s[i as usize + 1] - s[i as usize];
+            let current_t = t[i];
+            let delta_t = s[i + 1] - s[i];
 
             let next_x = current_x
                 + drift(current_x, current_t) * delta_t
-                + diffusion(current_x, current_t) * noise[i as usize] * delta_t.sqrt();
+                + diffusion(current_x, current_t) * noise[i] * delta_t.sqrt();
 
             *state = next_x;
             Some(next_x)

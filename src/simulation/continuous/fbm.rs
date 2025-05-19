@@ -128,7 +128,7 @@ pub fn simulate_fbm(
 
     // Generate fBn
     let noise = if hurst_exponent == 0.5 {
-        normal::rands(0.0, 2.0 * time_step, num_steps as usize)?
+        normal::rands(0.0, 2.0 * time_step, num_steps)?
     } else {
         circulant.generate()?
     };

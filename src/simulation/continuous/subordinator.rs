@@ -107,7 +107,7 @@ pub fn simulate_subordinator(
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let noise = stable::skew_rands(alpha, num_steps as usize)?
+    let noise = stable::skew_rands(alpha, num_steps)?
         .into_par_iter()
         .map(|x| x * time_step.powf(1.0 / alpha))
         .collect::<Vec<_>>();
@@ -210,7 +210,6 @@ pub fn simulate_invsubordinator(
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     let mut mut_duration = duration;
-    let duration = mut_duration;
     let (t, s) = loop {
         let (t, s) = simulate_subordinator(alpha, mut_duration, time_step)?;
         let last = match s.last() {
