@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2025-05-19
+
+### 🚀 Features
+
+- Implement Lévy walk simulation
+- Add linear interpolation and linspace functions
+- Implement TAMSD simulation for point processes
+
+### 🚜 Refactor
+
+- Rename `traits.rs` to `basic.rs`
+- Refactor simulation traits
+- Rename getter methods for consistency
+- Refact functional module for stochastic processes
+- Update random sampling methods to use u64
+- Update process traits to improve type stability
+- Enhance type stability in Visualize trait implementations
+- Simplify parameter types in simulation methods
+- Update random sampling methods to use usize
+- Rename methods for consistency and enhance type stability
+- Update random sampling methods to improve type stability
+- *(example)* Update simulation method signatures for type stability
+- Rename Fbm to FBM for consistency
+- Update documentation and method signatures for type stability
+
+### 📚 Documentation
+
+- Update documentation for Lévy walk in mod.rs
+- Update process documentation with module references
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.3.13
+- Add `.idea` to .gitignore
+- Bump version to 0.4.0 in Cargo.toml
+
 ## [0.3.13] - 2025-05-15
 
 ### 🚀 Features
