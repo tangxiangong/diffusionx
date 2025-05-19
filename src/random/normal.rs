@@ -154,6 +154,12 @@ pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
 pub fn rands(mean: impl Into<f64>, std_dev: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
     let mean = mean.into();
     let std_dev = std_dev.into();
+    if std_dev <= 0.0 {
+        return Err(XError::InvalidParameters(format!(
+            "The standard deviation `std_dev` must be greater than 0, got {}",
+            std_dev
+        )));
+    }
     let normal = rand_distr::Normal::new(mean, std_dev)?;
     Ok((0..n)
         .into_par_iter()
