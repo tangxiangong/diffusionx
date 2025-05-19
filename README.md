@@ -84,7 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Calculate second-order central moment with 1000 particles and time step 0.01
     let msd = traj.central_moment(2, 1000, 0.01)?;
     println!("MSD: {msd}");
-    // Calculate TAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1, and Gauss-Legendre quadrature order 10
+    // Calculate EATAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1, and Gauss-Legendre quadrature order 10
     let eatamsd = bm.eatamsd(100.0, 1.0, 10000, 0.1, 10)?;
     println!("EATAMSD: {eatamsd}");
     // Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
@@ -136,40 +136,18 @@ DiffusionX is designed with a trait-based system for high extensibility and perf
 - `Moment`: Trait for statistical moments calculation, including raw and central moments
 - `Visualize`: Trait for plotting process trajectories
 
-### Functional Distribution Simulation
-
-DiffusionX provides powerful functional distribution simulation for stochastic processes:
-
-1. **First Passage Time (FPT)**: Calculate when a process first reaches a specified boundary
-   ```rust
-   // For a Brownian motion process
-   let bm = Bm::default();
-   // Calculate first passage time with time step 0.01,
-   // boundaries at -1.0 and 1.0, and 1000 particles
-   let fpt = bm.fpt(0.01, (-1.0, 1.0), 1000)?;
-   ```
-
-2. **Occupation Time**: Measure time spent by a process in a specified region
-   ```rust
-   // For a Brownian motion process
-   let bm = Bm::default();
-   let traj = bm.duration(10.0)?;
-   // Calculate time spent in region [0.0, 2.0] with time step 0.01
-   let occupation = traj.occupation_time(0.01, (0.0, 2.0))?;
-   ```
-
 ### Extending with Custom Processes
 
 1. Adding a New Continuous Process:
    ```rust
-   #[derive(Clone)]
+   #[derive(Debug)]
    struct MyProcess {
        // Your parameters
        // Should be `Send + Sync` for parallel computation
    }
 
    impl ContinuousProcess for MyProcess {
-       fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+       fn simulate(&self, duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
            // Implement your simulation logic
            todo!()
        }
@@ -193,7 +171,7 @@ use diffusionx::{XError, XResult, random::normal, simulation::prelude::*, utils:
 
 /// CIR
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct CIR {
     speed: f64,
     mean: f64,
@@ -225,8 +203,7 @@ impl CIR {
 }
 
 impl ContinuousProcess for CIR {
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        let duration = duration.into();
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let num_steps = (duration / time_step).ceil() as usize;
 
         let initial_x = self.start_position.max(0.0);
@@ -253,7 +230,7 @@ impl ContinuousProcess for CIR {
 }
 
 fn main() -> XResult<()> {
-    let duration = 10;
+    let duration = 10.0;
     let particles = 10_000;
     let time_step = 0.01;
     let cir = CIR::new(1, 1, 1, 0.5)?;
@@ -267,14 +244,14 @@ fn main() -> XResult<()> {
     let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
     println!("MSD: {msd}");
     // FPT
-    let max_duration = 1000;
-    let fpt = cir.fpt((-1, 1), max_duration, time_step)?.unwrap_or(-1.0);
+    let max_duration = 1000.0;
+    let fpt = cir.fpt((-1.0, 1.0), max_duration, time_step)?.unwrap_or(-1.0);
     println!("FPT: {fpt}");
     // occupation time
-    let occupation_time = cir.occupation_time((-1, 1), duration, time_step)?;
+    let occupation_time = cir.occupation_time((-1.0, 1.0), duration, time_step)?;
     println!("Occupation Time: {occupation_time}");
-    // TAMSD
-    let slag = 1;
+    // EATAMSD
+    let slag = 1.0;
     let quad_order = 10;
     let tamsd = TAMSD::new(&cir, duration, slag)?;
     let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
