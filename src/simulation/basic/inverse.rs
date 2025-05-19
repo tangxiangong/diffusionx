@@ -3,37 +3,34 @@ use crate::{SimulationError, XResult};
 use super::{ContinuousProcess, Pair};
 
 /// Inverse process of a continuous process
-#[derive(Clone)]
-pub struct InverseProcess<T: ContinuousProcess> {
+#[derive(Debug, Clone)]
+pub struct InverseProcess<'a, T: ContinuousProcess> {
     /// The process
-    process: T,
+    process: &'a T,
 }
 
-impl<T: ContinuousProcess> InverseProcess<T> {
+impl<'a, T: ContinuousProcess> InverseProcess<'a, T> {
     /// Create a new inverse process with given process
     ///
     /// # Arguments
     ///
     /// * `process` - The continuous process
-    pub fn new(process: &T) -> Self {
-        Self {
-            process: process.clone(),
-        }
+    pub fn new(process: &'a T) -> Self {
+        Self { process }
     }
 
     /// Get the process
-    pub fn process(&self) -> &T {
-        &self.process
+    pub fn get_process(&self) -> &'a T {
+        self.process
     }
 }
 
-impl<T: ContinuousProcess> ContinuousProcess for InverseProcess<T> {
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        let mut mut_duration = duration.into();
+impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+        let mut mut_duration = duration;
         let duration = mut_duration;
-        let sp = self.process.clone();
         let (t, s) = loop {
-            let (t, s) = sp.simulate(mut_duration, time_step)?;
+            let (t, s) = self.process.simulate(mut_duration, time_step)?;
             let last = match s.last() {
                 Some(x) => *x,
                 None => return Err(SimulationError::Unknown.into()),
@@ -79,7 +76,7 @@ impl<T: ContinuousProcess> ContinuousProcess for InverseProcess<T> {
 /// The inverse process trait
 pub trait Inverse: ContinuousProcess {
     /// Create a new `InverseProcess`
-    fn inverse(&self) -> InverseProcess<Self> {
+    fn inverse(&self) -> InverseProcess<'_, Self> {
         InverseProcess::new(self)
     }
 }

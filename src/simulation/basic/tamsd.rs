@@ -5,16 +5,16 @@ use rayon::prelude::*;
 
 /// TAMSD (time-averaged mean-squared displacement)
 #[derive(Debug, Clone)]
-pub struct TAMSD<SP: Clone> {
+pub struct TAMSD<'a, SP> {
     /// The continuous process
-    process: SP,
+    process: &'a SP,
     /// The duration
     duration: f64,
     /// The slag length
     delta: f64,
 }
 
-impl<SP: Clone> TAMSD<SP> {
+impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     /// Create a new TAMSD
     ///
     /// # Arguments
@@ -22,7 +22,7 @@ impl<SP: Clone> TAMSD<SP> {
     /// * `process` - The continuous process to calculate the TAMSD of.
     /// * `duration` - The duration of the simulation.
     /// * `delta` - The slag length.
-    pub fn new(process: &SP, duration: impl Into<f64>, delta: impl Into<f64>) -> XResult<Self> {
+    pub fn new(process: &'a SP, duration: impl Into<f64>, delta: impl Into<f64>) -> XResult<Self> {
         let duration = duration.into();
         let delta = delta.into();
         if duration <= 0.0 {
@@ -48,29 +48,29 @@ impl<SP: Clone> TAMSD<SP> {
             .into());
         }
         Ok(Self {
-            process: process.clone(),
+            process,
             duration,
             delta,
         })
     }
 
     /// Get the process
-    pub fn process(&self) -> &SP {
-        &self.process
+    pub fn get_process(&self) -> &'a SP {
+        self.process
     }
 
     /// Get the duration
-    pub fn duration(&self) -> f64 {
+    pub fn get_duration(&self) -> f64 {
         self.duration
     }
 
     /// Get the slag length
-    pub fn delta(&self) -> f64 {
+    pub fn get_delta(&self) -> f64 {
         self.delta
     }
 }
 
-impl<SP: ContinuousProcess> TAMSD<SP> {
+impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     /// Simulate the TAMSD
     ///
     /// # Arguments
@@ -83,12 +83,11 @@ impl<SP: ContinuousProcess> TAMSD<SP> {
         let duration = self.duration;
         let slag = self.delta;
         let nodes_weights = nodes_weights_transform(0.0, duration - slag, &nodes_weights_pairs);
-        let sp = self.process.clone();
         let result = nodes_weights
             .into_par_iter()
             .map(|(node, weight)| -> XResult<f64> {
                 let slag_length = (slag / time_step).ceil() as usize;
-                let (_, x) = sp.simulate(node + slag, time_step)?;
+                let (_, x) = self.process.simulate(node + slag, time_step)?;
                 let len = x.len();
                 let end_position = x.last();
                 let slag_position = x.get(len - slag_length - 1);
@@ -113,7 +112,7 @@ impl<SP: ContinuousProcess> TAMSD<SP> {
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn mean(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+    pub fn mean(&self, particles: u64, time_step: f64, quad_order: usize) -> XResult<f64> {
         Ok((0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> { self.simulate(time_step, quad_order) })
@@ -129,7 +128,7 @@ impl<SP: ContinuousProcess> TAMSD<SP> {
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn variance(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+    pub fn variance(&self, particles: u64, time_step: f64, quad_order: usize) -> XResult<f64> {
         let mean = self.mean(particles, time_step, quad_order)?;
         Ok((0..particles)
             .into_par_iter()
@@ -143,7 +142,7 @@ impl<SP: ContinuousProcess> TAMSD<SP> {
     }
 }
 
-impl<SP: PointProcess> TAMSD<SP> {
+impl<'a, SP: PointProcess> TAMSD<'a, SP> {
     /// Simulate the TAMSD
     ///
     /// # Arguments
@@ -156,12 +155,11 @@ impl<SP: PointProcess> TAMSD<SP> {
         let duration = self.duration;
         let slag = self.delta;
         let nodes_weights = nodes_weights_transform(0.0, duration - slag, &nodes_weights_pairs);
-        let sp = self.process.clone();
         let result = nodes_weights
             .into_par_iter()
             .map(|(node, weight)| -> XResult<f64> {
                 let slag_length = (slag / time_step).ceil() as usize;
-                let (t, x) = sp.simulate_with_duration(node + slag)?;
+                let (t, x) = self.process.simulate_with_duration(node + slag)?;
                 let (_, x) = flatten_interpolate(&t, &x, time_step)?;
                 let len = x.len();
                 let end_position = x.last();

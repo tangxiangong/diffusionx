@@ -11,14 +11,15 @@ use crate::{
 use rayon::prelude::*;
 
 /// First passage time
-pub struct FirstPassageTime<SP> {
+#[derive(Debug, Clone)]
+pub struct FirstPassageTime<'a, SP> {
     /// The stochastic process
-    sp: SP,
+    sp: &'a SP,
     /// The domain that the first passage time is interested in
     domain: (f64, f64),
 }
 
-impl<SP: Send + Sync + Clone> FirstPassageTime<SP> {
+impl<'a, SP: Send + Sync> FirstPassageTime<'a, SP> {
     /// Create a new first passage time
     ///
     /// # Arguments
@@ -35,7 +36,7 @@ impl<SP: Send + Sync + Clone> FirstPassageTime<SP> {
     /// let sp = Bm::default();
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
     /// ```
-    pub fn new(sp: &SP, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<Self> {
+    pub fn new(sp: &'a SP, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<Self> {
         let domain = (domain.0.into(), domain.1.into());
         if domain.0 >= domain.1 {
             return Err(SimulationError::InvalidParameters(format!(
@@ -44,14 +45,11 @@ impl<SP: Send + Sync + Clone> FirstPassageTime<SP> {
             ))
             .into());
         }
-        Ok(Self {
-            sp: sp.clone(),
-            domain,
-        })
+        Ok(Self { sp, domain })
     }
 }
 
-impl<SP: ContinuousProcess + Clone> FirstPassageTime<SP> {
+impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     /// Simulate the first passage time
     ///
     /// # Arguments
@@ -78,18 +76,17 @@ impl<SP: ContinuousProcess + Clone> FirstPassageTime<SP> {
             .into());
         }
         let (a, b) = self.domain;
-        let sp = self.sp.clone();
         let max_duration = max_duration.into();
         let mut duration = 10.0;
         loop {
-            let (t, x) = sp.simulate(duration, time_step)?;
+            let (t, x) = self.sp.simulate(duration, time_step)?;
             if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
                 return Ok(Some(t[index]));
             }
             duration *= 2.0;
             if duration > max_duration {
                 duration = max_duration;
-                let (t, x) = sp.simulate(duration, time_step)?;
+                let (t, x) = self.sp.simulate(duration, time_step)?;
                 if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
                     return Ok(Some(t[index]));
                 } else {
@@ -121,7 +118,7 @@ impl<SP: ContinuousProcess + Clone> FirstPassageTime<SP> {
     pub fn raw_moment(
         &self,
         order: i32,
-        particles: usize,
+        particles: u64,
         max_duration: impl Into<f64>,
         time_step: f64,
     ) -> XResult<Option<f64>> {
@@ -131,16 +128,6 @@ impl<SP: ContinuousProcess + Clone> FirstPassageTime<SP> {
                 particles
             ))
             .into());
-        }
-        if order < 0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `order` must be non-negative, got `{}`",
-                order
-            ))
-            .into());
-        }
-        if order == 0 {
-            return Ok(Some(0.0));
         }
         let max_duration = max_duration.into();
         if max_duration <= 0.0 {
@@ -201,7 +188,7 @@ impl<SP: ContinuousProcess + Clone> FirstPassageTime<SP> {
     pub fn central_moment(
         &self,
         order: i32,
-        particles: usize,
+        particles: u64,
         max_duration: impl Into<f64>,
         time_step: f64,
     ) -> XResult<Option<f64>> {
@@ -241,16 +228,16 @@ impl<SP: ContinuousProcess + Clone> FirstPassageTime<SP> {
 
 /// Occupation time
 #[derive(Debug, Clone)]
-pub struct OccupationTime<SP> {
+pub struct OccupationTime<'a, SP> {
     /// The stochastic process
-    sp: SP,
+    sp: &'a SP,
     /// The domain that the occupation time is interested in
     domain: (f64, f64),
     /// The duration of the simulation
     duration: f64,
 }
 
-impl<SP: Send + Sync + Clone> OccupationTime<SP> {
+impl<'a, SP: Send + Sync> OccupationTime<'a, SP> {
     /// Create a new occupation time
     ///
     /// # Arguments
@@ -269,7 +256,7 @@ impl<SP: Send + Sync + Clone> OccupationTime<SP> {
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// ```
     pub fn new(
-        sp: &SP,
+        sp: &'a SP,
         domain: (impl Into<f64>, impl Into<f64>),
         duration: impl Into<f64>,
     ) -> XResult<Self> {
@@ -290,14 +277,14 @@ impl<SP: Send + Sync + Clone> OccupationTime<SP> {
             .into());
         }
         Ok(Self {
-            sp: sp.clone(),
+            sp,
             domain,
             duration,
         })
     }
 }
 
-impl<SP: ContinuousProcess + Clone> OccupationTime<SP> {
+impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     /// Simulate the occupation time
     ///
     /// # Arguments
@@ -416,7 +403,7 @@ impl<SP: ContinuousProcess + Clone> OccupationTime<SP> {
     }
 }
 
-impl<SP: PointProcess + Clone> FirstPassageTime<SP> {
+impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
     /// Simulate the first passage time
     ///
     /// # Arguments
@@ -424,18 +411,17 @@ impl<SP: PointProcess + Clone> FirstPassageTime<SP> {
     /// * `max_duration` - The maximum duration of the simulation.
     pub fn simulate_p(&self, max_duration: impl Into<f64>) -> XResult<Option<f64>> {
         let (a, b) = self.domain;
-        let sp = self.sp.clone();
         let max_duration = max_duration.into();
         let mut duration = 10.0;
         loop {
-            let (t, x) = sp.simulate_with_duration(duration)?;
+            let (t, x) = self.sp.simulate_with_duration(duration)?;
             if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
                 return Ok(Some(t[index]));
             }
             duration *= 2.0;
             if duration > max_duration {
                 duration = max_duration;
-                let (t, x) = sp.simulate_with_duration(duration)?;
+                let (t, x) = self.sp.simulate_with_duration(duration)?;
                 if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
                     return Ok(Some(t[index]));
                 } else {
@@ -556,7 +542,7 @@ impl<SP: PointProcess + Clone> FirstPassageTime<SP> {
     }
 }
 
-impl<SP: PointProcess + Clone> OccupationTime<SP> {
+impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
     pub fn simulate_p(&self) -> XResult<f64> {
         let (t, x) = self.sp.simulate_with_duration(self.duration)?;
         let (a, b) = self.domain;
