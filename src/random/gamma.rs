@@ -58,12 +58,12 @@ impl Gamma {
     }
 
     /// Get the shape parameter
-    pub fn shape(&self) -> f64 {
+    pub fn get_shape(&self) -> f64 {
         self.shape
     }
 
     /// Get the scale parameter
-    pub fn scale(&self) -> f64 {
+    pub fn get_scale(&self) -> f64 {
         self.scale
     }
 
@@ -81,7 +81,7 @@ impl Gamma {
     /// let gamma = Gamma::new(1.0, 1.0).unwrap();
     /// let randoms = gamma.samples(10).unwrap();
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: u64) -> XResult<Vec<f64>> {
         rands(self.shape, self.scale, n)
     }
 }
@@ -123,7 +123,7 @@ pub fn rand(shape: impl Into<f64>, scale: impl Into<f64>) -> XResult<f64> {
 ///
 /// let randoms = rands(1.0, 1.0, 10).unwrap();
 /// ```
-pub fn rands(shape: impl Into<f64>, scale: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
+pub fn rands(shape: impl Into<f64>, scale: impl Into<f64>, n: u64) -> XResult<Vec<f64>> {
     let shape = shape.into();
     let scale = scale.into();
     let gamma = rand_distr::Gamma::new(shape, scale)

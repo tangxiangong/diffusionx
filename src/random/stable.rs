@@ -84,12 +84,12 @@ impl StandardStable {
     }
 
     /// Get the index of stability
-    pub fn index(&self) -> f64 {
+    pub fn get_index(&self) -> f64 {
         self.alpha
     }
 
     /// Get the skewness parameter
-    pub fn skewness(&self) -> f64 {
+    pub fn get_skewness(&self) -> f64 {
         self.beta
     }
 
@@ -108,7 +108,7 @@ impl StandardStable {
     /// let samples = stable.samples(10).unwrap();
     /// println!("samples: {:?}", samples);
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: u64) -> XResult<Vec<f64>> {
         standard_rands(self.alpha, self.beta, n)
     }
 }
@@ -247,22 +247,22 @@ impl Stable {
     }
 
     /// Get the index of stability
-    pub fn index(&self) -> f64 {
+    pub fn get_index(&self) -> f64 {
         self.alpha
     }
 
     /// Get the skewness parameter
-    pub fn skewness(&self) -> f64 {
+    pub fn get_skewness(&self) -> f64 {
         self.beta
     }
 
     /// Get the scale parameter
-    pub fn scale(&self) -> f64 {
+    pub fn get_scale(&self) -> f64 {
         self.sigma
     }
 
     /// Get the location parameter
-    pub fn location(&self) -> f64 {
+    pub fn get_location(&self) -> f64 {
         self.mu
     }
 
@@ -281,7 +281,7 @@ impl Stable {
     /// let samples = stable.samples(10).unwrap();
     /// println!("samples: {:?}", samples);
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: u64) -> XResult<Vec<f64>> {
         rands(self.alpha, self.beta, self.sigma, self.mu, n)
     }
 }
@@ -326,7 +326,7 @@ impl StandardSkewStable {
     }
 
     /// Get the index of stability
-    pub fn index(&self) -> f64 {
+    pub fn get_index(&self) -> f64 {
         self.0
     }
 
@@ -345,7 +345,7 @@ impl StandardSkewStable {
     /// let samples = stable.samples(10).unwrap();
     /// println!("samples: {:?}", samples);
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: u64) -> XResult<Vec<f64>> {
         skew_rands(self.0, n)
     }
 }
@@ -392,7 +392,7 @@ impl SymmetricStandardStable {
     }
 
     /// Get the index of stability
-    pub fn index(&self) -> f64 {
+    pub fn get_index(&self) -> f64 {
         self.0
     }
 
@@ -411,7 +411,7 @@ impl SymmetricStandardStable {
     /// let samples = stable.samples(10).unwrap();
     /// println!("samples: {:?}", samples);
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: u64) -> XResult<Vec<f64>> {
         sym_standard_rands(self.0, n)
     }
 }
@@ -472,7 +472,7 @@ pub fn standard_rand(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<f64
 /// let r = standard_rands(alpha, beta, n).unwrap();
 /// println!("r: {:?}", r);
 /// ```
-pub fn standard_rands(alpha: impl Into<f64>, beta: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
+pub fn standard_rands(alpha: impl Into<f64>, beta: impl Into<f64>, n: u64) -> XResult<Vec<f64>> {
     let alpha: f64 = alpha.into();
     let beta: f64 = beta.into();
     if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
@@ -550,7 +550,7 @@ pub fn rands(
     beta: impl Into<f64>,
     sigma: impl Into<f64>,
     mu: impl Into<f64>,
-    n: usize,
+    n: u64,
 ) -> XResult<Vec<f64>> {
     let alpha: f64 = alpha.into();
     let beta: f64 = beta.into();
@@ -615,7 +615,7 @@ pub fn skew_rand(alpha: impl Into<f64>) -> XResult<f64> {
 /// let r = skew_rands(alpha, n).unwrap();
 /// println!("r: {:?}", r);
 /// ```
-pub fn skew_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
+pub fn skew_rands(alpha: impl Into<f64>, n: u64) -> XResult<Vec<f64>> {
     let alpha: f64 = alpha.into();
     if alpha <= 0.0 || alpha >= 1.0 || alpha.is_nan() {
         return Err(StableError::InvalidSkewIndex.into());
@@ -664,7 +664,7 @@ pub fn sym_standard_rand(alpha: impl Into<f64>) -> XResult<f64> {
 /// let r = sym_standard_rands(alpha, n).unwrap();
 /// println!("r: {:?}", r);
 /// ```
-pub fn sym_standard_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
+pub fn sym_standard_rands(alpha: impl Into<f64>, n: u64) -> XResult<Vec<f64>> {
     let alpha: f64 = alpha.into();
     if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
         return Err(StableError::InvalidIndex.into());

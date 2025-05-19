@@ -53,12 +53,12 @@ impl Normal {
     }
 
     /// Get the mean
-    pub fn mu(&self) -> f64 {
+    pub fn get_mu(&self) -> f64 {
         self.mu
     }
 
     /// Get the standard deviation
-    pub fn sigma(&self) -> f64 {
+    pub fn get_sigma(&self) -> f64 {
         self.sigma
     }
 
@@ -76,7 +76,7 @@ impl Normal {
     /// let normal = Normal::default();
     /// let randoms = normal.samples(10).unwrap();
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: u64) -> XResult<Vec<f64>> {
         if self.sigma == 1.0 && self.mu == 0.0 {
             Ok(standard_rands(n))
         } else {
@@ -107,7 +107,7 @@ pub fn standard_rand() -> f64 {
 ///
 /// let randoms = standard_rands(10);
 /// ```
-pub fn standard_rands(n: usize) -> Vec<f64> {
+pub fn standard_rands(n: u64) -> Vec<f64> {
     let dist = rand_distr::StandardNormal;
     (0..n)
         .into_par_iter()
@@ -151,7 +151,7 @@ pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
 ///
 /// let randoms = rands(0.0, 1.0, 10).unwrap();
 /// ```
-pub fn rands(mean: impl Into<f64>, std_dev: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
+pub fn rands(mean: impl Into<f64>, std_dev: impl Into<f64>, n: u64) -> XResult<Vec<f64>> {
     let mean = mean.into();
     let std_dev = std_dev.into();
     let normal = rand_distr::Normal::new(mean, std_dev)?;
