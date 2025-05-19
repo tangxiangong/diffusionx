@@ -34,8 +34,7 @@ impl CIR {
 }
 
 impl ContinuousProcess for CIR {
-    fn simulate(&self, duration: impl Into<f64>, time_step: f64) -> XResult<Pair> {
-        let duration = duration.into();
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let num_steps = (duration / time_step).ceil() as usize;
 
         let initial_x = self.start_position.max(0.0);
@@ -62,7 +61,7 @@ impl ContinuousProcess for CIR {
 }
 
 fn main() -> XResult<()> {
-    let duration = 10;
+    let duration = 10.0;
     let particles = 10_000;
     let time_step = 0.01;
     let cir = CIR::new(1, 1, 1, 0.5)?;
@@ -76,14 +75,16 @@ fn main() -> XResult<()> {
     let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
     println!("MSD: {msd}");
     // FPT
-    let max_duration = 1000;
-    let fpt = cir.fpt((-1, 1), max_duration, time_step)?.unwrap_or(-1.0);
+    let max_duration = 1000.0;
+    let fpt = cir
+        .fpt((-1.0, 1.0), max_duration, time_step)?
+        .unwrap_or(-1.0);
     println!("FPT: {fpt}");
     // occupation time
-    let occupation_time = cir.occupation_time((-1, 1), duration, time_step)?;
+    let occupation_time = cir.occupation_time((-1.0, 1.0), duration, time_step)?;
     println!("Occupation Time: {occupation_time}");
     // TAMSD
-    let slag = 1;
+    let slag = 1.0;
     let quad_order = 10;
     let tamsd = TAMSD::new(&cir, duration, slag)?;
     let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
