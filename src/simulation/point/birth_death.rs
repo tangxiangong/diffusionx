@@ -58,12 +58,12 @@ impl BirthDeath {
     }
 
     /// Get the rate of birth
-    pub fn lambda(&self) -> f64 {
+    pub fn get_lambda(&self) -> f64 {
         self.lambda
     }
 
     /// Get the rate of death
-    pub fn mu(&self) -> f64 {
+    pub fn get_mu(&self) -> f64 {
         self.mu
     }
 }
@@ -104,13 +104,7 @@ impl PointProcess for BirthDeath {
 ///
 /// let (t, x) = simulate_birth_death_with_step(1.0, 1.0, 100).unwrap();
 /// ```
-pub fn simulate_birth_death_with_step(
-    lambda: impl Into<f64>,
-    mu: impl Into<f64>,
-    num_step: usize,
-) -> XResult<Pair> {
-    let lambda = lambda.into();
-    let mu = mu.into();
+pub fn simulate_birth_death_with_step(lambda: f64, mu: f64, num_step: usize) -> XResult<Pair> {
     let durations = exponential::rands(lambda + mu, num_step)?;
     let t = cumsum(0.0, &durations);
     let directions = uniform::bool_rands(lambda / (lambda + mu), num_step)?
@@ -136,11 +130,7 @@ pub fn simulate_birth_death_with_step(
 ///
 /// let (t, x) = simulate_birth_death_with_duration(1.0, 1.0, 100.0).unwrap();
 /// ```
-pub fn simulate_birth_death_with_duration(
-    lambda: impl Into<f64>,
-    mu: impl Into<f64>,
-    duration: impl Into<f64>,
-) -> XResult<Pair> {
+pub fn simulate_birth_death_with_duration(lambda: f64, mu: f64, duration: f64) -> XResult<Pair> {
     let birth_death = BirthDeath::new(lambda, mu)?;
     birth_death.simulate_with_duration(duration)
 }

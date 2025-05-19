@@ -94,17 +94,17 @@ impl CTRW {
     }
 
     /// Get the stable index of the waiting time distribution
-    pub fn alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 
     /// Get the stable index of the jump length distribution
-    pub fn beta(&self) -> f64 {
+    pub fn get_beta(&self) -> f64 {
         self.beta
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> f64 {
         self.start_position
     }
 }
@@ -186,10 +186,9 @@ pub fn simulate_ctrw_with_step(
 pub fn simulate_ctrw_with_duration(
     alpha: f64,
     beta: f64,
-    duration: impl Into<f64>,
+    duration: f64,
     start_position: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let duration = duration.into();
     let mut num_step = duration.ceil() as usize;
     let (t, x) = loop {
         let (t, x) = simulate_ctrw_with_step(alpha, beta, num_step, start_position)?;
