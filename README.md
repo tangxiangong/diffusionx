@@ -84,7 +84,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Calculate second-order central moment with 1000 particles and time step 0.01
     let msd = traj.central_moment(2, 1000, 0.01)?;
     println!("MSD: {msd}");
-    // Calculate EATAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1, and Gauss-Legendre quadrature order 10
+    // Calculate EATAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1,
+    // and Gauss-Legendre quadrature order 10
     let eatamsd = bm.eatamsd(100.0, 1.0, 10000, 0.1, 10)?;
     println!("EATAMSD: {eatamsd}");
     // Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
@@ -140,14 +141,19 @@ DiffusionX is designed with a trait-based system for high extensibility and perf
 
 1. Adding a New Continuous Process:
    ```rust
-   #[derive(Debug)]
+   #[derive(Debug, Clone)]
    struct MyProcess {
        // Your parameters
        // Should be `Send + Sync` for parallel computation
+       // and `Clone`
    }
 
    impl ContinuousProcess for MyProcess {
-       fn simulate(&self, duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+       fn simulate(
+            &self,
+            duration: f64,
+            time_step: f64
+        ) -> XResult<(Vec<f64>, Vec<f64>)> {
            // Implement your simulation logic
            todo!()
        }
@@ -238,10 +244,10 @@ fn main() -> XResult<()> {
     let (t, x) = cir.simulate(duration, time_step)?;
     write_csv("tmp/CIR.csv", &t, &x)?;
     // mean
-    let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
+    let mean = cir.mean(duration, particles, time_step)?;
     println!("mean: {mean}");
     // msd
-    let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
+    let msd = cir.msd(duration, particles, time_step)?;
     println!("MSD: {msd}");
     // FPT
     let max_duration = 1000.0;
