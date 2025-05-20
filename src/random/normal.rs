@@ -2,6 +2,8 @@
 //! For other stable distributions, see [crate::random::stable].
 //!
 
+use std::ops::{Add, Mul, Neg, Sub};
+
 use crate::{XError, XResult};
 use rand::{prelude::*, rng};
 use rayon::prelude::*;
@@ -82,6 +84,193 @@ impl Normal {
         } else {
             rands(self.mu, self.sigma, n)
         }
+    }
+}
+
+impl Neg for Normal {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            mu: -self.mu,
+            sigma: self.sigma,
+        }
+    }
+}
+
+impl Add for Normal {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let sigma = (self.sigma * self.sigma + rhs.sigma * rhs.sigma).sqrt();
+        Self {
+            mu: self.mu + rhs.mu,
+            sigma,
+        }
+    }
+}
+
+impl Sub for Normal {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self + (-rhs)
+    }
+}
+
+impl<T: Into<f64>> Mul<T> for Normal {
+    type Output = Self;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        let rhs = rhs.into();
+        Self {
+            mu: self.mu * rhs,
+            sigma: self.sigma * rhs.abs(),
+        }
+    }
+}
+
+impl Mul<Normal> for f64 {
+    type Output = Normal;
+
+    fn mul(self, rhs: Normal) -> Self::Output {
+        Self::Output {
+            mu: self * rhs.mu,
+            sigma: self.abs() * rhs.sigma,
+        }
+    }
+}
+
+impl Mul<Normal> for f32 {
+    type Output = Normal;
+
+    fn mul(self, rhs: Normal) -> Self::Output {
+        let scale = self as f64;
+        Self::Output {
+            mu: scale * rhs.mu,
+            sigma: scale.abs() * rhs.sigma,
+        }
+    }
+}
+
+impl Mul<Normal> for i32 {
+    type Output = Normal;
+
+    fn mul(self, rhs: Normal) -> Self::Output {
+        let scale = self as f64;
+        Self::Output {
+            mu: scale * rhs.mu,
+            sigma: scale.abs() * rhs.sigma,
+        }
+    }
+}
+
+impl Mul<Normal> for i64 {
+    type Output = Normal;
+
+    fn mul(self, rhs: Normal) -> Self::Output {
+        let scale = self as f64;
+        Self::Output {
+            mu: scale * rhs.mu,
+            sigma: scale.abs() * rhs.sigma,
+        }
+    }
+}
+
+impl<T: Into<f64>> Add<T> for Normal {
+    type Output = Self;
+
+    fn add(self, rhs: T) -> Self::Output {
+        let rhs = rhs.into();
+        Self {
+            mu: self.mu + rhs,
+            sigma: self.sigma,
+        }
+    }
+}
+
+impl Add<Normal> for f64 {
+    type Output = Normal;
+
+    fn add(self, rhs: Normal) -> Self::Output {
+        Self::Output {
+            mu: self + rhs.mu,
+            sigma: rhs.sigma,
+        }
+    }
+}
+
+impl Add<Normal> for f32 {
+    type Output = Normal;
+
+    fn add(self, rhs: Normal) -> Self::Output {
+        Self::Output {
+            mu: self as f64 + rhs.mu,
+            sigma: rhs.sigma,
+        }
+    }
+}
+
+impl Add<Normal> for i32 {
+    type Output = Normal;
+
+    fn add(self, rhs: Normal) -> Self::Output {
+        Self::Output {
+            mu: self as f64 + rhs.mu,
+            sigma: rhs.sigma,
+        }
+    }
+}
+
+impl Add<Normal> for i64 {
+    type Output = Normal;
+
+    fn add(self, rhs: Normal) -> Self::Output {
+        Self::Output {
+            mu: self as f64 + rhs.mu,
+            sigma: rhs.sigma,
+        }
+    }
+}
+
+impl<T: Into<f64>> Sub<T> for Normal {
+    type Output = Self;
+
+    fn sub(self, rhs: T) -> Self::Output {
+        let rhs = rhs.into();
+        self + (-rhs)
+    }
+}
+
+impl Sub<Normal> for f64 {
+    type Output = Normal;
+
+    fn sub(self, rhs: Normal) -> Self::Output {
+        self + (-rhs)
+    }
+}
+
+impl Sub<Normal> for f32 {
+    type Output = Normal;
+
+    fn sub(self, rhs: Normal) -> Self::Output {
+        self + (-rhs)
+    }
+}
+
+impl Sub<Normal> for i32 {
+    type Output = Normal;
+
+    fn sub(self, rhs: Normal) -> Self::Output {
+        self + (-rhs)
+    }
+}
+
+impl Sub<Normal> for i64 {
+    type Output = Normal;
+
+    fn sub(self, rhs: Normal) -> Self::Output {
+        self + (-rhs)
     }
 }
 
