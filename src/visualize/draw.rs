@@ -18,8 +18,7 @@ pub trait Visualize {
     fn plot(&self, config: &PlotConfig) -> XResult<()>;
 }
 
-/// Implement the `Visualize` trait for `ContinuousTrajectory`.
-impl<'a, CP: ContinuousProcess> Visualize for ContinuousTrajectory<'a, CP> {
+impl<CP: ContinuousProcess> Visualize for ContinuousTrajectory<CP> {
     /// Plot the continuous trajectory.
     ///
     /// # Arguments
@@ -41,8 +40,7 @@ impl<'a, CP: ContinuousProcess> Visualize for ContinuousTrajectory<'a, CP> {
     }
 }
 
-/// Implement the `Visualize` trait for `PointTrajectory`.
-impl<'a, P: PointProcess> Visualize for PointTrajectory<'a, P> {
+impl<P: PointProcess> Visualize for PointTrajectory<P> {
     /// Plot the point trajectory.
     fn plot(&self, config: &PlotConfig) -> XResult<()> {
         ensure_output_dir(&config.output_path)?;
