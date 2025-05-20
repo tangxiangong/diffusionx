@@ -58,7 +58,6 @@ impl AsymmetricCauchy {
     }
 }
 
-/// impl `ContinuousProcess` trait for `AsymmetricCauchy`
 impl ContinuousProcess for AsymmetricCauchy {
     /// Simulate asymmetric Cauchy process
     ///
@@ -163,7 +162,6 @@ impl Cauchy {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Cauchy`
 impl ContinuousProcess for Cauchy {
     /// Simulate Cauchy process
     ///

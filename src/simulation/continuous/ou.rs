@@ -60,7 +60,6 @@ impl OrnsteinUhlenbeck {
     }
 }
 
-/// impl `ContinuousProcess` trait for `OrnsteinUhlenbeck`
 impl ContinuousProcess for OrnsteinUhlenbeck {
     /// Simulate the Ornstein-Uhlenbeck process
     ///

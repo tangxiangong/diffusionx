@@ -78,7 +78,6 @@ impl AsymmetricLevy {
     }
 }
 
-/// impl `ContinuousProcess` trait for `AsymmetricLevy`
 impl ContinuousProcess for AsymmetricLevy {
     /// Simulate the asymmetric Lévy process
     ///
@@ -209,7 +208,6 @@ impl Levy {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Levy`
 impl ContinuousProcess for Levy {
     /// Simulate the Lévy process
     ///

@@ -71,7 +71,6 @@ where
     }
 }
 
-/// impl `ContinuousProcess` trait for `Langevin`
 impl<D, G> ContinuousProcess for Langevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,

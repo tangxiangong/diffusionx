@@ -59,7 +59,6 @@ impl FBM {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Fbm`
 impl ContinuousProcess for FBM {
     /// Simulate Fractional Brownian motion
     ///

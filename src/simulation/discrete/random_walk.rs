@@ -104,7 +104,6 @@ impl LatticeRandomWalk {
     }
 }
 
-/// impl `DiscreteProcess` trait for `LatticeRandomWalk`
 impl DiscreteProcess for LatticeRandomWalk {
     /// Simulate the lattice random walk
     ///
@@ -255,7 +254,6 @@ impl RandomWalk {
     }
 }
 
-/// impl `DiscreteProcess` trait for `RandomWalk`
 impl DiscreteProcess for RandomWalk {
     /// Simulate the random walk
     ///

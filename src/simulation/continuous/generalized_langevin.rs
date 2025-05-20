@@ -98,7 +98,6 @@ where
     }
 }
 
-/// impl `ContinuousProcess` trait for `GeneralizedLangevin`
 impl<D, G> ContinuousProcess for GeneralizedLangevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
@@ -287,7 +286,6 @@ where
     }
 }
 
-/// impl `ContinuousProcess` trait for `SubordinatedLangevin`
 impl<D, G> ContinuousProcess for SubordinatedLangevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,

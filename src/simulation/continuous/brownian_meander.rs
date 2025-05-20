@@ -45,7 +45,6 @@ impl BrownianMeander {
     }
 }
 
-/// impl `ContinuousProcess` trait for `BrownianMeander`
 impl ContinuousProcess for BrownianMeander {
     /// Simulate Brownian meander
     ///

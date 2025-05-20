@@ -59,7 +59,6 @@ impl Bm {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Bm`
 impl ContinuousProcess for Bm {
     /// Simulate Brownian motion
     ///

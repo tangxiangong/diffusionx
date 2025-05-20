@@ -46,7 +46,6 @@ impl BrownianExcursion {
     }
 }
 
-/// impl `ContinuousProcess` trait for `BrownianExcursion`
 impl ContinuousProcess for BrownianExcursion {
     /// Simulate Brownian excursion
     ///

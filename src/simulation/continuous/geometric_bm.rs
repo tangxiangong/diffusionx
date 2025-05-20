@@ -73,7 +73,6 @@ impl GeometricBm {
     }
 }
 
-/// impl `ContinuousProcess` trait for `GeometricBm`
 impl ContinuousProcess for GeometricBm {
     /// Simulate geometric Brownian motion
     ///

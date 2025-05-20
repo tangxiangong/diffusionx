@@ -63,7 +63,6 @@ impl Gamma {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Gamma`
 impl ContinuousProcess for Gamma {
     /// Simulate Gamma process
     ///
