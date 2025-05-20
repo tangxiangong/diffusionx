@@ -68,7 +68,6 @@ impl BirthDeath {
     }
 }
 
-/// impl `PointProcess` trait for `BirthDeath`
 impl PointProcess for BirthDeath {
     /// Simulate the Birth-death process with a given number of steps
     ///
