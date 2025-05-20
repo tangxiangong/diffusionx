@@ -1,9 +1,10 @@
 use crate::{SimulationError, XResult};
+use std::sync::Arc;
 
 use super::{DiscretePair, Moment};
 
 /// Discrete process trait
-pub trait DiscreteProcess: Send + Sync + Sized {
+pub trait DiscreteProcess: Send + Sync {
     /// Simulate the discrete process
     ///
     /// # Arguments
@@ -17,7 +18,10 @@ pub trait DiscreteProcess: Send + Sync + Sized {
     ///
     /// * `num_step` - The number of steps of the simulation.
     /// * `particles` - The number of particles.
-    fn mean(&self, num_step: usize, particles: usize) -> XResult<f64> {
+    fn mean(&self, num_step: usize, particles: usize) -> XResult<f64>
+    where
+        Self: Sized + Clone + DiscreteTrajectoryTrait,
+    {
         let traj = self.step(num_step)?;
         traj.raw_moment(1, particles, 0.1)
     }
@@ -28,7 +32,10 @@ pub trait DiscreteProcess: Send + Sync + Sized {
     ///
     /// * `num_step` - The number of steps of the simulation.
     /// * `particles` - The number of particles.
-    fn msd(&self, num_step: usize, particles: usize) -> XResult<f64> {
+    fn msd(&self, num_step: usize, particles: usize) -> XResult<f64>
+    where
+        Self: Sized + Clone + DiscreteTrajectoryTrait,
+    {
         let traj = self.step(num_step)?;
         traj.central_moment(2, particles, 0.1)
     }
@@ -40,7 +47,10 @@ pub trait DiscreteProcess: Send + Sync + Sized {
     /// * `num_step` - The number of steps.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn raw_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
+    fn raw_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64>
+    where
+        Self: Sized + Clone + DiscreteTrajectoryTrait,
+    {
         let traj = self.step(num_step)?;
         traj.raw_moment(order, particles, 0.1)
     }
@@ -52,50 +62,59 @@ pub trait DiscreteProcess: Send + Sync + Sized {
     /// * `num_step` - The number of steps.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn central_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64> {
+    fn central_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64>
+    where
+        Self: Sized + Clone + DiscreteTrajectoryTrait,
+    {
         let traj = self.step(num_step)?;
         traj.central_moment(order, particles, 0.1)
     }
 }
 
-pub trait DiscreteTrajectoryTrait: DiscreteProcess {
+pub trait DiscreteTrajectoryTrait: DiscreteProcess
+where
+    Self: Sized + Clone,
+{
     /// Create a `DiscreteTrajectory` with given number of steps
     ///
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the trajectory
     fn step(&self, num_step: usize) -> XResult<DiscreteTrajectory<Self>> {
-        let traj = DiscreteTrajectory::new(self, num_step)?;
+        let traj = DiscreteTrajectory::new(self.clone(), num_step)?;
         Ok(traj)
     }
 }
 
-impl<SP: DiscreteProcess> DiscreteTrajectoryTrait for SP {}
+impl<SP: DiscreteProcess + Sized + Clone> DiscreteTrajectoryTrait for SP {}
 
 /// Discrete trajectory
 #[derive(Debug, Clone)]
-pub struct DiscreteTrajectory<'a, SP: DiscreteProcess> {
+pub struct DiscreteTrajectory<SP: DiscreteProcess> {
     /// The discrete process
-    pub(crate) sp: &'a SP,
+    pub(crate) sp: Arc<SP>,
     /// The number of steps
     pub(crate) num_step: usize,
 }
 
-impl<'a, SP: DiscreteProcess> DiscreteTrajectory<'a, SP> {
+impl<SP: DiscreteProcess> DiscreteTrajectory<SP> {
     /// Create a new `DiscreteTrajetory` with given `DiscreteProcess` and num of steps.
-    pub fn new(sp: &'a SP, num_step: usize) -> XResult<Self> {
+    pub fn new(sp: SP, num_step: usize) -> XResult<Self> {
         if num_step == 0 {
             return Err(SimulationError::InvalidParameters(
                 "num_step must be positive".to_string(),
             )
             .into());
         }
-        Ok(Self { sp, num_step })
+        Ok(Self {
+            sp: Arc::new(sp),
+            num_step,
+        })
     }
 
     /// Get the discrete process
-    pub fn get_process(&self) -> &'a SP {
-        self.sp
+    pub fn get_process(&self) -> &SP {
+        &self.sp
     }
 
     /// Get the number of steps of the trajectory
