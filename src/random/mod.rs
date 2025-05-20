@@ -11,7 +11,6 @@
 //! - Stable distribution
 //! - Uniform distribution
 //! - Gamma distribution
-//!
 
 pub mod exponential;
 pub mod gamma;

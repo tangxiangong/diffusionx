@@ -1,5 +1,4 @@
 //! Generalized Langevin equation and subordinated Langevin equation simulation
-//!
 
 use crate::{
     SimulationError, XResult,
@@ -52,7 +51,8 @@ where
     /// let diffusion_func = |_x: f64, _t: f64| 1.0;
     /// let start_position = 0.0;
     /// let alpha = 1.7;
-    /// let langevin = GeneralizedLangevin::new(drift_func, diffusion_func, start_position, alpha).unwrap();
+    /// let langevin =
+    ///     GeneralizedLangevin::new(drift_func, diffusion_func, start_position, alpha).unwrap();
     /// ```
     pub fn new(
         drift_func: D,
@@ -115,8 +115,7 @@ where
     /// ```rust
     /// use diffusionx::simulation::{continuous::GeneralizedLangevin, prelude::*};
     ///
-    /// let langevin = GeneralizedLangevin::new(|x, _t| x, |_x, _t| 1.0, 0.0, 1.7)
-    ///     .unwrap();
+    /// let langevin = GeneralizedLangevin::new(|x, _t| x, |_x, _t| 1.0, 0.0, 1.7).unwrap();
     /// let duration = 1.0;
     /// let time_step = 0.01;
     /// let (t, x) = langevin.simulate(duration, time_step).unwrap();
@@ -155,7 +154,15 @@ where
 /// let alpha = 1.7;
 /// let duration = 1.0;
 /// let time_step = 0.01;
-/// let (t, x) = simulate_generalized_langevin(&drift, &diffusion, start_position, alpha, duration, time_step).unwrap();
+/// let (t, x) = simulate_generalized_langevin(
+///     &drift,
+///     &diffusion,
+///     start_position,
+///     alpha,
+///     duration,
+///     time_step,
+/// )
+/// .unwrap();
 /// ```
 pub fn simulate_generalized_langevin<D, G>(
     drift: &D,
@@ -345,7 +352,15 @@ where
 /// let alpha = 0.5;
 /// let duration = 1.0;
 /// let time_step = 0.01;
-/// let (t, x) = simulate_subordinated_langevin(&drift, &diffusion, start_position, alpha, duration, time_step).unwrap();
+/// let (t, x) = simulate_subordinated_langevin(
+///     &drift,
+///     &diffusion,
+///     start_position,
+///     alpha,
+///     duration,
+///     time_step,
+/// )
+/// .unwrap();
 /// ```
 pub fn simulate_subordinated_langevin<D, G>(
     drift: &D,

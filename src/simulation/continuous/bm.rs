@@ -1,5 +1,4 @@
 //! Brownian motion simulation
-//!
 
 use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;

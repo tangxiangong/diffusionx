@@ -1,6 +1,5 @@
 //! Normal random number generation
 //! For other stable distributions, see [crate::random::stable].
-//!
 
 use std::ops::{Add, Mul, Neg, Sub};
 

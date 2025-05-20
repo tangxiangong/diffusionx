@@ -1,5 +1,4 @@
 //! Birth-death process simulation
-//!
 
 use crate::{
     SimulationError, XResult,

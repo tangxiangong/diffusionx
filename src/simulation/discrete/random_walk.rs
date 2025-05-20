@@ -1,5 +1,4 @@
 //! Random walk simulation
-//!
 
 use crate::{
     SimulationError, XResult,

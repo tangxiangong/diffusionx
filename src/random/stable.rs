@@ -34,7 +34,6 @@
 //! [Borak, Szymon; Härdle, Wolfgang Karl; Weron, Rafał (2005) : Stable distributions,
 //! SFB 649 Discussion Paper, No. 2005-008, Humboldt University of Berlin, Collaborative Research
 //! Center 649 - Economic Risk, Berlin](https://hdl.handle.net/10419/25027)
-//!
 
 use crate::{StableError, XResult};
 use rand::{Rng, prelude::*, rng};

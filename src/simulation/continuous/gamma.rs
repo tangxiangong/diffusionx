@@ -1,5 +1,4 @@
 //! Gamma process simulation
-//!
 
 use crate::{SimulationError, XResult, random::gamma, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;

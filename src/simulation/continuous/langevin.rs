@@ -1,5 +1,4 @@
 //! Langevin equation simulation
-//!
 
 use crate::{XResult, random::normal, simulation::prelude::*};
 use rayon::prelude::*;

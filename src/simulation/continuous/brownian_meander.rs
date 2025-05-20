@@ -1,5 +1,4 @@
 //! Brownian meander simulation
-//!
 
 use crate::{SimulationError, XResult, simulation::prelude::*, utils::float_eq};
 use rayon::prelude::*;

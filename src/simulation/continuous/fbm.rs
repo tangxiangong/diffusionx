@@ -1,5 +1,4 @@
 //! Fractional Brownian motion simulation
-//!
 
 use crate::{
     SimulationError, XResult,

@@ -1,7 +1,6 @@
 //! Cauchy process
 //!
 //! The Cauchy process is a Lévy process with alpha = 1.
-//!
 
 use crate::{SimulationError, XResult, simulation::prelude::*};
 

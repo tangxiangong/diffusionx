@@ -1,5 +1,4 @@
 //! Ornstein-Uhlenbeck process simulation
-//!
 
 use crate::{XResult, random::normal, simulation::prelude::*};
 use rayon::prelude::*;

@@ -1,5 +1,4 @@
 //! Geometric Brownian motion simulation
-//!
 
 use crate::{SimulationError, XResult, simulation::prelude::*};
 use rayon::prelude::*;

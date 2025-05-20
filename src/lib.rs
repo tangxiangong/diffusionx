@@ -3,7 +3,6 @@
 //! ## 简体中文
 //!
 //! 中文版本可见[这里](https://github.com/tangxiangong/diffusionx/blob/stable/README-zh.md).
-//!
 
 mod error;
 pub use error::*;

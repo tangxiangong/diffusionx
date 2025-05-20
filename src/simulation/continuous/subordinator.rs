@@ -1,5 +1,4 @@
 //! Subordinator simulation
-//!
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;

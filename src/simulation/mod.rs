@@ -2,7 +2,6 @@
 //!
 //! This module provides implementations of various stochastic processes and numerical methods
 //! for simulating their sample paths. The implementations are optimized for performance and accuracy.
-//!
 
 pub mod prelude;
 

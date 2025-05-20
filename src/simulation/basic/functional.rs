@@ -2,7 +2,6 @@
 //!
 //! - First passage time [FirstPassageTime]
 //! - Occupation time [OccupationTime]
-//!
 
 use crate::{
     SimulationError, XResult,
@@ -30,8 +29,8 @@ impl<'a, SP: Send + Sync> FirstPassageTime<'a, SP> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::functional::FirstPassageTime;
     /// use diffusionx::simulation::continuous::Bm;
+    /// use diffusionx::simulation::functional::FirstPassageTime;
     ///
     /// let sp = Bm::default();
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
@@ -60,8 +59,8 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::functional::FirstPassageTime;
     /// use diffusionx::simulation::continuous::Bm;
+    /// use diffusionx::simulation::functional::FirstPassageTime;
     ///
     /// let sp = Bm::default();
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
@@ -108,8 +107,8 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::functional::FirstPassageTime;
     /// use diffusionx::simulation::continuous::Bm;
+    /// use diffusionx::simulation::functional::FirstPassageTime;
     ///
     /// let sp = Bm::default();
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
@@ -178,8 +177,8 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::functional::FirstPassageTime;
     /// use diffusionx::simulation::continuous::Bm;
+    /// use diffusionx::simulation::functional::FirstPassageTime;
     ///
     /// let sp = Bm::default();
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
@@ -249,8 +248,8 @@ impl<'a, SP: Send + Sync> OccupationTime<'a, SP> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::functional::OccupationTime;
     /// use diffusionx::simulation::continuous::Bm;
+    /// use diffusionx::simulation::functional::OccupationTime;
     ///
     /// let sp = Bm::default();
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
@@ -294,8 +293,8 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::functional::OccupationTime;
     /// use diffusionx::simulation::continuous::Bm;
+    /// use diffusionx::simulation::functional::OccupationTime;
     ///
     /// let sp = Bm::default();
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
@@ -332,8 +331,8 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::functional::OccupationTime;
     /// use diffusionx::simulation::continuous::Bm;
+    /// use diffusionx::simulation::functional::OccupationTime;
     ///
     /// let sp = Bm::default();
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
@@ -381,8 +380,8 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::functional::OccupationTime;
     /// use diffusionx::simulation::continuous::Bm;
+    /// use diffusionx::simulation::functional::OccupationTime;
     ///
     /// let sp = Bm::default();
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();

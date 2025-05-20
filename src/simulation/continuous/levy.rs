@@ -1,7 +1,6 @@
 //! Lévy process
 //!
 //! The Lévy process is a process with independent and stationary increments.
-//!
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;

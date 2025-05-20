@@ -1,5 +1,4 @@
 //! Gamma distribution random number generation
-//!
 
 use crate::{XError, XResult};
 use rand::{prelude::*, rng};

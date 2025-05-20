@@ -15,7 +15,6 @@
 //! - Gamma process [Gamma]
 //! - Geometric Brownian motion [GeometricBm]
 //! - Lévy walk [LevyWalk]
-//!
 
 pub mod bm;
 pub use bm::*;
