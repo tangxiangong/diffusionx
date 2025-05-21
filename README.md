@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate a normal random number with mean 0.0 and std 1.0
     let normal_sample = normal::rand(0.0, 1.0)?;
     // Generate 1000 standard normal random numbers
-    let std_normal_samples = normal::standard_rands(1000);
+    let std_normal_samples = normal::standard_rands::<f64>(1000);
 
     // Generate a uniform random number in range [0, 10)
     let uniform_sample = uniform::range_rand(0..10)?;

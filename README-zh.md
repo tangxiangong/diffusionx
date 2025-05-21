@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 生成一个均值为 0.0，标准差为 1.0 的正态随机数
     let normal_sample = normal::rand(0.0, 1.0)?;
     // 生成 1000 个标准正态随机数
-    let std_normal_samples = normal::standard_rands(1000);
+    let std_normal_samples = normal::standard_rands::<f64>(1000);
 
     // 生成一个 [0, 10) 范围内的均匀随机数
     let uniform_sample = uniform::range_rand(0..10)?;
