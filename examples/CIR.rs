@@ -38,7 +38,7 @@ impl ContinuousProcess for CIR {
         let num_steps = (duration / time_step).ceil() as usize;
 
         let initial_x = self.start_position.max(0.0);
-        let noises = normal::standard_rands(num_steps);
+        let noises = normal::standard_rands::<f64>(num_steps);
 
         let t: Vec<f64> = (0..=num_steps).map(|i| i as f64 * time_step).collect();
 
