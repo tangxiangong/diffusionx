@@ -1,18 +1,20 @@
 //! Normal random number generation
 //! For other stable distributions, see [crate::random::stable].
 
+use crate::{XError, XResult};
+use num_traits::float::Float;
+use rand::{prelude::*, rng};
+use rand_distr::StandardNormal;
+use rayon::prelude::*;
 use std::ops::{Add, Mul, Neg, Sub};
 
-use crate::{XError, XResult};
-use rand::{prelude::*, rng};
-use rayon::prelude::*;
-
 /// Normal distribution
-pub struct Normal {
+#[derive(Debug, Clone)]
+pub struct Normal<T: Float + Send + Sync = f64> {
     /// mean
-    mu: f64,
+    mu: T,
     /// standard deviation
-    sigma: f64,
+    sigma: T,
 }
 
 impl Default for Normal {
@@ -24,7 +26,7 @@ impl Default for Normal {
     }
 }
 
-impl Normal {
+impl<T: Float + Send + Sync> Normal<T> {
     /// Create a new normal distribution with a given mean and standard deviation
     ///
     /// # Arguments
@@ -41,10 +43,11 @@ impl Normal {
     /// let sigma = 2.0;
     /// let normal = Normal::new(mu, sigma).unwrap();
     /// ```
-    pub fn new(mu: impl Into<f64>, sigma: impl Into<f64>) -> XResult<Self> {
-        let mu = mu.into();
-        let sigma = sigma.into();
-        if sigma <= 0.0 {
+    pub fn new(mu: T, sigma: T) -> XResult<Self>
+    where
+        T: std::fmt::Display,
+    {
+        if sigma <= T::zero() {
             return Err(XError::InvalidParameters(format!(
                 "The standard deviation `sigma` must be greater than 0, got {}",
                 sigma
@@ -54,12 +57,12 @@ impl Normal {
     }
 
     /// Get the mean
-    pub fn get_mu(&self) -> f64 {
+    pub fn get_mu(&self) -> T {
         self.mu
     }
 
     /// Get the standard deviation
-    pub fn get_sigma(&self) -> f64 {
+    pub fn get_sigma(&self) -> T {
         self.sigma
     }
 
@@ -77,8 +80,11 @@ impl Normal {
     /// let normal = Normal::default();
     /// let randoms = normal.samples(10).unwrap();
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
-        if self.sigma == 1.0 && self.mu == 0.0 {
+    pub fn samples(&self, n: usize) -> XResult<Vec<T>>
+    where
+        StandardNormal: Distribution<T>,
+    {
+        if self.sigma == T::one() && self.mu == T::zero() {
             Ok(standard_rands(n))
         } else {
             rands(self.mu, self.sigma, n)
@@ -86,7 +92,7 @@ impl Normal {
     }
 }
 
-impl Neg for Normal {
+impl<T: Float + Send + Sync> Neg for Normal<T> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
@@ -97,7 +103,7 @@ impl Neg for Normal {
     }
 }
 
-impl Add for Normal {
+impl<T: Float + Send + Sync> Add for Normal<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -109,7 +115,7 @@ impl Add for Normal {
     }
 }
 
-impl Sub for Normal {
+impl<T: Float + Send + Sync> Sub for Normal<T> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -117,11 +123,10 @@ impl Sub for Normal {
     }
 }
 
-impl<T: Into<f64>> Mul<T> for Normal {
+impl<T: Float + Send + Sync> Mul<T> for Normal<T> {
     type Output = Self;
 
     fn mul(self, rhs: T) -> Self::Output {
-        let rhs = rhs.into();
         Self {
             mu: self.mu * rhs,
             sigma: self.sigma * rhs.abs(),
@@ -140,47 +145,10 @@ impl Mul<Normal> for f64 {
     }
 }
 
-impl Mul<Normal> for f32 {
-    type Output = Normal;
-
-    fn mul(self, rhs: Normal) -> Self::Output {
-        let scale = self as f64;
-        Self::Output {
-            mu: scale * rhs.mu,
-            sigma: scale.abs() * rhs.sigma,
-        }
-    }
-}
-
-impl Mul<Normal> for i32 {
-    type Output = Normal;
-
-    fn mul(self, rhs: Normal) -> Self::Output {
-        let scale = self as f64;
-        Self::Output {
-            mu: scale * rhs.mu,
-            sigma: scale.abs() * rhs.sigma,
-        }
-    }
-}
-
-impl Mul<Normal> for i64 {
-    type Output = Normal;
-
-    fn mul(self, rhs: Normal) -> Self::Output {
-        let scale = self as f64;
-        Self::Output {
-            mu: scale * rhs.mu,
-            sigma: scale.abs() * rhs.sigma,
-        }
-    }
-}
-
-impl<T: Into<f64>> Add<T> for Normal {
+impl<T: Send + Sync + Float> Add<T> for Normal<T> {
     type Output = Self;
 
     fn add(self, rhs: T) -> Self::Output {
-        let rhs = rhs.into();
         Self {
             mu: self.mu + rhs,
             sigma: self.sigma,
@@ -199,73 +167,15 @@ impl Add<Normal> for f64 {
     }
 }
 
-impl Add<Normal> for f32 {
-    type Output = Normal;
-
-    fn add(self, rhs: Normal) -> Self::Output {
-        Self::Output {
-            mu: self as f64 + rhs.mu,
-            sigma: rhs.sigma,
-        }
-    }
-}
-
-impl Add<Normal> for i32 {
-    type Output = Normal;
-
-    fn add(self, rhs: Normal) -> Self::Output {
-        Self::Output {
-            mu: self as f64 + rhs.mu,
-            sigma: rhs.sigma,
-        }
-    }
-}
-
-impl Add<Normal> for i64 {
-    type Output = Normal;
-
-    fn add(self, rhs: Normal) -> Self::Output {
-        Self::Output {
-            mu: self as f64 + rhs.mu,
-            sigma: rhs.sigma,
-        }
-    }
-}
-
-impl<T: Into<f64>> Sub<T> for Normal {
+impl<T: Send + Sync + Float> Sub<T> for Normal<T> {
     type Output = Self;
 
     fn sub(self, rhs: T) -> Self::Output {
-        let rhs = rhs.into();
         self + (-rhs)
     }
 }
 
 impl Sub<Normal> for f64 {
-    type Output = Normal;
-
-    fn sub(self, rhs: Normal) -> Self::Output {
-        self + (-rhs)
-    }
-}
-
-impl Sub<Normal> for f32 {
-    type Output = Normal;
-
-    fn sub(self, rhs: Normal) -> Self::Output {
-        self + (-rhs)
-    }
-}
-
-impl Sub<Normal> for i32 {
-    type Output = Normal;
-
-    fn sub(self, rhs: Normal) -> Self::Output {
-        self + (-rhs)
-    }
-}
-
-impl Sub<Normal> for i64 {
     type Output = Normal;
 
     fn sub(self, rhs: Normal) -> Self::Output {
@@ -280,9 +190,12 @@ impl Sub<Normal> for i64 {
 /// ```rust
 /// use diffusionx::random::normal::standard_rand;
 ///
-/// let random = standard_rand();
+/// let random = standard_rand::<f64>();
 /// ```
-pub fn standard_rand() -> f64 {
+pub fn standard_rand<T: Float + Send + Sync>() -> T
+where
+    StandardNormal: Distribution<T>,
+{
     rng().sample(rand_distr::StandardNormal)
 }
 
@@ -293,9 +206,12 @@ pub fn standard_rand() -> f64 {
 /// ```rust
 /// use diffusionx::random::normal::standard_rands;
 ///
-/// let randoms = standard_rands(10);
+/// let randoms = standard_rands::<f64>(10);
 /// ```
-pub fn standard_rands(n: usize) -> Vec<f64> {
+pub fn standard_rands<T: Float + Send + Sync>(n: usize) -> Vec<T>
+where
+    StandardNormal: Distribution<T>,
+{
     let dist = rand_distr::StandardNormal;
     (0..n)
         .into_par_iter()
@@ -317,9 +233,10 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 ///
 /// let random = rand(0.0, 1.0).unwrap();
 /// ```
-pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
-    let mean = mean.into();
-    let std_dev = std_dev.into();
+pub fn rand<T: Float + Send + Sync>(mean: T, std_dev: T) -> XResult<T>
+where
+    StandardNormal: Distribution<T>,
+{
     let normal = rand_distr::Normal::new(mean, std_dev)?;
     Ok(rng().sample(normal))
 }
@@ -339,15 +256,10 @@ pub fn rand(mean: impl Into<f64>, std_dev: impl Into<f64>) -> XResult<f64> {
 ///
 /// let randoms = rands(0.0, 1.0, 10).unwrap();
 /// ```
-pub fn rands(mean: impl Into<f64>, std_dev: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
-    let mean = mean.into();
-    let std_dev = std_dev.into();
-    if std_dev <= 0.0 {
-        return Err(XError::InvalidParameters(format!(
-            "The standard deviation `std_dev` must be greater than 0, got {}",
-            std_dev
-        )));
-    }
+pub fn rands<T: Float + Send + Sync>(mean: T, std_dev: T, n: usize) -> XResult<Vec<T>>
+where
+    StandardNormal: Distribution<T>,
+{
     let normal = rand_distr::Normal::new(mean, std_dev)?;
     Ok((0..n)
         .into_par_iter()
@@ -362,13 +274,13 @@ mod tests {
 
     #[test]
     fn test_standard_rand() {
-        let random = standard_rand();
+        let random = standard_rand::<f64>();
         assert!(random.is_finite());
     }
 
     #[test]
     fn test_standard_rands() {
-        let randoms = standard_rands(10);
+        let randoms = standard_rands::<f64>(10);
         assert_eq!(randoms.len(), 10);
         assert!(randoms.iter().all(|r| r.is_finite()));
     }
