@@ -47,7 +47,7 @@ use std::{
 /// Standard Lévy stable distribution
 ///
 /// i.e., with scale parameter 1 and location parameter 0
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct StandardStable {
     /// Index of stability
     alpha: f64,
