@@ -64,6 +64,39 @@ impl From<Color> for RGBColor {
     }
 }
 
+/// Legend Position
+#[derive(Debug, Clone, PartialEq, Eq, Default, Copy)]
+pub enum LegendPosition {
+    UpperLeft,
+    MiddleLeft,
+    LowerLeft,
+    UpperMiddle,
+    MiddleMiddle,
+    LowerMiddle,
+    #[default]
+    UpperRight,
+    MiddleRight,
+    LowerRight,
+    Coordinate(i32, i32),
+}
+
+impl From<LegendPosition> for SeriesLabelPosition {
+    fn from(position: LegendPosition) -> Self {
+        match position {
+            LegendPosition::UpperLeft => SeriesLabelPosition::UpperLeft,
+            LegendPosition::MiddleLeft => SeriesLabelPosition::MiddleLeft,
+            LegendPosition::LowerLeft => SeriesLabelPosition::LowerLeft,
+            LegendPosition::UpperMiddle => SeriesLabelPosition::UpperMiddle,
+            LegendPosition::MiddleMiddle => SeriesLabelPosition::MiddleMiddle,
+            LegendPosition::LowerMiddle => SeriesLabelPosition::LowerMiddle,
+            LegendPosition::UpperRight => SeriesLabelPosition::UpperRight,
+            LegendPosition::MiddleRight => SeriesLabelPosition::MiddleRight,
+            LegendPosition::LowerRight => SeriesLabelPosition::LowerRight,
+            LegendPosition::Coordinate(x, y) => SeriesLabelPosition::Coordinate(x, y),
+        }
+    }
+}
+
 #[allow(dead_code)]
 /// Configuration for plotting
 #[derive(Builder, Clone)]
@@ -194,6 +227,10 @@ pub struct PlotConfig {
     /// Whether to show stairs
     #[builder(default = "true")]
     pub(crate) stairs: bool,
+
+    /// Legend position
+    #[builder(default)]
+    pub(crate) legend_position: LegendPosition,
 }
 
 impl PlotConfig {
@@ -359,6 +396,7 @@ pub(crate) fn set_config<Backend: DrawingBackend>(
 
     chart
         .configure_series_labels()
+        .position(config.legend_position.into())
         .background_style(background_color)
         .border_style(BLACK)
         .draw()?;
