@@ -124,7 +124,7 @@ pub fn simulate_ou(
         .collect::<Vec<_>>();
     let mut x = vec![0.0; num + 1];
     x[0] = start_position;
-    let noise = normal::standard_rands(num);
+    let noise = normal::standard_rands::<f64>(num);
 
     for i in 1..=num {
         // OU特定的更新方程

@@ -142,7 +142,7 @@ where
         .collect::<Vec<_>>();
 
     let initial_x = start_position;
-    let noise = normal::standard_rands(num);
+    let noise = normal::standard_rands::<f64>(num);
 
     // 使用迭代器风格生成路径
     let x = std::iter::once(initial_x)
