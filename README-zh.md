@@ -289,7 +289,8 @@ EATAMSD: 0.6085042089895467
 ![CIR](./assets/CIR.svg)
 
 ## 基准测试
-相关内容请见 [py-diffusionx](https://github.com/tangxiangong/py-diffusionx) 的 **基准测试** 部分。
+
+性能基准测试比较 Rust、C++、Julia 和 Python 实现的代码，请见 [diffusionx-benches](https://github.com/tangxiangong/diffusionx-benches)。
 
 ## 许可证
 

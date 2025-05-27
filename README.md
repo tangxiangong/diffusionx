@@ -289,7 +289,7 @@ EATAMSD: 0.6085042089895467
 ![CIR](./assets/CIR.svg)
 
 ## Benchmark
-The related content can be found in the **Benchmark** section of [py-diffusionx](https://github.com/tangxiangong/py-diffusionx).
+Performance benchmarks comparing Rust, C++, Julia, and Python implementations are available [here](https://github.com/tangxiangong/diffusionx-benches).
 
 ## License
 
