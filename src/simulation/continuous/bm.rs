@@ -16,7 +16,7 @@ impl Default for Bm {
     fn default() -> Self {
         Self {
             start_position: 0.0,
-            diffusion_coefficient: 1.0,
+            diffusion_coefficient: 0.5,
         }
     }
 }
