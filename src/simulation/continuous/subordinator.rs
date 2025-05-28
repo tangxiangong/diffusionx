@@ -1,5 +1,4 @@
 //! Subordinator simulation
-//!
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
@@ -46,7 +45,6 @@ impl Subordinator {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Subordinator`
 impl ContinuousProcess for Subordinator {
     /// Simulate subordinator
     ///
@@ -153,7 +151,6 @@ impl InvSubordinator {
     }
 }
 
-/// impl `ContinuousProcess` trait for `InvSubordinator`
 impl ContinuousProcess for InvSubordinator {
     /// Simulate inverse subordinator
     ///

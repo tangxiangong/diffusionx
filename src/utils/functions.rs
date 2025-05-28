@@ -12,7 +12,6 @@
 //! - `calculate_stats`: Calculate the mean and variance of an array.
 //! - `calculate_int_stats`: Calculate the mean and variance of an integer array.
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
-//!
 use crate::{XError, XResult};
 use num_traits::Num;
 use rayon::prelude::*;

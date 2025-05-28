@@ -1,5 +1,4 @@
 //! Brownian bridge simulation
-//!
 
 use crate::{SimulationError, XResult, simulation::prelude::*};
 use rayon::prelude::*;
@@ -10,7 +9,6 @@ use super::Bm;
 #[derive(Debug, Clone)]
 pub struct BrownianBridge;
 
-/// impl `ContinuousProcess` trait for `BrownianBridge`
 impl ContinuousProcess for BrownianBridge {
     /// Simulate Brownian bridge
     ///

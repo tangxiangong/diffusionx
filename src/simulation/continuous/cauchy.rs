@@ -1,7 +1,6 @@
 //! Cauchy process
 //!
 //! The Cauchy process is a Lévy process with alpha = 1.
-//!
 
 use crate::{SimulationError, XResult, simulation::prelude::*};
 
@@ -58,7 +57,6 @@ impl AsymmetricCauchy {
     }
 }
 
-/// impl `ContinuousProcess` trait for `AsymmetricCauchy`
 impl ContinuousProcess for AsymmetricCauchy {
     /// Simulate asymmetric Cauchy process
     ///
@@ -163,7 +161,6 @@ impl Cauchy {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Cauchy`
 impl ContinuousProcess for Cauchy {
     /// Simulate Cauchy process
     ///

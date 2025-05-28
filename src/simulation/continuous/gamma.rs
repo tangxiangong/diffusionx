@@ -1,5 +1,4 @@
 //! Gamma process simulation
-//!
 
 use crate::{SimulationError, XResult, random::gamma, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
@@ -63,7 +62,6 @@ impl Gamma {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Gamma`
 impl ContinuousProcess for Gamma {
     /// Simulate Gamma process
     ///

@@ -75,7 +75,10 @@ impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
 /// The inverse process trait
 pub trait Inverse: ContinuousProcess {
     /// Create a new `InverseProcess`
-    fn inverse(&self) -> InverseProcess<'_, Self> {
+    fn inverse(&self) -> InverseProcess<'_, Self>
+    where
+        Self: Sized,
+    {
         InverseProcess::new(self)
     }
 }

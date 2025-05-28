@@ -1,5 +1,4 @@
 //! Brownian excursion simulation
-//!
 
 use crate::{SimulationError, XResult, simulation::prelude::*, utils::minmax};
 use rayon::prelude::*;
@@ -46,7 +45,6 @@ impl BrownianExcursion {
     }
 }
 
-/// impl `ContinuousProcess` trait for `BrownianExcursion`
 impl ContinuousProcess for BrownianExcursion {
     /// Simulate Brownian excursion
     ///

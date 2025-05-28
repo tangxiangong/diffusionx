@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Generate a normal random number with mean 0.0 and std 1.0
     let normal_sample = normal::rand(0.0, 1.0)?;
     // Generate 1000 standard normal random numbers
-    let std_normal_samples = normal::standard_rands(1000);
+    let std_normal_samples = normal::standard_rands::<f64>(1000);
 
     // Generate a uniform random number in range [0, 10)
     let uniform_sample = uniform::range_rand(0..10)?;
@@ -84,7 +84,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Calculate second-order central moment with 1000 particles and time step 0.01
     let msd = traj.central_moment(2, 1000, 0.01)?;
     println!("MSD: {msd}");
-    // Calculate EATAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1, and Gauss-Legendre quadrature order 10
+    // Calculate EATAMSD with duration 100.0, delta 1.0, 10000 particles, time step 0.1,
+    // and Gauss-Legendre quadrature order 10
     let eatamsd = bm.eatamsd(100.0, 1.0, 10000, 0.1, 10)?;
     println!("EATAMSD: {eatamsd}");
     // Calculate first passage time of Brownian motion with boundaries at -1.0 and 1.0
@@ -140,14 +141,19 @@ DiffusionX is designed with a trait-based system for high extensibility and perf
 
 1. Adding a New Continuous Process:
    ```rust
-   #[derive(Debug)]
+   #[derive(Debug, Clone)]
    struct MyProcess {
        // Your parameters
        // Should be `Send + Sync` for parallel computation
+       // and `Clone`
    }
 
    impl ContinuousProcess for MyProcess {
-       fn simulate(&self, duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+       fn simulate(
+            &self,
+            duration: f64,
+            time_step: f64
+        ) -> XResult<(Vec<f64>, Vec<f64>)> {
            // Implement your simulation logic
            todo!()
        }
@@ -238,10 +244,10 @@ fn main() -> XResult<()> {
     let (t, x) = cir.simulate(duration, time_step)?;
     write_csv("tmp/CIR.csv", &t, &x)?;
     // mean
-    let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
+    let mean = cir.mean(duration, particles, time_step)?;
     println!("mean: {mean}");
     // msd
-    let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
+    let msd = cir.msd(duration, particles, time_step)?;
     println!("MSD: {msd}");
     // FPT
     let max_duration = 1000.0;
@@ -283,13 +289,19 @@ EATAMSD: 0.6085042089895467
 ![CIR](./assets/CIR.svg)
 
 ## Benchmark
-The related content can be found in the **Benchmark** section of [py-diffusionx](https://github.com/tangxiangong/py-diffusionx).
+Performance benchmarks comparing Rust, C++, Julia, and Python implementations are available [here](https://github.com/tangxiangong/diffusionx-benches).
 
 ## License
 
-This project is dual-licensed under:
+Licensed under either of:
 
-* [MIT License](https://opensource.org/licenses/MIT)
-* [Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+ * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or https://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or https://opensource.org/licenses/MIT)
 
-You can choose to use either license.
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.

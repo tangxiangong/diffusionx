@@ -1,16 +1,18 @@
 //! Gamma distribution random number generation
-//!
 
 use crate::{XError, XResult};
+use num_traits::float::Float;
 use rand::{prelude::*, rng};
+use rand_distr::{Exp1, Open01, StandardNormal};
 use rayon::prelude::*;
 
 /// Gamma distribution
-pub struct Gamma {
+#[derive(Debug, Clone)]
+pub struct Gamma<T: Float + Send + Sync = f64> {
     /// shape parameter
-    shape: f64,
+    shape: T,
     /// scale parameter
-    scale: f64,
+    scale: T,
 }
 
 impl Default for Gamma {
@@ -22,7 +24,7 @@ impl Default for Gamma {
     }
 }
 
-impl Gamma {
+impl<T: Float + Send + Sync> Gamma<T> {
     /// Create a new gamma distribution with a given shape and scale
     ///
     /// # Arguments
@@ -39,16 +41,17 @@ impl Gamma {
     /// let scale = 2.0;
     /// let gamma = Gamma::new(shape, scale).unwrap();
     /// ```
-    pub fn new(shape: impl Into<f64>, scale: impl Into<f64>) -> XResult<Self> {
-        let shape = shape.into();
-        let scale = scale.into();
-        if shape <= 0.0 {
+    pub fn new(shape: T, scale: T) -> XResult<Self>
+    where
+        T: std::fmt::Display,
+    {
+        if shape <= T::zero() {
             return Err(XError::InvalidParameters(format!(
                 "The shape parameter `shape` must be greater than 0, got {}",
                 shape
             )));
         }
-        if scale <= 0.0 {
+        if scale <= T::zero() {
             return Err(XError::InvalidParameters(format!(
                 "The scale parameter `scale` must be greater than 0, got {}",
                 scale
@@ -58,12 +61,12 @@ impl Gamma {
     }
 
     /// Get the shape parameter
-    pub fn get_shape(&self) -> f64 {
+    pub fn get_shape(&self) -> T {
         self.shape
     }
 
     /// Get the scale parameter
-    pub fn get_scale(&self) -> f64 {
+    pub fn get_scale(&self) -> T {
         self.scale
     }
 
@@ -81,7 +84,12 @@ impl Gamma {
     /// let gamma = Gamma::new(1.0, 1.0).unwrap();
     /// let randoms = gamma.samples(10).unwrap();
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: usize) -> XResult<Vec<T>>
+    where
+        StandardNormal: Distribution<T>,
+        Exp1: Distribution<T>,
+        Open01: Distribution<T>,
+    {
         rands(self.shape, self.scale, n)
     }
 }
@@ -100,9 +108,12 @@ impl Gamma {
 ///
 /// let random = rand(1.0, 1.0).unwrap();
 /// ```
-pub fn rand(shape: impl Into<f64>, scale: impl Into<f64>) -> XResult<f64> {
-    let shape = shape.into();
-    let scale = scale.into();
+pub fn rand<T: Float + Send + Sync>(shape: T, scale: T) -> XResult<T>
+where
+    StandardNormal: Distribution<T>,
+    Exp1: Distribution<T>,
+    Open01: Distribution<T>,
+{
     let gamma = rand_distr::Gamma::new(shape, scale)
         .map_err(|e| XError::InvalidParameters(e.to_string()))?;
     Ok(rng().sample(gamma))
@@ -123,9 +134,12 @@ pub fn rand(shape: impl Into<f64>, scale: impl Into<f64>) -> XResult<f64> {
 ///
 /// let randoms = rands(1.0, 1.0, 10).unwrap();
 /// ```
-pub fn rands(shape: impl Into<f64>, scale: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
-    let shape = shape.into();
-    let scale = scale.into();
+pub fn rands<T: Float + Send + Sync>(shape: T, scale: T, n: usize) -> XResult<Vec<T>>
+where
+    StandardNormal: Distribution<T>,
+    Exp1: Distribution<T>,
+    Open01: Distribution<T>,
+{
     let gamma = rand_distr::Gamma::new(shape, scale)
         .map_err(|e| XError::InvalidParameters(e.to_string()))?;
     Ok((0..n)

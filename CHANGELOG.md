@@ -2,6 +2,69 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2025-05-28
+
+### 🚀 Features
+
+- *(bng)* Implement Brownian yet non-Gaussian process simulation
+
+### 🐛 Bug Fixes
+
+- *(bm)* Update diffusion_coefficient default value to 0.5
+
+### 🚜 Refactor
+
+- Enhance path generation in Langevin and GeneralizedLangevin simulations
+
+### 📚 Documentation
+
+- Update benchmark references in README files
+- Update
+
+### ⚙️ Miscellaneous Tasks
+
+- Update pre-commit configuration and add new hooks
+- Update version to 0.4.2 in Cargo.toml
+
+## [0.4.1] - 2025-05-22
+
+### 🚀 Features
+
+- Implement arithmetic operations for Normal distribution
+- Enhance Exponential distribution for type flexibility
+- Enhance Gamma distribution for type flexibility
+- Enhance Normal distribution for type flexibility
+- Add LegendPosition enum and integrate with PlotConfig
+
+### 🐛 Bug Fixes
+
+- Validate standard deviation in rands function
+- Specify numeric type for standard normal random samples
+- *(example)* Specify numeric type for standard normal random samples in CIR.rs
+
+### 🚜 Refactor
+
+- Clean up documentation in simulation module
+- Enhance type stability and remove Sized bounds in process traits
+- Simplify trait implementations for type stability
+- Remove redundant documentation for PointProcess trait implementations
+- Update README files for clarity and consistency
+- Simplify StandardStable struct by removing Copy trait
+
+### 📚 Documentation
+
+- Correct capitalization in documentation for Fractional Brownian motion
+- Remove redundant documentation for ContinuousProcess trait implementations
+- Remove redundant documentation comments across multiple files
+- Specify numeric type for standard normal random samples
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.4.0
+- Add rustfmt configuration for code formatting
+- Remove rustfmt configuration file
+- Update version to 0.4.1 in Cargo.toml
+
 ## [0.4.0] - 2025-05-19
 
 ### 🚀 Features

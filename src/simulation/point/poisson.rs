@@ -41,7 +41,6 @@ impl Poisson {
     }
 }
 
-/// impl `PointProcess` trait for `Poisson`
 impl PointProcess for Poisson {
     /// Simulate the Poisson process with a given number of steps
     ///

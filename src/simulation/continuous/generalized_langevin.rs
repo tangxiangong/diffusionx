@@ -1,5 +1,4 @@
 //! Generalized Langevin equation and subordinated Langevin equation simulation
-//!
 
 use crate::{
     SimulationError, XResult,
@@ -13,7 +12,7 @@ use rayon::prelude::*;
 /// dx(t) = f(x(t), t) dt + g(x(t), t) dL_alpha(t), x(0) = x0
 ///
 /// where L_alpha(t) is the alpha-stable process.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct GeneralizedLangevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
@@ -52,7 +51,8 @@ where
     /// let diffusion_func = |_x: f64, _t: f64| 1.0;
     /// let start_position = 0.0;
     /// let alpha = 1.7;
-    /// let langevin = GeneralizedLangevin::new(drift_func, diffusion_func, start_position, alpha).unwrap();
+    /// let langevin =
+    ///     GeneralizedLangevin::new(drift_func, diffusion_func, start_position, alpha).unwrap();
     /// ```
     pub fn new(
         drift_func: D,
@@ -98,7 +98,6 @@ where
     }
 }
 
-/// impl `ContinuousProcess` trait for `GeneralizedLangevin`
 impl<D, G> ContinuousProcess for GeneralizedLangevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
@@ -116,8 +115,7 @@ where
     /// ```rust
     /// use diffusionx::simulation::{continuous::GeneralizedLangevin, prelude::*};
     ///
-    /// let langevin = GeneralizedLangevin::new(|x, _t| x, |_x, _t| 1.0, 0.0, 1.7)
-    ///     .unwrap();
+    /// let langevin = GeneralizedLangevin::new(|x, _t| x, |_x, _t| 1.0, 0.0, 1.7).unwrap();
     /// let duration = 1.0;
     /// let time_step = 0.01;
     /// let (t, x) = langevin.simulate(duration, time_step).unwrap();
@@ -156,7 +154,15 @@ where
 /// let alpha = 1.7;
 /// let duration = 1.0;
 /// let time_step = 0.01;
-/// let (t, x) = simulate_generalized_langevin(&drift, &diffusion, start_position, alpha, duration, time_step).unwrap();
+/// let (t, x) = simulate_generalized_langevin(
+///     &drift,
+///     &diffusion,
+///     start_position,
+///     alpha,
+///     duration,
+///     time_step,
+/// )
+/// .unwrap();
 /// ```
 pub fn simulate_generalized_langevin<D, G>(
     drift: &D,
@@ -176,22 +182,25 @@ where
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
 
-    let initial_x = start_position;
     let noise = stable::sym_standard_rands(alpha, num)?;
 
     // 使用迭代器风格生成路径
-    let x = std::iter::once(initial_x)
-        .chain((0..num).scan(initial_x, |state, i| {
-            let current_x = *state;
-            let current_t = t[i];
+    let x = std::iter::once(start_position)
+        .chain(
+            t.iter()
+                .skip(1)
+                .zip(noise)
+                .scan(start_position, |state, (&ti, xi)| {
+                    let current_x = *state;
 
-            let next_x = current_x
-                + drift(current_x, current_t) * time_step
-                + diffusion(current_x, current_t) * noise[i] * time_step.powf(1.0 / alpha);
+                    let next_x = current_x
+                        + drift(current_x, ti) * time_step
+                        + diffusion(current_x, ti) * xi * time_step.powf(1.0 / alpha);
 
-            *state = next_x;
-            Some(next_x)
-        }))
+                    *state = next_x;
+                    Some(next_x)
+                }),
+        )
         .collect();
 
     Ok((t, x))
@@ -287,7 +296,6 @@ where
     }
 }
 
-/// impl `ContinuousProcess` trait for `SubordinatedLangevin`
 impl<D, G> ContinuousProcess for SubordinatedLangevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
@@ -347,7 +355,15 @@ where
 /// let alpha = 0.5;
 /// let duration = 1.0;
 /// let time_step = 0.01;
-/// let (t, x) = simulate_subordinated_langevin(&drift, &diffusion, start_position, alpha, duration, time_step).unwrap();
+/// let (t, x) = simulate_subordinated_langevin(
+///     &drift,
+///     &diffusion,
+///     start_position,
+///     alpha,
+///     duration,
+///     time_step,
+/// )
+/// .unwrap();
 /// ```
 pub fn simulate_subordinated_langevin<D, G>(
     drift: &D,
@@ -369,18 +385,19 @@ where
 
     let initial_x = start_position;
     let (_, s) = Subordinator::new(alpha)?.simulate(duration, time_step)?;
-    let noise = normal::standard_rands(num);
+    let noise = normal::standard_rands::<f64>(num);
 
     // 使用迭代器风格生成路径
     let x = std::iter::once(initial_x)
         .chain((0..num).scan(initial_x, |state, i| {
             let current_x = *state;
-            let current_t = t[i];
-            let delta_t = s[i + 1] - s[i];
+            let current_t = unsafe { *t.get_unchecked(i) };
+            let delta_t = unsafe { *s.get_unchecked(i + 1) - *s.get_unchecked(i) };
 
+            let xi = unsafe { *noise.get_unchecked(i) };
             let next_x = current_x
                 + drift(current_x, current_t) * delta_t
-                + diffusion(current_x, current_t) * noise[i] * delta_t.sqrt();
+                + diffusion(current_x, current_t) * xi * delta_t.sqrt();
 
             *state = next_x;
             Some(next_x)

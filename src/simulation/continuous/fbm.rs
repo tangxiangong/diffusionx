@@ -1,5 +1,4 @@
 //! Fractional Brownian motion simulation
-//!
 
 use crate::{
     SimulationError, XResult,
@@ -59,7 +58,6 @@ impl FBM {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Fbm`
 impl ContinuousProcess for FBM {
     /// Simulate Fractional Brownian motion
     ///

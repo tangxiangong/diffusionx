@@ -1,5 +1,4 @@
 //! Brownian meander simulation
-//!
 
 use crate::{SimulationError, XResult, simulation::prelude::*, utils::float_eq};
 use rayon::prelude::*;
@@ -45,7 +44,6 @@ impl BrownianMeander {
     }
 }
 
-/// impl `ContinuousProcess` trait for `BrownianMeander`
 impl ContinuousProcess for BrownianMeander {
     /// Simulate Brownian meander
     ///

@@ -1,5 +1,4 @@
 //! Geometric Brownian motion simulation
-//!
 
 use crate::{SimulationError, XResult, simulation::prelude::*};
 use rayon::prelude::*;
@@ -73,7 +72,6 @@ impl GeometricBm {
     }
 }
 
-/// impl `ContinuousProcess` trait for `GeometricBm`
 impl ContinuousProcess for GeometricBm {
     /// Simulate geometric Brownian motion
     ///

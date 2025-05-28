@@ -1,5 +1,4 @@
 //! Continuous time random walk simulation
-//!
 
 use crate::{
     SimulationError, XResult,

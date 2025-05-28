@@ -1,5 +1,4 @@
 //! Ornstein-Uhlenbeck process simulation
-//!
 
 use crate::{XResult, random::normal, simulation::prelude::*};
 use rayon::prelude::*;
@@ -9,7 +8,7 @@ use rayon::prelude::*;
 /// dx(t) = -theta x(t) dt + sigma dW(t), x(0) = x0
 ///
 /// where W(t) is the Wiener process, also called Brownian motion.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct OrnsteinUhlenbeck {
     /// The parameter controlling the strength of mean reversion.
     theta: f64,
@@ -60,7 +59,6 @@ impl OrnsteinUhlenbeck {
     }
 }
 
-/// impl `ContinuousProcess` trait for `OrnsteinUhlenbeck`
 impl ContinuousProcess for OrnsteinUhlenbeck {
     /// Simulate the Ornstein-Uhlenbeck process
     ///
@@ -118,21 +116,23 @@ pub fn simulate_ou(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
-    // 直接实现OU过程的数值模拟
     let num = (duration / time_step).ceil() as usize;
     let t = (0..=num)
         .into_par_iter()
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
-    let mut x = vec![0.0; num + 1];
-    x[0] = start_position;
-    let noise = normal::standard_rands(num);
 
-    for i in 1..=num {
-        // OU特定的更新方程
-        x[i] = x[i - 1] - theta * x[i - 1] * time_step + sigma * noise[i - 1] * time_step.sqrt();
-    }
+    let noise = normal::standard_rands::<f64>(num);
 
+    let x = std::iter::once(start_position)
+        .chain(noise.iter().scan(start_position, |state, &xi| {
+            let current_x = *state;
+            let next_x = current_x - theta * current_x * time_step + sigma * xi * time_step.sqrt();
+
+            *state = next_x;
+            Some(next_x)
+        }))
+        .collect();
     Ok((t, x))
 }
 

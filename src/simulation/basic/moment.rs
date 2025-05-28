@@ -26,7 +26,7 @@ pub trait Moment {
     fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64>;
 }
 
-impl<'a, SP: ContinuousProcess> Moment for ContinuousTrajectory<'a, SP> {
+impl<SP: ContinuousProcess> Moment for ContinuousTrajectory<SP> {
     fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
@@ -78,7 +78,7 @@ impl<'a, SP: ContinuousProcess> Moment for ContinuousTrajectory<'a, SP> {
     }
 }
 
-impl<'a, SP: DiscreteProcess> Moment for DiscreteTrajectory<'a, SP> {
+impl<SP: DiscreteProcess> Moment for DiscreteTrajectory<SP> {
     fn raw_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
@@ -130,7 +130,7 @@ impl<'a, SP: DiscreteProcess> Moment for DiscreteTrajectory<'a, SP> {
     }
 }
 
-impl<'a, SP: PointProcess> Moment for PointTrajectory<'a, SP> {
+impl<SP: PointProcess> Moment for PointTrajectory<SP> {
     fn raw_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(

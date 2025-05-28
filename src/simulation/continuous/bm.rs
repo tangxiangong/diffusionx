@@ -1,5 +1,4 @@
 //! Brownian motion simulation
-//!
 
 use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::cumsum};
 use rayon::prelude::*;
@@ -17,7 +16,7 @@ impl Default for Bm {
     fn default() -> Self {
         Self {
             start_position: 0.0,
-            diffusion_coefficient: 1.0,
+            diffusion_coefficient: 0.5,
         }
     }
 }
@@ -59,7 +58,6 @@ impl Bm {
     }
 }
 
-/// impl `ContinuousProcess` trait for `Bm`
 impl ContinuousProcess for Bm {
     /// Simulate Brownian motion
     ///

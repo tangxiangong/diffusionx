@@ -1,7 +1,7 @@
 //! Continuous processes
 //!
 //! - Brownian motion [Bm]
-//! - Fractional Brownian motion [Fbm]
+//! - Fractional Brownian motion [FBM]
 //! - Generalized Langevin equation [GeneralizedLangevin]
 //! - Langevin equation [Langevin]
 //! - Levy process [Levy] and [AsymmetricLevy]
@@ -15,7 +15,6 @@
 //! - Gamma process [Gamma]
 //! - Geometric Brownian motion [GeometricBm]
 //! - Lévy walk [LevyWalk]
-//!
 
 pub mod bm;
 pub use bm::*;
@@ -58,3 +57,6 @@ pub use geometric_bm::*;
 
 pub mod levy_walk;
 pub use levy_walk::*;
+
+pub mod bng;
+pub use bng::*;

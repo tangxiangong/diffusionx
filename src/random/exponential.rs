@@ -1,15 +1,19 @@
 //! Exponential distribution random number generation
-//!
 
 use crate::{XError, XResult};
+use num_traits::float::Float;
 use rand::{prelude::*, rng};
 use rand_distr::{Exp, Exp1};
 use rayon::prelude::*;
 
 /// Exponential distribution
-pub struct Exponential {
+#[derive(Debug, Clone)]
+pub struct Exponential<T: Float + Send + Sync = f64>
+where
+    Exp1: Distribution<T>,
+{
     /// rate parameter
-    lambda: f64,
+    lambda: T,
 }
 
 /// Default value for the exponential distribution
@@ -19,7 +23,10 @@ impl Default for Exponential {
     }
 }
 
-impl Exponential {
+impl<T: Float + Send + Sync> Exponential<T>
+where
+    Exp1: Distribution<T>,
+{
     /// Create a new exponential distribution with a given rate parameter
     ///
     /// # Arguments
@@ -31,11 +38,13 @@ impl Exponential {
     /// ```rust
     /// use diffusionx::random::exponential::Exponential;
     ///
-    /// let exp = Exponential::new(2).unwrap();
+    /// let exp = Exponential::new(2.0).unwrap();
     /// ```
-    pub fn new(lambda: impl Into<f64>) -> XResult<Self> {
-        let lambda = lambda.into();
-        if lambda <= 0.0 {
+    pub fn new(lambda: T) -> XResult<Self>
+    where
+        T: std::fmt::Display,
+    {
+        if lambda <= T::zero() {
             return Err(XError::InvalidParameters(format!(
                 "The rate parameter `lambda` must be greater than 0, got {}",
                 lambda
@@ -45,7 +54,7 @@ impl Exponential {
     }
 
     /// Get the rate parameter
-    pub fn get_lambda(&self) -> f64 {
+    pub fn get_lambda(&self) -> T {
         self.lambda
     }
 
@@ -60,11 +69,11 @@ impl Exponential {
     /// ```rust
     /// use diffusionx::random::exponential::Exponential;
     ///
-    /// let exp = Exponential::new(2).unwrap();
+    /// let exp = Exponential::new(2.0).unwrap();
     /// let randoms = exp.samples(10).unwrap();
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
-        if self.lambda == 1.0 {
+    pub fn samples(&self, n: usize) -> XResult<Vec<T>> {
+        if self.lambda == T::one() {
             Ok(standard_rands(n))
         } else {
             rands(self.lambda, n)
@@ -79,9 +88,12 @@ impl Exponential {
 /// ```rust
 /// use diffusionx::random::exponential::standard_rand;
 ///
-/// let random = standard_rand();
+/// let random = standard_rand::<f64>();
 /// ```
-pub fn standard_rand() -> f64 {
+pub fn standard_rand<T: Float + Send + Sync>() -> T
+where
+    Exp1: Distribution<T>,
+{
     rng().sample(Exp1)
 }
 
@@ -96,9 +108,12 @@ pub fn standard_rand() -> f64 {
 /// ```rust
 /// use diffusionx::random::exponential::standard_rands;
 ///
-/// let randoms = standard_rands(10);
+/// let randoms = standard_rands::<f64>(10);
 /// ```
-pub fn standard_rands(n: usize) -> Vec<f64> {
+pub fn standard_rands<T: Float + Send + Sync>(n: usize) -> Vec<T>
+where
+    Exp1: Distribution<T>,
+{
     let dist = Exp1;
     (0..n)
         .into_par_iter()
@@ -119,8 +134,10 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
 ///
 /// let random = rand(1.0).unwrap();
 /// ```
-pub fn rand(lambda: impl Into<f64>) -> XResult<f64> {
-    let lambda = lambda.into();
+pub fn rand<T: Float + Send + Sync>(lambda: T) -> XResult<T>
+where
+    Exp1: Distribution<T>,
+{
     let exp = Exp::new(lambda)?;
     Ok(rng().sample(exp))
 }
@@ -139,8 +156,10 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<f64> {
 ///
 /// let randoms = rands(1.0, 10).unwrap();
 /// ```
-pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
-    let lambda = lambda.into();
+pub fn rands<T: Float + Send + Sync>(lambda: T, n: usize) -> XResult<Vec<T>>
+where
+    Exp1: Distribution<T>,
+{
     let exp = Exp::new(lambda)?;
     Ok((0..n)
         .into_par_iter()
@@ -155,13 +174,13 @@ mod tests {
 
     #[test]
     fn test_standard_rand() {
-        let random = standard_rand();
+        let random = standard_rand::<f64>();
         assert!(random.is_finite());
     }
 
     #[test]
     fn test_standard_rands() {
-        let randoms = standard_rands(10);
+        let randoms = standard_rands::<f64>(10);
         assert_eq!(randoms.len(), 10);
         assert!(randoms.iter().all(|r| r.is_finite()));
     }
@@ -182,7 +201,7 @@ mod tests {
     #[test]
     fn test_standard_exponential_stats() {
         let n = 1_000_000;
-        let samples = standard_rands(n);
+        let samples = standard_rands::<f64>(n);
         let (mean, variance) = calculate_stats(&samples);
 
         assert!(

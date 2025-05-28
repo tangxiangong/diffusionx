@@ -3,7 +3,6 @@
 //! - Birth-death process [BirthDeath]
 //! - Continuous-time random walk [CTRW]
 //! - Poisson process [Poisson]
-//!
 
 pub mod birth_death;
 pub use birth_death::*;
