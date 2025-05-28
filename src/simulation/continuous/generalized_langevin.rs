@@ -12,7 +12,7 @@ use rayon::prelude::*;
 /// dx(t) = f(x(t), t) dt + g(x(t), t) dL_alpha(t), x(0) = x0
 ///
 /// where L_alpha(t) is the alpha-stable process.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct GeneralizedLangevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
@@ -182,22 +182,25 @@ where
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
 
-    let initial_x = start_position;
     let noise = stable::sym_standard_rands(alpha, num)?;
 
     // 使用迭代器风格生成路径
-    let x = std::iter::once(initial_x)
-        .chain((0..num).scan(initial_x, |state, i| {
-            let current_x = *state;
-            let current_t = t[i];
+    let x = std::iter::once(start_position)
+        .chain(
+            t.iter()
+                .skip(1)
+                .zip(noise)
+                .scan(start_position, |state, (&ti, xi)| {
+                    let current_x = *state;
 
-            let next_x = current_x
-                + drift(current_x, current_t) * time_step
-                + diffusion(current_x, current_t) * noise[i] * time_step.powf(1.0 / alpha);
+                    let next_x = current_x
+                        + drift(current_x, ti) * time_step
+                        + diffusion(current_x, ti) * xi * time_step.powf(1.0 / alpha);
 
-            *state = next_x;
-            Some(next_x)
-        }))
+                    *state = next_x;
+                    Some(next_x)
+                }),
+        )
         .collect();
 
     Ok((t, x))
@@ -388,12 +391,13 @@ where
     let x = std::iter::once(initial_x)
         .chain((0..num).scan(initial_x, |state, i| {
             let current_x = *state;
-            let current_t = t[i];
-            let delta_t = s[i + 1] - s[i];
+            let current_t = unsafe { *t.get_unchecked(i) };
+            let delta_t = unsafe { *s.get_unchecked(i + 1) - *s.get_unchecked(i) };
 
+            let xi = unsafe { *noise.get_unchecked(i) };
             let next_x = current_x
                 + drift(current_x, current_t) * delta_t
-                + diffusion(current_x, current_t) * noise[i] * delta_t.sqrt();
+                + diffusion(current_x, current_t) * xi * delta_t.sqrt();
 
             *state = next_x;
             Some(next_x)

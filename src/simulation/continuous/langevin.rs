@@ -8,7 +8,7 @@ use rayon::prelude::*;
 /// dx(t) = f(x(t), t) dt + g(x(t), t) dW(t), x(0) = x0
 ///
 /// where W(t) is the Weiner process or called Brownian motion.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Langevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
@@ -141,22 +141,25 @@ where
         .map(|i| time_step * i as f64)
         .collect::<Vec<_>>();
 
-    let initial_x = start_position;
     let noise = normal::standard_rands::<f64>(num);
 
     // 使用迭代器风格生成路径
-    let x = std::iter::once(initial_x)
-        .chain((0..num).scan(initial_x, |state, i| {
-            let current_x = *state;
-            let current_t = t[i];
+    let x = std::iter::once(start_position)
+        .chain(
+            t.iter()
+                .skip(1)
+                .zip(noise)
+                .scan(start_position, |state, (&ti, xi)| {
+                    let current_x = *state;
 
-            let next_x = current_x
-                + drift(current_x, current_t) * time_step
-                + diffusion(current_x, current_t) * noise[i] * time_step.sqrt();
+                    let next_x = current_x
+                        + drift(current_x, ti) * time_step
+                        + diffusion(current_x, ti) * xi * time_step.sqrt();
 
-            *state = next_x;
-            Some(next_x)
-        }))
+                    *state = next_x;
+                    Some(next_x)
+                }),
+        )
         .collect();
 
     Ok((t, x))
