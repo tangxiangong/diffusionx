@@ -57,3 +57,6 @@ pub use geometric_bm::*;
 
 pub mod levy_walk;
 pub use levy_walk::*;
+
+pub mod bng;
+pub use bng::*;
