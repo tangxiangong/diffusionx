@@ -292,11 +292,15 @@ EATAMSD: 0.6085042089895467
 
 性能基准测试比较 Rust、C++、Julia 和 Python 实现的代码，请见 [diffusionx-benches](https://github.com/tangxiangong/diffusionx-benches)。
 
-## 许可证
+## 许可协议
 
-本项目采用双许可证模式：
+本项目采用以下任一许可协议：
 
-* [MIT 许可证](https://opensource.org/licenses/MIT)
-* [Apache 许可证 2.0 版本](https://www.apache.org/licenses/LICENSE-2.0)
+ * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) 或 https://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) 或 https://opensource.org/licenses/MIT)
 
-您可以选择使用其中任一许可证。
+您可以选择其中任意一种。
+
+### 贡献
+
+除非您明确声明，否则根据 Apache-2.0 许可协议的定义，您有意提交的任何贡献都将按照上述双重许可协议进行许可，不附加任何额外条款或条件。
