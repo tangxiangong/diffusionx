@@ -14,7 +14,6 @@
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
 use crate::{XError, XResult};
 use num_traits::Num;
-use rayon::prelude::*;
 use std::path::Path;
 /// Calculate the cumulative sum of a vector
 ///
@@ -69,20 +68,19 @@ where
 /// ```
 #[inline]
 pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
-    let result = if a.is_infinite() || b.is_infinite() {
+    // if !result {
+    //     println!("The left is {}", a);
+    //     println!("The right is {}", b);
+    //     println!(
+    //         "These two numbers are not approximately equal with tol {}",
+    //         tol
+    //     );
+    // }
+    if a.is_infinite() || b.is_infinite() {
         false
     } else {
         (a - b).abs() <= tol
-    };
-    if !result {
-        println!("The left is {}", a);
-        println!("The right is {}", b);
-        println!(
-            "These two numbers are not approximately equal with tol {}",
-            tol
-        );
     }
-    result
 }
 
 /// Ensure the output directory exists, or create it if it doesn't exist.
@@ -184,21 +182,66 @@ pub fn calculate_bool_mean(samples: &[bool]) -> f64 {
 
 /// Generate a vector of evenly spaced numbers over a specified range
 ///
+/// This function generates a sequence from `start` to `end` (inclusive) with the given `step` size.
+/// The endpoint is always included if it can be reached exactly or if the last step would overshoot it.
+///
 /// # Arguments
 ///
 /// * `start` - The starting value of the range
-/// * `end` - The ending value of the range
-/// * `step` - The step size between numbers
+/// * `end` - The ending value of the range (inclusive)
+/// * `step` - The step size between numbers (must be positive)
+///
+/// # Returns
+///
+/// A vector containing the evenly spaced values
+///
+/// # Panics
+///
+/// Panics if `step` is not positive or if `start > end`
+///
+/// # Example
+///
+/// ```rust
+/// use diffusionx::utils::linspace;
+///
+/// let result = linspace(0.0, 1.0, 0.25);
+/// assert_eq!(result, vec![0.0, 0.25, 0.5, 0.75, 1.0]);
+/// ```
 pub fn linspace(start: f64, end: f64, step: f64) -> Vec<f64> {
-    let mut result = Vec::new();
-    let mut current = start;
-    while current < end {
-        result.push(current);
-        current += step;
+    assert!(step > 0.0, "step must be positive, got {}", step);
+    assert!(
+        start <= end,
+        "start must be <= end, got start={}, end={}",
+        start,
+        end
+    );
+
+    if approx_eq(start, end, f64::EPSILON) {
+        return vec![start];
     }
-    if !approx_eq(current - step, end, 1e-5) {
-        result.push(end);
+
+    // 计算需要的点数
+    let range = end - start;
+    let num_steps = (range / step).floor() as usize;
+
+    let mut result = Vec::with_capacity(num_steps + 2); // +2 for start and potentially end
+
+    // 生成等间距的点
+    for i in 0..=num_steps {
+        let value = start + (i as f64) * step;
+        if value <= end + f64::EPSILON {
+            // 允许小的浮点误差
+            result.push(value);
+        }
     }
+
+    // 确保终点被包含（如果最后一个点不够接近终点）
+    if let Some(&last) = result.last() {
+        if !approx_eq(last, end, f64::EPSILON) && last < end {
+            result.push(end);
+        }
+    }
+
     result
 }
 
@@ -209,24 +252,84 @@ pub fn linear_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>,
         ));
     }
 
-    let tmp: Vec<(f64, f64)> = t
-        .windows(2)
-        .zip(x.windows(2))
-        .flat_map(|(t_window, x_window)| {
-            let t_range = linspace(t_window[0], t_window[1], step);
-            let lens = t_range.len();
-            let x_step = (x_window[1] - x_window[0]) / (lens - 1) as f64;
-            let x_range = linspace(x_window[0], x_window[1], x_step);
-            t_range.into_iter().zip(x_range)
-        })
-        .collect();
+    if t.len() < 2 {
+        return Err(XError::Other(
+            "t and x must have at least 2 elements".to_string(),
+        ));
+    }
 
-    let interpolated_t = tmp.par_iter().map(|(t, _)| *t).collect();
-    let interpolated_x = tmp.par_iter().map(|(_, x)| *x).collect();
+    if step <= 0.0 {
+        return Err(XError::Other("step must be positive".to_string()));
+    }
 
-    Ok((interpolated_t, interpolated_x))
+    // 验证 t 是否单调递增
+    for i in 1..t.len() {
+        if t[i] <= t[i - 1] {
+            return Err(XError::Other(
+                "t must be strictly monotonically increasing".to_string(),
+            ));
+        }
+    }
+
+    // 生成等间距的时间序列
+    let t_new = linspace(t[0], t[t.len() - 1], step);
+    let mut x_new = Vec::with_capacity(t_new.len());
+
+    for &t_val in &t_new {
+        // 使用二分搜索找到 t_val 所在的区间
+        let j = match t.binary_search_by(|&probe| probe.partial_cmp(&t_val).unwrap()) {
+            Ok(exact_idx) => {
+                // t_val 正好等于某个时间点
+                x_new.push(x[exact_idx]);
+                continue;
+            }
+            Err(insert_idx) => {
+                if insert_idx == 0 {
+                    // t_val 小于所有时间点，使用第一个值
+                    x_new.push(x[0]);
+                    continue;
+                } else if insert_idx >= t.len() {
+                    // t_val 大于所有时间点，使用最后一个值
+                    x_new.push(x[t.len() - 1]);
+                    continue;
+                } else {
+                    insert_idx - 1
+                }
+            }
+        };
+
+        // 线性插值: x = x[j] + (x[j+1] - x[j]) * (t_val - t[j]) / (t[j+1] - t[j])
+        let ratio = (t_val - t[j]) / (t[j + 1] - t[j]);
+        let x_interpolated = x[j] + (x[j + 1] - x[j]) * ratio;
+        x_new.push(x_interpolated);
+    }
+
+    Ok((t_new, x_new))
 }
 
+/// Generate a flattened (step function) interpolation over a specified range
+///
+/// This function generates the same time sequence as `linear_interpolate`, but instead of
+/// linear interpolation, it creates a left-continuous step function where each value
+/// corresponds to x[j] for the interval [t[j], t[j+1]).
+///
+/// # Arguments
+///
+/// * `t` - The time points (must be strictly monotonically increasing)
+/// * `x` - The corresponding values
+/// * `step` - The step size for the output time sequence (must be positive)
+///
+/// # Returns
+///
+/// A tuple (t_new, x_new) where:
+/// - t_new: evenly spaced time points from t[0] to t[end] with given step
+/// - x_new: left-continuous step function values
+///
+/// # Example
+///
+/// For input t=[0, 1, 2], x=[10, 20, 30], step=0.5:
+/// - t_new = [0.0, 0.5, 1.0, 1.5, 2.0]
+/// - x_new = [10, 10, 20, 20, 30]  (left-continuous steps)
 pub fn flatten_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
     if t.len() != x.len() {
         return Err(XError::Other(
@@ -234,22 +337,57 @@ pub fn flatten_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>
         ));
     }
 
-    let tmp: Vec<(f64, f64)> = t
-        .windows(2)
-        .zip(x.windows(2))
-        .flat_map(|(t_window, x_window)| {
-            let t_range = linspace(t_window[0], t_window[1], step);
-            let lens = t_range.len();
-            let mut x_range = vec![x_window[0]; lens];
-            x_range[lens - 1] = x_window[1];
-            t_range.into_iter().zip(x_range)
-        })
-        .collect();
+    if t.len() < 2 {
+        return Err(XError::Other(
+            "t and x must have at least 2 elements".to_string(),
+        ));
+    }
 
-    let interpolated_t = tmp.par_iter().map(|(t, _)| *t).collect();
-    let interpolated_x = tmp.par_iter().map(|(_, x)| *x).collect();
+    if step <= 0.0 {
+        return Err(XError::Other("step must be positive".to_string()));
+    }
 
-    Ok((interpolated_t, interpolated_x))
+    // 验证 t 是否单调递增
+    for i in 1..t.len() {
+        if t[i] <= t[i - 1] {
+            return Err(XError::Other(
+                "t must be strictly monotonically increasing".to_string(),
+            ));
+        }
+    }
+
+    // 生成等间距的时间序列（与 linear_interpolate 一致）
+    let t_new = linspace(t[0], t[t.len() - 1], step);
+    let mut x_new = Vec::with_capacity(t_new.len());
+
+    for &t_val in &t_new {
+        // 使用二分搜索找到 t_val 所在的区间
+        let j = match t.binary_search_by(|&probe| probe.partial_cmp(&t_val).unwrap()) {
+            Ok(exact_idx) => {
+                // t_val 正好等于某个时间点，使用该点的值
+                x_new.push(x[exact_idx]);
+                continue;
+            }
+            Err(insert_idx) => {
+                if insert_idx == 0 {
+                    // t_val 小于所有时间点，使用第一个值
+                    x_new.push(x[0]);
+                    continue;
+                } else if insert_idx >= t.len() {
+                    // t_val 大于所有时间点，使用最后一个值
+                    x_new.push(x[t.len() - 1]);
+                    continue;
+                } else {
+                    insert_idx - 1
+                }
+            }
+        };
+
+        // 左连续阶梯函数：使用 x[j] (区间 [t[j], t[j+1]) 的左端点值)
+        x_new.push(x[j]);
+    }
+
+    Ok((t_new, x_new))
 }
 
 #[cfg(test)]
@@ -345,17 +483,253 @@ mod tests {
 
     #[test]
     fn test_linspace() {
-        let result = linspace(0.0, 1.0, 0.1);
-        println!("{:?}", result);
-        let result = linspace(0.0, 1.05, 0.1);
-        println!("{:?}", result);
+        // 基本测试
+        let result = linspace(0.0, 1.0, 0.25);
+        let expected = [0.0, 0.25, 0.5, 0.75, 1.0];
+        assert_eq!(result.len(), expected.len());
+        for (actual, expected) in result.iter().zip(expected.iter()) {
+            assert!(approx_eq(*actual, *expected, 1e-10));
+        }
+
+        // 测试不能整除的情况
+        let result = linspace(0.0, 1.0, 0.3);
+        assert!(result.contains(&0.0));
+        assert!(result.contains(&1.0)); // 应该包含终点
+        assert!(result.iter().any(|&x| approx_eq(x, 0.3, 1e-10)));
+        assert!(result.iter().any(|&x| approx_eq(x, 0.6, 1e-10)));
+        assert!(result.iter().any(|&x| approx_eq(x, 0.9, 1e-10)));
+
+        // 测试单点情况
+        let result = linspace(5.0, 5.0, 0.1);
+        assert_eq!(result, vec![5.0]);
+
+        // 测试小范围
+        let result = linspace(0.0, 0.1, 0.05);
+        let expected = [0.0, 0.05, 0.1];
+        assert_eq!(result.len(), expected.len());
+        for (actual, expected) in result.iter().zip(expected.iter()) {
+            assert!(approx_eq(*actual, *expected, 1e-10));
+        }
     }
 
     #[test]
+    #[should_panic(expected = "step must be positive")]
+    fn test_linspace_negative_step() {
+        linspace(0.0, 1.0, -0.1);
+    }
+
+    #[test]
+    #[should_panic(expected = "step must be positive")]
+    fn test_linspace_zero_step() {
+        linspace(0.0, 1.0, 0.0);
+    }
+
+    #[test]
+    #[should_panic(expected = "start must be <= end")]
+    fn test_linspace_invalid_range() {
+        linspace(1.0, 0.0, 0.1);
+    }
+
+    use crate::simulation::continuous::levy_walk::simulate_levy_walk_with_duration;
+    #[test]
     fn test_interpolate() {
-        let t = vec![0.0, 1.0, 2.0];
-        let x = vec![1.0, 3.0, 5.0];
+        let (t, x) = simulate_levy_walk_with_duration(1.0, 1.0, 10.0, 0.0).unwrap();
+        println!("t: {:?}, x: {:?}", t, x);
         let result = linear_interpolate(&t, &x, 0.1).unwrap();
-        println!("{:?}", result);
+        println!("result: {:?}", result);
+    }
+
+    #[test]
+    fn test_linear_interpolate_simple() {
+        // 简单的测试数据：(0,0), (1,1), (2,4)
+        let t = vec![0.0, 1.0, 2.0];
+        let x = vec![0.0, 1.0, 4.0];
+
+        let (t_new, x_new) = linear_interpolate(&t, &x, 0.5).unwrap();
+
+        // 期望的结果：t_new = [0.0, 0.5, 1.0, 1.5, 2.0]
+        // x_new = [0.0, 0.5, 1.0, 2.5, 4.0]
+        let expected_t = [0.0, 0.5, 1.0, 1.5, 2.0];
+        let expected_x = [0.0, 0.5, 1.0, 2.5, 4.0];
+
+        assert_eq!(t_new.len(), expected_t.len());
+        assert_eq!(x_new.len(), expected_x.len());
+
+        for (i, (&actual_t, &expected_t)) in t_new.iter().zip(expected_t.iter()).enumerate() {
+            assert!(
+                approx_eq(actual_t, expected_t, 1e-10),
+                "t_new[{}]: expected {}, got {}",
+                i,
+                expected_t,
+                actual_t
+            );
+        }
+
+        for (i, (&actual_x, &expected_x)) in x_new.iter().zip(expected_x.iter()).enumerate() {
+            assert!(
+                approx_eq(actual_x, expected_x, 1e-10),
+                "x_new[{}]: expected {}, got {}",
+                i,
+                expected_x,
+                actual_x
+            );
+        }
+    }
+
+    #[test]
+    fn test_linear_interpolate_edge_cases() {
+        // 测试步长为负数的情况
+        let t = vec![0.0, 1.0, 2.0];
+        let x = vec![0.0, 1.0, 4.0];
+        assert!(linear_interpolate(&t, &x, -0.1).is_err());
+
+        // 测试步长为零的情况
+        assert!(linear_interpolate(&t, &x, 0.0).is_err());
+
+        // 测试非单调递增的时间序列
+        let t_bad = vec![0.0, 2.0, 1.0];
+        let x_bad = vec![0.0, 1.0, 4.0];
+        assert!(linear_interpolate(&t_bad, &x_bad, 0.1).is_err());
+
+        // 测试长度不匹配
+        let t_short = vec![0.0, 1.0];
+        let x_long = vec![0.0, 1.0, 4.0];
+        assert!(linear_interpolate(&t_short, &x_long, 0.1).is_err());
+
+        // 测试数据点太少
+        let t_single = vec![0.0];
+        let x_single = vec![0.0];
+        assert!(linear_interpolate(&t_single, &x_single, 0.1).is_err());
+    }
+
+    #[test]
+    fn test_linear_interpolate_boundary() {
+        // 测试边界情况：插值点超出原始数据范围
+        let t = vec![1.0, 2.0, 3.0];
+        let x = vec![10.0, 20.0, 30.0];
+
+        // 使用更大的步长，使得插值点包含边界
+        let (t_new, x_new) = linear_interpolate(&t, &x, 0.5).unwrap();
+
+        // 第一个点应该是 (1.0, 10.0)
+        assert!(approx_eq(t_new[0], 1.0, 1e-10));
+        assert!(approx_eq(x_new[0], 10.0, 1e-10));
+
+        // 最后一个点应该是 (3.0, 30.0)
+        let last_idx = t_new.len() - 1;
+        assert!(approx_eq(t_new[last_idx], 3.0, 1e-10));
+        assert!(approx_eq(x_new[last_idx], 30.0, 1e-10));
+
+        // 中间点 (1.5, 15.0) 和 (2.5, 25.0) 应该通过线性插值得到
+        let mid1_idx = t_new
+            .iter()
+            .position(|&t| approx_eq(t, 1.5, 1e-10))
+            .unwrap();
+        assert!(approx_eq(x_new[mid1_idx], 15.0, 1e-10));
+
+        let mid2_idx = t_new
+            .iter()
+            .position(|&t| approx_eq(t, 2.5, 1e-10))
+            .unwrap();
+        assert!(approx_eq(x_new[mid2_idx], 25.0, 1e-10));
+    }
+
+    #[test]
+    fn test_flatten_interpolate() {
+        // 简单的测试数据：(0,10), (1,20), (2,30)
+        let t = vec![0.0, 1.0, 2.0];
+        let x = vec![10.0, 20.0, 30.0];
+
+        let (t_new, x_new) = flatten_interpolate(&t, &x, 0.5).unwrap();
+
+        // 期望的结果：
+        // t_new = [0.0, 0.5, 1.0, 1.5, 2.0]
+        // x_new = [10, 10, 20, 20, 30]  (左连续阶梯)
+        let expected_t = [0.0, 0.5, 1.0, 1.5, 2.0];
+        let expected_x = [10.0, 10.0, 20.0, 20.0, 30.0];
+
+        assert_eq!(t_new.len(), expected_t.len());
+        assert_eq!(x_new.len(), expected_x.len());
+
+        for (i, (&actual_t, &expected_t)) in t_new.iter().zip(expected_t.iter()).enumerate() {
+            assert!(
+                approx_eq(actual_t, expected_t, 1e-10),
+                "t_new[{}]: expected {}, got {}",
+                i,
+                expected_t,
+                actual_t
+            );
+        }
+
+        for (i, (&actual_x, &expected_x)) in x_new.iter().zip(expected_x.iter()).enumerate() {
+            assert!(
+                approx_eq(actual_x, expected_x, 1e-10),
+                "x_new[{}]: expected {}, got {}",
+                i,
+                expected_x,
+                actual_x
+            );
+        }
+    }
+
+    #[test]
+    fn test_flatten_vs_linear_interpolate_time_consistency() {
+        // 验证 flatten_interpolate 和 linear_interpolate 的时间序列一致
+        let t = vec![0.0, 1.5, 3.2, 5.0];
+        let x = vec![100.0, 200.0, 150.0, 300.0];
+        let step = 0.3;
+
+        let (t_linear, _) = linear_interpolate(&t, &x, step).unwrap();
+        let (t_flatten, _) = flatten_interpolate(&t, &x, step).unwrap();
+
+        assert_eq!(t_linear.len(), t_flatten.len());
+        for (i, (&t_lin, &t_flat)) in t_linear.iter().zip(t_flatten.iter()).enumerate() {
+            assert!(
+                approx_eq(t_lin, t_flat, 1e-10),
+                "Time sequences differ at index {}: linear={}, flatten={}",
+                i,
+                t_lin,
+                t_flat
+            );
+        }
+    }
+
+    #[test]
+    fn test_linear_vs_flatten_comparison() {
+        // 详细对比 linear_interpolate 和 flatten_interpolate 的输出
+        let t = vec![0.0, 1.0, 2.0];
+        let x = vec![10.0, 20.0, 30.0];
+        let step = 0.5;
+
+        let (t_linear, x_linear) = linear_interpolate(&t, &x, step).unwrap();
+        let (t_flatten, x_flatten) = flatten_interpolate(&t, &x, step).unwrap();
+
+        println!("原始数据: t={:?}, x={:?}", t, x);
+        println!("线性插值: t_new={:?}, x_new={:?}", t_linear, x_linear);
+        println!("阶梯插值: t_new={:?}, x_new={:?}", t_flatten, x_flatten);
+
+        // 验证时间序列一致
+        assert_eq!(t_linear, t_flatten);
+
+        // 验证值序列的差异
+        // 在 t=0.0: 两者都应该是 10.0
+        assert!(approx_eq(x_linear[0], 10.0, 1e-10));
+        assert!(approx_eq(x_flatten[0], 10.0, 1e-10));
+
+        // 在 t=0.5: linear 应该是 15.0 (插值), flatten 应该是 10.0 (左连续)
+        assert!(approx_eq(x_linear[1], 15.0, 1e-10));
+        assert!(approx_eq(x_flatten[1], 10.0, 1e-10));
+
+        // 在 t=1.0: 两者都应该是 20.0
+        assert!(approx_eq(x_linear[2], 20.0, 1e-10));
+        assert!(approx_eq(x_flatten[2], 20.0, 1e-10));
+
+        // 在 t=1.5: linear 应该是 25.0 (插值), flatten 应该是 20.0 (左连续)
+        assert!(approx_eq(x_linear[3], 25.0, 1e-10));
+        assert!(approx_eq(x_flatten[3], 20.0, 1e-10));
+
+        // 在 t=2.0: 两者都应该是 30.0
+        assert!(approx_eq(x_linear[4], 30.0, 1e-10));
+        assert!(approx_eq(x_flatten[4], 30.0, 1e-10));
     }
 }
