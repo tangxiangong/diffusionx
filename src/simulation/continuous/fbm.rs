@@ -4,20 +4,19 @@ use crate::{
     SimulationError, XResult,
     random::normal,
     simulation::prelude::*,
-    utils::{CirculantEmbedding, cumsum, fbm_correlation},
+    utils::{CirculantEmbedding, cumsum, fbm_correlation, linspace},
 };
-use rayon::prelude::*;
 
 /// Fractional Brownian motion
 #[derive(Debug, Clone)]
-pub struct FBM {
+pub struct FBm {
     /// The starting position
     start_position: f64,
     /// The Hurst exponent
     hurst_exponent: f64,
 }
 
-impl FBM {
+impl FBm {
     /// Create a new `Fbm`
     ///
     /// # Arguments
@@ -58,7 +57,7 @@ impl FBM {
     }
 }
 
-impl ContinuousProcess for FBM {
+impl ContinuousProcess for FBm {
     /// Simulate Fractional Brownian motion
     ///
     /// # Arguments
@@ -112,11 +111,8 @@ pub fn simulate_fbm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let num_steps = (duration / time_step).ceil() as usize;
-    let t = (0..=num_steps)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
 
     // Use `fbm_correlation` function to create the correlation function
     let correlation_fn = fbm_correlation(hurst_exponent, time_step);
@@ -125,11 +121,17 @@ pub fn simulate_fbm(
     let circulant = CirculantEmbedding::new(num_steps, correlation_fn);
 
     // Generate fBn
-    let noise = if hurst_exponent == 0.5 {
+    let mut noise = if hurst_exponent == 0.5 {
         normal::rands(0.0, 2.0 * time_step, num_steps)?
     } else {
         circulant.generate()?
     };
+    let last = match noise.last_mut() {
+        Some(last) => last,
+        None => return Err(SimulationError::Unknown.into()),
+    };
+    let delta = t[num_steps] - t[num_steps - 1];
+    *last *= delta / time_step;
 
     // Calculate the cumulative sum
     let x = cumsum(start_position, &noise);
@@ -143,8 +145,8 @@ mod tests {
     use crate::simulation::prelude::Moment;
 
     #[test]
-    fn test_simulate_bm() {
-        let fbm = FBM::new(10.0, 0.5).unwrap();
+    fn test_simulate_fbm() {
+        let fbm = FBm::new(10.0, 0.5).unwrap();
         let duration = 1.0;
         let time_step = 0.1;
         let (t, x) = fbm.simulate(duration, time_step).unwrap();
@@ -154,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_raw_moment() {
-        let fbm = FBM::new(10.0, 0.5).unwrap();
+        let fbm = FBm::new(10.0, 0.5).unwrap();
         let duration = 1.0;
         let time_step = 0.1;
         let traj = fbm.duration(duration).unwrap();
@@ -164,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_fpt() {
-        let fbm = FBM::new(0.0, 0.5).unwrap();
+        let fbm = FBm::new(0.0, 0.5).unwrap();
         let time_step = 0.1;
         let fpt = fbm.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
         println!("fpt: {:?}", fpt);
@@ -172,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_occupation_time() {
-        let fbm = FBM::new(0.0, 0.5).unwrap();
+        let fbm = FBm::new(0.0, 0.5).unwrap();
         let time_step = 0.1;
         let ot = fbm.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
         println!("ot: {:?}", ot);
@@ -181,6 +183,6 @@ mod tests {
     #[test]
     fn test_send_sync() {
         fn assert_send_sync<T: Send + Sync>() {}
-        assert_send_sync::<FBM>();
+        assert_send_sync::<FBm>();
     }
 }

@@ -1,7 +1,11 @@
 //! Langevin equation simulation
 
-use crate::{XResult, random::normal, simulation::prelude::*};
-use rayon::prelude::*;
+use crate::{
+    XResult,
+    random::normal,
+    simulation::prelude::*,
+    utils::{diff, linspace},
+};
 
 /// Langevin equation
 ///
@@ -135,26 +139,23 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let num = (duration / time_step).ceil() as usize;
-    let t = (0..=num)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
+    let t = linspace(0.0, duration, time_step);
 
-    let noise = normal::standard_rands::<f64>(num);
+    let num_steps = t.len() - 1;
+    let noise = normal::standard_rands::<f64>(num_steps);
+    let delta = diff(&t);
 
-    // 使用迭代器风格生成路径
     let x = std::iter::once(start_position)
         .chain(
-            t.iter()
-                .skip(1)
-                .zip(noise)
-                .scan(start_position, |state, (&ti, xi)| {
+            t[0..num_steps]
+                .iter()
+                .zip(noise.into_iter().zip(delta))
+                .scan(start_position, |state, (&ti, (xi, delta_t))| {
                     let current_x = *state;
 
                     let next_x = current_x
-                        + drift(current_x, ti) * time_step
-                        + diffusion(current_x, ti) * xi * time_step.sqrt();
+                        + drift(current_x, ti) * delta_t
+                        + diffusion(current_x, ti) * xi * delta_t.sqrt();
 
                     *state = next_x;
                     Some(next_x)

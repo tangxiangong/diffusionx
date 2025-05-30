@@ -138,7 +138,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_simulate_ou() {
+    fn test_simulate_bng() {
         let bng = BnG::new(0.0, 1.0).unwrap();
         let (t, x) = bng.simulate(1.0, 0.01).unwrap();
         assert_eq!(t.len(), x.len());

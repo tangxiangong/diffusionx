@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] - 2025-05-30
+
+### 🚀 Features
+
+- Add is_increasing function and input validation for interpolation functions
+
+### 🐛 Bug Fixes
+
+- Improve linspace and interpolation functions
+- *(functionas.rs)* Enhance linspace function with parallel processing and add diff function
+- Fix simulation functions with linspace and error handling
+
+### 💼 Other
+
+- Add Levy Walk simulation example
+
+### 🚜 Refactor
+
+- Rename FBM struct to FBm for consistency
+
+### 📚 Documentation
+
+- *(CIR.rs)* Improve simulation logic with linspace and diff functions
+- *(mod.rs)* Add documentation for Brownian yet non-Gaussian process
+- *(mod.rs)* Correct spelling of Fractional Brownian motion
+- *(README)* Update Chinese and English documentation for Brownian yet non-Gaussian process
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.4.2
+- Update version to 0.4.3
+
 ## [0.4.2] - 2025-05-28
 
 ### 🚀 Features

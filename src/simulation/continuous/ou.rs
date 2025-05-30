@@ -1,7 +1,11 @@
 //! Ornstein-Uhlenbeck process simulation
 
-use crate::{XResult, random::normal, simulation::prelude::*};
-use rayon::prelude::*;
+use crate::{
+    XResult,
+    random::normal,
+    simulation::prelude::*,
+    utils::{diff, linspace},
+};
 
 /// Ornstein–Uhlenbeck process
 ///
@@ -116,22 +120,25 @@ pub fn simulate_ou(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
-    let num = (duration / time_step).ceil() as usize;
-    let t = (0..=num)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
-
-    let noise = normal::standard_rands::<f64>(num);
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
+    let noise = normal::standard_rands::<f64>(num_steps);
+    let delta = diff(&t);
 
     let x = std::iter::once(start_position)
-        .chain(noise.iter().scan(start_position, |state, &xi| {
-            let current_x = *state;
-            let next_x = current_x - theta * current_x * time_step + sigma * xi * time_step.sqrt();
+        .chain(
+            noise
+                .iter()
+                .zip(delta)
+                .scan(start_position, |state, (&xi, delta_t)| {
+                    let current_x = *state;
+                    let next_x =
+                        current_x - theta * current_x * delta_t + sigma * xi * delta_t.sqrt();
 
-            *state = next_x;
-            Some(next_x)
-        }))
+                    *state = next_x;
+                    Some(next_x)
+                }),
+        )
         .collect();
     Ok((t, x))
 }
