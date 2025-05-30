@@ -9,14 +9,14 @@ use crate::{
 
 /// Fractional Brownian motion
 #[derive(Debug, Clone)]
-pub struct FBM {
+pub struct FBm {
     /// The starting position
     start_position: f64,
     /// The Hurst exponent
     hurst_exponent: f64,
 }
 
-impl FBM {
+impl FBm {
     /// Create a new `Fbm`
     ///
     /// # Arguments
@@ -57,7 +57,7 @@ impl FBM {
     }
 }
 
-impl ContinuousProcess for FBM {
+impl ContinuousProcess for FBm {
     /// Simulate Fractional Brownian motion
     ///
     /// # Arguments
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_simulate_fbm() {
-        let fbm = FBM::new(10.0, 0.5).unwrap();
+        let fbm = FBm::new(10.0, 0.5).unwrap();
         let duration = 1.0;
         let time_step = 0.1;
         let (t, x) = fbm.simulate(duration, time_step).unwrap();
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_raw_moment() {
-        let fbm = FBM::new(10.0, 0.5).unwrap();
+        let fbm = FBm::new(10.0, 0.5).unwrap();
         let duration = 1.0;
         let time_step = 0.1;
         let traj = fbm.duration(duration).unwrap();
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_fpt() {
-        let fbm = FBM::new(0.0, 0.5).unwrap();
+        let fbm = FBm::new(0.0, 0.5).unwrap();
         let time_step = 0.1;
         let fpt = fbm.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
         println!("fpt: {:?}", fpt);
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_occupation_time() {
-        let fbm = FBM::new(0.0, 0.5).unwrap();
+        let fbm = FBm::new(0.0, 0.5).unwrap();
         let time_step = 0.1;
         let ot = fbm.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
         println!("ot: {:?}", ot);
@@ -183,6 +183,6 @@ mod tests {
     #[test]
     fn test_send_sync() {
         fn assert_send_sync<T: Send + Sync>() {}
-        assert_send_sync::<FBM>();
+        assert_send_sync::<FBm>();
     }
 }
