@@ -1,4 +1,9 @@
-use diffusionx::{XError, XResult, random::normal, simulation::prelude::*, utils::write_csv};
+use diffusionx::{
+    XError, XResult,
+    random::normal,
+    simulation::prelude::*,
+    utils::{diff, linspace, write_csv},
+};
 
 /// CIR
 #[allow(clippy::upper_case_acronyms)]
@@ -35,25 +40,28 @@ impl CIR {
 
 impl ContinuousProcess for CIR {
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        let num_steps = (duration / time_step).ceil() as usize;
-
+        let t = linspace(0.0, duration, time_step);
+        let num_steps = t.len() - 1;
         let initial_x = self.start_position.max(0.0);
         let noises = normal::standard_rands::<f64>(num_steps);
-
-        let t: Vec<f64> = (0..=num_steps).map(|i| i as f64 * time_step).collect();
+        let delta = diff(&t);
 
         let x = std::iter::once(initial_x)
-            .chain((0..num_steps).scan(initial_x, |state, i| {
-                let current_x = *state;
-                let drift = self.speed * (self.mean - current_x);
-                let diffusion = self.volatility * current_x.sqrt().max(0.0);
+            .chain(
+                noises
+                    .iter()
+                    .zip(delta)
+                    .scan(initial_x, |state, (&xi, delta_t)| {
+                        let current_x = *state;
+                        let drift = self.speed * (self.mean - current_x);
+                        let diffusion = self.volatility * current_x.sqrt().max(0.0);
 
-                let next_x =
-                    current_x + drift * time_step + diffusion * noises[i] * time_step.sqrt();
-                *state = next_x.max(0.0);
+                        let next_x = current_x + drift * delta_t + diffusion * xi * delta_t.sqrt();
+                        *state = next_x.max(0.0);
 
-                Some(*state)
-            }))
+                        Some(*state)
+                    }),
+            )
             .collect();
 
         Ok((t, x))
