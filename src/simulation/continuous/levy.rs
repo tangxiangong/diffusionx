@@ -2,7 +2,12 @@
 //!
 //! The Lévy process is a process with independent and stationary increments.
 
-use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
+use crate::{
+    SimulationError, XResult,
+    random::stable,
+    simulation::prelude::*,
+    utils::{cumsum, diff, linspace},
+};
 use rayon::prelude::*;
 
 /// Asymmetric Lévy process
@@ -143,14 +148,13 @@ pub fn simulate_asymmetric_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let num_steps = (duration / time_step).ceil() as usize;
-    let t = (0..=num_steps)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
+    let delta = diff(&t);
     let noise = stable::standard_rands(alpha, beta, num_steps)?
         .into_par_iter()
-        .map(|x| x * time_step.powf(1.0 / alpha))
+        .zip(delta)
+        .map(|(x, delta_t)| x * delta_t.powf(1.0 / alpha))
         .collect::<Vec<_>>();
     let x = cumsum(start_position, &noise);
     Ok((t, x))
@@ -264,14 +268,13 @@ pub fn simulate_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let num_steps = (duration / time_step).ceil() as usize;
-    let t = (0..=num_steps)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
+    let delta = diff(&t);
     let noise = stable::standard_rands(alpha, 0.0, num_steps)?
         .into_par_iter()
-        .map(|x| x * time_step.powf(1.0 / alpha))
+        .zip(delta)
+        .map(|(x, delta_t)| x * delta_t.powf(1.0 / alpha))
         .collect::<Vec<_>>();
     let x = cumsum(start_position, &noise);
     Ok((t, x))

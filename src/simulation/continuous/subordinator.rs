@@ -1,6 +1,11 @@
 //! Subordinator simulation
 
-use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::cumsum};
+use crate::{
+    SimulationError, XResult,
+    random::stable,
+    simulation::prelude::*,
+    utils::{cumsum, diff, linspace},
+};
 use rayon::prelude::*;
 
 /// alpha-stable subordinator
@@ -100,14 +105,13 @@ pub fn simulate_subordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let num_steps = (duration / time_step).ceil() as usize;
-    let t = (0..=num_steps)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
+    let delta = diff(&t);
     let noise = stable::skew_rands(alpha, num_steps)?
         .into_par_iter()
-        .map(|x| x * time_step.powf(1.0 / alpha))
+        .zip(delta)
+        .map(|(x, delta_t)| x * delta_t.powf(1.0 / alpha))
         .collect::<Vec<_>>();
     let x = cumsum(0.0, &noise);
     Ok((t, x))
@@ -219,16 +223,7 @@ pub fn simulate_invsubordinator(
         mut_duration *= 2.0;
     };
 
-    let num_steps = (duration / time_step).ceil() as usize;
-    let inv_times: Vec<f64> = (0..=num_steps)
-        .map(|i| {
-            if i == num_steps {
-                duration
-            } else {
-                i as f64 * time_step
-            }
-        })
-        .collect();
+    let inv_times = linspace(0.0, duration, time_step);
 
     let mut inv_path = Vec::with_capacity(inv_times.len());
 

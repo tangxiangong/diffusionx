@@ -1,7 +1,11 @@
 //! Brownian motion simulation
 
-use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::cumsum};
-use rayon::prelude::*;
+use crate::{
+    SimulationError, XResult,
+    random::normal,
+    simulation::prelude::*,
+    utils::{cumsum, linspace},
+};
 
 /// Brownian motion
 #[derive(Debug, Clone)]
@@ -112,12 +116,15 @@ pub fn simulate_bm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let num_steps = (duration / time_step).ceil() as usize;
-    let t = (0..=num_steps)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
-    let noise = normal::rands(0.0, 2.0 * diffusion_coefficient * time_step, num_steps)?;
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
+    let mut noise = normal::rands(0.0, 2.0 * diffusion_coefficient * time_step, num_steps)?;
+    let last = match noise.last_mut() {
+        Some(last) => last,
+        None => return Err(SimulationError::Unknown.into()),
+    };
+    let delta = t[num_steps] - t[num_steps - 1];
+    *last = normal::rand(0.0, 2.0 * diffusion_coefficient * delta)?;
     let x = cumsum(start_position, &noise);
     Ok((t, x))
 }

@@ -1,7 +1,11 @@
 //! Gamma process simulation
 
-use crate::{SimulationError, XResult, random::gamma, simulation::prelude::*, utils::cumsum};
-use rayon::prelude::*;
+use crate::{
+    SimulationError, XResult,
+    random::gamma,
+    simulation::prelude::*,
+    utils::{cumsum, linspace},
+};
 
 /// Gamma process
 ///
@@ -125,13 +129,16 @@ pub fn simulate_gamma(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let num_steps = (duration / time_step).ceil() as usize;
-    let t = (0..=num_steps)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
     let scale = 1.0 / rate;
-    let noise = gamma::rands(shape * time_step, scale, num_steps)?;
+    let mut noise = gamma::rands(shape * time_step, scale, num_steps)?;
+    let last = match noise.last_mut() {
+        Some(last) => last,
+        None => return Err(SimulationError::Unknown.into()),
+    };
+    let delta = t[num_steps] - t[num_steps - 1];
+    *last = gamma::rand(shape * delta, scale)?;
     let x = cumsum(0.0, &noise);
     Ok((t, x))
 }

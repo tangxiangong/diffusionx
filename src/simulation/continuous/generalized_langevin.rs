@@ -4,8 +4,8 @@ use crate::{
     SimulationError, XResult,
     random::{normal, stable},
     simulation::{continuous::Subordinator, prelude::*},
+    utils::{diff, linspace},
 };
-use rayon::prelude::*;
 
 /// Generalized Langevin equation
 ///
@@ -176,26 +176,23 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let num = (duration / time_step).ceil() as usize;
-    let t = (0..=num)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
 
-    let noise = stable::sym_standard_rands(alpha, num)?;
+    let noise = stable::sym_standard_rands(alpha, num_steps)?;
+    let delta = diff(&t);
 
-    // 使用迭代器风格生成路径
     let x = std::iter::once(start_position)
         .chain(
-            t.iter()
-                .skip(1)
-                .zip(noise)
-                .scan(start_position, |state, (&ti, xi)| {
+            t[0..num_steps]
+                .iter()
+                .zip(noise.into_iter().zip(delta))
+                .scan(start_position, |state, (&ti, (xi, delta_t))| {
                     let current_x = *state;
 
                     let next_x = current_x
-                        + drift(current_x, ti) * time_step
-                        + diffusion(current_x, ti) * xi * time_step.powf(1.0 / alpha);
+                        + drift(current_x, ti) * delta_t
+                        + diffusion(current_x, ti) * xi * delta_t.powf(1.0 / alpha);
 
                     *state = next_x;
                     Some(next_x)
@@ -211,7 +208,7 @@ where
 /// dx(t) = f(x(t), t) dS(t) + g(x(t), t) dB(S(t)), x(0) = x0
 ///
 /// where S(t) is the `alpha`-stable subordinator.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SubordinatedLangevin<D, G>
 where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
@@ -377,31 +374,27 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let num = (duration / time_step).ceil() as usize;
-    let t = (0..=num)
-        .into_par_iter()
-        .map(|i| time_step * i as f64)
-        .collect::<Vec<_>>();
+    let (t, s) = Subordinator::new(alpha)?.simulate(duration, time_step)?;
+    let num_steps = t.len() - 1;
+    let noise = normal::standard_rands::<f64>(num_steps);
+    let delta = diff(&s);
 
-    let initial_x = start_position;
-    let (_, s) = Subordinator::new(alpha)?.simulate(duration, time_step)?;
-    let noise = normal::standard_rands::<f64>(num);
+    let x = std::iter::once(start_position)
+        .chain(
+            t[0..num_steps]
+                .iter()
+                .zip(noise.into_iter().zip(delta))
+                .scan(start_position, |state, (&ti, (xi, delta_t))| {
+                    let current_x = *state;
 
-    // 使用迭代器风格生成路径
-    let x = std::iter::once(initial_x)
-        .chain((0..num).scan(initial_x, |state, i| {
-            let current_x = *state;
-            let current_t = unsafe { *t.get_unchecked(i) };
-            let delta_t = unsafe { *s.get_unchecked(i + 1) - *s.get_unchecked(i) };
+                    let next_x = current_x
+                        + drift(current_x, ti) * delta_t
+                        + diffusion(current_x, ti) * xi * delta_t.sqrt();
 
-            let xi = unsafe { *noise.get_unchecked(i) };
-            let next_x = current_x
-                + drift(current_x, current_t) * delta_t
-                + diffusion(current_x, current_t) * xi * delta_t.sqrt();
-
-            *state = next_x;
-            Some(next_x)
-        }))
+                    *state = next_x;
+                    Some(next_x)
+                }),
+        )
         .collect();
 
     Ok((t, x))

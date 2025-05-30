@@ -143,7 +143,7 @@ mod tests {
     use crate::simulation::prelude::Moment;
 
     #[test]
-    fn test_simulate_bm() {
+    fn test_simulate_meander() {
         let bm = BrownianMeander;
         let duration = 1.0;
         let time_step = 0.1;
