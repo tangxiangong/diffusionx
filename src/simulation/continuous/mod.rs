@@ -1,7 +1,7 @@
 //! Continuous processes
 //!
 //! - Brownian motion [Bm]
-//! - Fractional Brownian motion [FBM]
+//! - Fractional Brownian motion [FBm]
 //! - Generalized Langevin equation [GeneralizedLangevin]
 //! - Langevin equation [Langevin]
 //! - Levy process [Levy] and [AsymmetricLevy]
