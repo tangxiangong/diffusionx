@@ -250,6 +250,26 @@ where
     arr.windows(2).map(|w| w[1] - w[0]).collect()
 }
 
+/// Check if an array is non-decreasing
+///
+/// # Arguments
+///
+/// * `arr` - The input array
+///
+/// # Returns
+///
+/// `true` if the array is non-decreasing, `false` otherwise
+pub fn is_increasing(arr: &[f64]) -> bool {
+    arr.windows(2).all(|w| w[0] < w[1])
+}
+
+/// Linear interpolation
+///
+/// # Arguments
+///
+/// * `t` - The time points (must be strictly monotonically increasing)
+/// * `x` - The corresponding values
+/// * `step` - The step size for the output time sequence (must be positive)
 pub fn linear_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
     if t.len() != x.len() {
         return Err(XError::Other(
@@ -265,6 +285,12 @@ pub fn linear_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>,
 
     if step <= 0.0 {
         return Err(XError::Other("step must be positive".to_string()));
+    }
+
+    if !is_increasing(t) {
+        return Err(XError::InvalidParameters(
+            "t must be strictly monotonically increasing".to_string(),
+        ));
     }
 
     let t_new = linspace(t[0], t[t.len() - 1], step);
@@ -340,6 +366,12 @@ pub fn flatten_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>
 
     if step <= 0.0 {
         return Err(XError::Other("step must be positive".to_string()));
+    }
+
+    if !is_increasing(t) {
+        return Err(XError::InvalidParameters(
+            "t must be strictly monotonically increasing".to_string(),
+        ));
     }
 
     let t_new = linspace(t[0], t[t.len() - 1], step);
