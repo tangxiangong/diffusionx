@@ -14,6 +14,7 @@
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
 use crate::{XError, XResult};
 use num_traits::Num;
+use rayon::prelude::*;
 use std::path::Path;
 /// Calculate the cumulative sum of a vector
 ///
@@ -220,29 +221,33 @@ pub fn linspace(start: f64, end: f64, step: f64) -> Vec<f64> {
         return vec![start];
     }
 
-    // 计算需要的点数
-    let range = end - start;
-    let num_steps = (range / step).floor() as usize;
+    let len = ((end - start) / step).ceil() as usize + 1;
+    let mut result = (0..len)
+        .into_par_iter()
+        .map(|i| start + i as f64 * step)
+        .collect::<Vec<_>>();
 
-    let mut result = Vec::with_capacity(num_steps + 2); // +2 for start and potentially end
-
-    // 生成等间距的点
-    for i in 0..=num_steps {
-        let value = start + (i as f64) * step;
-        if value <= end + f64::EPSILON {
-            // 允许小的浮点误差
-            result.push(value);
-        }
-    }
-
-    // 确保终点被包含（如果最后一个点不够接近终点）
-    if let Some(&last) = result.last() {
-        if !approx_eq(last, end, f64::EPSILON) && last < end {
-            result.push(end);
-        }
-    }
-
+    let last = match result.last_mut() {
+        Some(last) => last,
+        None => panic!("The length of the result is 0"),
+    };
+    *last = end;
     result
+}
+
+/// Calculate the difference between adjacent elements in an array
+///
+/// # Arguments
+///
+/// * `arr` - The input array
+pub fn diff<T>(arr: &[T]) -> Vec<T>
+where
+    T: Num + Copy,
+{
+    if arr.len() < 2 {
+        return arr.to_vec();
+    }
+    arr.windows(2).map(|w| w[1] - w[0]).collect()
 }
 
 pub fn linear_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
@@ -262,16 +267,6 @@ pub fn linear_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>,
         return Err(XError::Other("step must be positive".to_string()));
     }
 
-    // 验证 t 是否单调递增
-    for i in 1..t.len() {
-        if t[i] <= t[i - 1] {
-            return Err(XError::Other(
-                "t must be strictly monotonically increasing".to_string(),
-            ));
-        }
-    }
-
-    // 生成等间距的时间序列
     let t_new = linspace(t[0], t[t.len() - 1], step);
     let mut x_new = Vec::with_capacity(t_new.len());
 
@@ -347,16 +342,6 @@ pub fn flatten_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>
         return Err(XError::Other("step must be positive".to_string()));
     }
 
-    // 验证 t 是否单调递增
-    for i in 1..t.len() {
-        if t[i] <= t[i - 1] {
-            return Err(XError::Other(
-                "t must be strictly monotonically increasing".to_string(),
-            ));
-        }
-    }
-
-    // 生成等间距的时间序列（与 linear_interpolate 一致）
     let t_new = linspace(t[0], t[t.len() - 1], step);
     let mut x_new = Vec::with_capacity(t_new.len());
 
