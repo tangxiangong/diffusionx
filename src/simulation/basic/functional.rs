@@ -137,8 +137,8 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             .into());
         }
 
-        // Use tuple to track the sum and the number of valid samples
-        let (sum, valid_count) = (0..particles)
+        // Collect all valid FPT values
+        let valid_values = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<Option<f64>> {
                 let fpt = self.simulate(max_duration, time_step)?;
@@ -147,21 +147,17 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
                     None => Ok(None),
                 }
             })
-            .try_fold(
-                || (0.0, 0usize),
-                |acc, res| -> XResult<(f64, usize)> {
-                    match res? {
-                        Some(v) => Ok((acc.0 + v, acc.1 + 1)),
-                        None => Ok(acc),
-                    }
-                },
-            )
-            .try_reduce(|| (0.0, 0usize), |a, b| Ok((a.0 + b.0, a.1 + b.1)))?;
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .filter_map(|x| x)
+            .collect::<Vec<_>>();
 
-        if valid_count == 0 {
+        if valid_values.is_empty() {
             Ok(None)
         } else {
-            Ok(Some(sum / valid_count as f64))
+            let count = valid_values.len();
+            let sum = valid_values.into_par_iter().sum::<f64>();
+            Ok(Some(sum / count as f64))
         }
     }
 
@@ -197,7 +193,7 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             return Ok(None);
         }
         let mean = mean.unwrap();
-        let (sum, valid_count) = (0..particles)
+        let valid_values = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<Option<f64>> {
                 let fpt = self.simulate(max_duration, time_step)?;
@@ -206,21 +202,17 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
                     None => Ok(None),
                 }
             })
-            .try_fold(
-                || (0.0, 0usize),
-                |acc, res| -> XResult<(f64, usize)> {
-                    match res? {
-                        Some(v) => Ok((acc.0 + v, acc.1 + 1)),
-                        None => Ok(acc),
-                    }
-                },
-            )
-            .try_reduce(|| (0.0, 0usize), |a, b| Ok((a.0 + b.0, a.1 + b.1)))?;
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .filter_map(|x| x)
+            .collect::<Vec<_>>();
 
-        if valid_count == 0 {
+        if valid_values.is_empty() {
             Ok(None)
         } else {
-            Ok(Some(sum / valid_count as f64))
+            let count = valid_values.len();
+            let sum = valid_values.into_par_iter().sum::<f64>();
+            Ok(Some(sum / count as f64))
         }
     }
 }
@@ -363,8 +355,9 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
                 let occupation_time = self.simulate(time_step)?;
                 Ok(occupation_time.powi(order))
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64;
         Ok(result)
     }
@@ -395,8 +388,9 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
                 let occupation_time = self.simulate(time_step)?;
                 Ok((occupation_time - mean).powi(order))
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64;
         Ok(result)
     }
@@ -467,7 +461,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
         }
 
         // 使用元组来同时跟踪总和和有效样本数
-        let (sum, valid_count) = (0..particles)
+        let valid_values = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<Option<f64>> {
                 let fpt = self.simulate_p(max_duration)?;
@@ -476,21 +470,17 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
                     None => Ok(None),
                 }
             })
-            .try_fold(
-                || (0.0, 0usize),
-                |acc, res| -> XResult<(f64, usize)> {
-                    match res? {
-                        Some(v) => Ok((acc.0 + v, acc.1 + 1)),
-                        None => Ok(acc),
-                    }
-                },
-            )
-            .try_reduce(|| (0.0, 0usize), |a, b| Ok((a.0 + b.0, a.1 + b.1)))?;
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .filter_map(|x| x)
+            .collect::<Vec<_>>();
 
-        if valid_count == 0 {
+        if valid_values.is_empty() {
             Ok(None)
         } else {
-            Ok(Some(sum / valid_count as f64))
+            let count = valid_values.len();
+            let sum = valid_values.into_par_iter().sum::<f64>();
+            Ok(Some(sum / count as f64))
         }
     }
 
@@ -513,7 +503,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
             return Ok(None);
         }
         let mean = mean.unwrap();
-        let (sum, valid_count) = (0..particles)
+        let valid_values = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<Option<f64>> {
                 let fpt = self.simulate_p(max_duration)?;
@@ -522,21 +512,17 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
                     None => Ok(None),
                 }
             })
-            .try_fold(
-                || (0.0, 0usize),
-                |acc, res| -> XResult<(f64, usize)> {
-                    match res? {
-                        Some(v) => Ok((acc.0 + v, acc.1 + 1)),
-                        None => Ok(acc),
-                    }
-                },
-            )
-            .try_reduce(|| (0.0, 0usize), |a, b| Ok((a.0 + b.0, a.1 + b.1)))?;
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .filter_map(|x| x)
+            .collect::<Vec<_>>();
 
-        if valid_count == 0 {
+        if valid_values.is_empty() {
             Ok(None)
         } else {
-            Ok(Some(sum / valid_count as f64))
+            let count = valid_values.len();
+            let sum = valid_values.into_par_iter().sum::<f64>();
+            Ok(Some(sum / count as f64))
         }
     }
 }
@@ -591,8 +577,9 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
                 let occupation_time = self.simulate_p()?;
                 Ok(occupation_time.powi(order))
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64;
         Ok(result)
     }
@@ -611,8 +598,9 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
                 let occupation_time = self.simulate_p()?;
                 Ok((occupation_time - mean).powi(order))
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64;
         Ok(result)
     }

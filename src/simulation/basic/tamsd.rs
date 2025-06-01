@@ -99,8 +99,9 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
 
                 Ok((end_position - slag_position).powi(2) * weight)
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / (duration - slag);
         Ok(result)
     }
@@ -116,8 +117,9 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
         Ok((0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> { self.simulate(time_step, quad_order) })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64)
     }
 
@@ -136,8 +138,9 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
                 let value = self.simulate(time_step, quad_order)?;
                 Ok((value - mean).powi(2))
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64)
     }
 }
@@ -172,8 +175,9 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
 
                 Ok((end_position - slag_position).powi(2) * weight)
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / (duration - slag);
         Ok(result)
     }
@@ -189,8 +193,9 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
         Ok((0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> { self.simulate_p(time_step, quad_order) })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64)
     }
 
@@ -209,8 +214,9 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
                 let value = self.simulate_p(time_step, quad_order)?;
                 Ok((value - mean).powi(2))
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64)
     }
 }

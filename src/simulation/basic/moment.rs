@@ -42,7 +42,7 @@ impl<SP: ContinuousProcess> Moment for ContinuousTrajectory<SP> {
 
         let duration = self.duration;
 
-        let result = (0..particles)
+        let values = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> {
                 let (_, x) = self.sp.simulate(duration, time_step)?;
@@ -52,16 +52,16 @@ impl<SP: ContinuousProcess> Moment for ContinuousTrajectory<SP> {
                     None => Err(SimulationError::Unknown.into()),
                 }
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-            / particles as f64;
+            .collect::<XResult<Vec<_>>>()?;
+
+        let result = values.into_par_iter().sum::<f64>() / particles as f64;
         Ok(result)
     }
 
     fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, time_step)?;
         let duration = self.duration;
-        let result = (0..particles)
+        let values: Vec<f64> = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> {
                 let (_, x) = self.sp.simulate(duration, time_step)?;
@@ -71,9 +71,9 @@ impl<SP: ContinuousProcess> Moment for ContinuousTrajectory<SP> {
                     None => Err(SimulationError::Unknown.into()),
                 }
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-            / particles as f64;
+            .collect::<XResult<Vec<_>>>()?;
+
+        let result = values.into_par_iter().sum::<f64>() / particles as f64;
         Ok(result)
     }
 }
@@ -94,7 +94,7 @@ impl<SP: DiscreteProcess> Moment for DiscreteTrajectory<SP> {
 
         let num_step = self.num_step;
 
-        let result = (0..particles)
+        let values: Vec<f64> = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> {
                 let (_, x) = self.sp.simulate(num_step)?;
@@ -104,16 +104,16 @@ impl<SP: DiscreteProcess> Moment for DiscreteTrajectory<SP> {
                     None => Err(SimulationError::Unknown.into()),
                 }
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-            / particles as f64;
+            .collect::<XResult<Vec<_>>>()?;
+
+        let result = values.into_par_iter().sum::<f64>() / particles as f64;
         Ok(result)
     }
 
     fn central_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, 0.01)?;
         let num_step = self.num_step;
-        let result = (0..particles)
+        let values: Vec<f64> = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> {
                 let (_, x) = self.sp.simulate(num_step)?;
@@ -123,9 +123,9 @@ impl<SP: DiscreteProcess> Moment for DiscreteTrajectory<SP> {
                     None => Err(SimulationError::Unknown.into()),
                 }
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-            / particles as f64;
+            .collect::<XResult<Vec<_>>>()?;
+
+        let result = values.iter().sum::<f64>() / particles as f64;
         Ok(result)
     }
 }
@@ -152,7 +152,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
         }
         let duration = self.duration.unwrap();
 
-        let result = (0..particles)
+        let values: Vec<f64> = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> {
                 let (_, x) = self.sp.simulate_with_duration(duration)?;
@@ -162,16 +162,16 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
                     None => Err(SimulationError::Unknown.into()),
                 }
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-            / particles as f64;
+            .collect::<XResult<Vec<_>>>()?;
+
+        let result = values.into_par_iter().sum::<f64>() / particles as f64;
         Ok(result)
     }
 
     fn central_moment(&self, order: i32, particles: usize, _time_step: f64) -> XResult<f64> {
         let mean = self.raw_moment(order, particles, _time_step)?;
         let duration = self.duration.unwrap();
-        let result = (0..particles)
+        let values: Vec<f64> = (0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> {
                 let (_, x) = self.sp.simulate_with_duration(duration)?;
@@ -181,9 +181,9 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
                     None => Err(SimulationError::Unknown.into()),
                 }
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
-            / particles as f64;
+            .collect::<XResult<Vec<_>>>()?;
+
+        let result = values.into_par_iter().sum::<f64>() / particles as f64;
         Ok(result)
     }
 }
