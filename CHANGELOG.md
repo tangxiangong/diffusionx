@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.4] - 2025-06-04
+
+### 🚜 Refactor
+
+- Optimize sample aggregation in simulation functions
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.4.3
+- Update version to 0.4.4 and add keywords
+
 ## [0.4.3] - 2025-05-30
 
 ### 🚀 Features
