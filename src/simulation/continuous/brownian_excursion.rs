@@ -35,6 +35,13 @@ impl BrownianExcursion {
         }
 
         let (a, b) = domain;
+        if a >= b {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `domain` must be in (a, b), got `{}` >= `{}`",
+                a, b
+            ))
+            .into());
+        }
 
         let (t, x) = self.simulate(1.0, time_step)?;
         if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
@@ -96,6 +103,13 @@ pub fn simulate_brownian_excursion(duration: f64, time_step: f64) -> XResult<(Ve
         return Err(SimulationError::InvalidParameters(format!(
             "The `time_step` must be positive, got {}",
             time_step
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
+            time_step, duration
         ))
         .into());
     }

@@ -85,20 +85,6 @@ impl ContinuousProcess for Gamma {
     /// let (t, x) = gamma.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {}",
-                time_step
-            ))
-            .into());
-        }
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
-            ))
-            .into());
-        }
         simulate_gamma(self.shape, self.rate, duration, time_step)
     }
 }
@@ -129,6 +115,41 @@ pub fn simulate_gamma(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{}`",
+            duration
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got `{}`",
+            time_step
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
+            time_step, duration
+        ))
+        .into());
+    }
+    if shape <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `shape` must be positive, got `{}`",
+            shape
+        ))
+        .into());
+    }
+    if rate <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `rate` must be positive, got `{}`",
+            rate
+        ))
+        .into());
+    }
     let t = linspace(0.0, duration, time_step);
     let num_steps = t.len() - 1;
     let scale = 1.0 / rate;

@@ -33,6 +33,13 @@ impl BrownianMeander {
             ))
             .into());
         }
+        if domain.0 >= domain.1 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `domain` must be in (a, b), got `{}` >= `{}`",
+                domain.0, domain.1
+            ))
+            .into());
+        }
         let (a, b) = domain;
 
         let (t, x) = self.simulate(1.0, time_step)?;
@@ -84,6 +91,20 @@ impl ContinuousProcess for BrownianMeander {
 /// let (t, x) = simulate_brownian_meander(duration, time_step).unwrap();
 /// ```
 pub fn simulate_brownian_meander(duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
+            time_step, duration
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got {}",
+            time_step
+        ))
+        .into());
+    }
     if duration <= 0.0 || duration > 1.0 {
         // Duration must be positive and not exceed 1.0
         return Err(SimulationError::InvalidParameters(format!(

@@ -1,6 +1,6 @@
 //! Brownian yet non-Gaussian process simulation
 
-use crate::{XResult, random::normal, simulation::prelude::*};
+use crate::{SimulationError, XResult, random::normal, simulation::prelude::*};
 
 use super::simulate_ou;
 
@@ -114,6 +114,27 @@ pub fn simulate_bng(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{}`",
+            duration
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got `{}`",
+            time_step
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
+            time_step, duration
+        ))
+        .into());
+    }
     let (t, y) = simulate_ou(1.0, 1.0, ou_start_position, duration, time_step)?;
     let noise = normal::standard_rands::<f64>(t.len() - 1);
     let x = std::iter::once(start_position)

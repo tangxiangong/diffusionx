@@ -122,6 +122,27 @@ impl LevyWalk {
 
 impl ContinuousProcess for LevyWalk {
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+        if duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got `{}`",
+                duration
+            ))
+            .into());
+        }
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{}`",
+                time_step
+            ))
+            .into());
+        }
+        if time_step > duration {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
+                time_step, duration
+            ))
+            .into());
+        }
         let (t, x) = self.simulate_with_duration(duration)?;
         linear_interpolate(&t, &x, time_step)
     }
@@ -149,6 +170,27 @@ pub fn simulate_levy_walk_with_step(
     num_step: usize,
     start_position: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if num_step == 0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `num_step` must be positive, got `{}`",
+            num_step
+        ))
+        .into());
+    }
+    if alpha <= 0.0 || alpha > 1.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be between 0 and 1, got {}",
+            alpha
+        ))
+        .into());
+    }
+    if velocity <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `velocity` must be positive, got {}",
+            velocity
+        ))
+        .into());
+    }
     let waiting_times = if alpha == 1.0 {
         exponential::rands(1.0, num_step)?
     } else {

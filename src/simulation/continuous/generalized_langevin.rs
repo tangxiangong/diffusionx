@@ -176,6 +176,34 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{}`",
+            duration
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got `{}`",
+            time_step
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
+            time_step, duration
+        ))
+        .into());
+    }
+    if alpha <= 0.0 || alpha > 2.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be in the range (0, 2], got {}",
+            alpha
+        ))
+        .into());
+    }
     let t = linspace(0.0, duration, time_step);
     let num_steps = t.len() - 1;
 
@@ -374,6 +402,41 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{}`",
+            duration
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got `{}`",
+            time_step
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
+            time_step, duration
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{}`",
+            duration
+        ))
+        .into());
+    }
+    if alpha <= 0.0 || alpha >= 1.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be in the range (0, 1), got {}",
+            alpha
+        ))
+        .into());
+    }
     let (t, s) = Subordinator::new(alpha)?.simulate(duration, time_step)?;
     let num_steps = t.len() - 1;
     let noise = normal::standard_rands::<f64>(num_steps);

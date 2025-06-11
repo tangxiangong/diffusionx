@@ -67,20 +67,6 @@ impl ContinuousProcess for Subordinator {
     /// let (t, x) = subordinator.simulate(1.0, 0.1).unwrap();
     /// ```
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {}",
-                time_step
-            ))
-            .into());
-        }
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
-            ))
-            .into());
-        }
         simulate_subordinator(self.alpha, duration, time_step)
     }
 }
@@ -105,6 +91,34 @@ pub fn simulate_subordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if alpha <= 0.0 || alpha > 1.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be in the range (0, 1], got {}",
+            alpha
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got {}",
+            time_step
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{}`",
+            duration
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
+            time_step, duration
+        ))
+        .into());
+    }
     let t = linspace(0.0, duration, time_step);
     let num_steps = t.len() - 1;
     let delta = diff(&t);
@@ -172,20 +186,6 @@ impl ContinuousProcess for InvSubordinator {
     /// let (t, x) = inv_subordinator.simulate(1.0, 0.1).unwrap();
     /// ```
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {}",
-                time_step
-            ))
-            .into());
-        }
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
-            ))
-            .into());
-        }
         simulate_invsubordinator(self.alpha, duration, time_step)
     }
 }
@@ -210,6 +210,34 @@ pub fn simulate_invsubordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if alpha <= 0.0 || alpha > 1.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be in the range (0, 1], got {}",
+            alpha
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got {}",
+            time_step
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{}`",
+            duration
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
+            time_step, duration
+        ))
+        .into());
+    }
     let mut mut_duration = duration;
     let (t, s) = loop {
         let (t, s) = simulate_subordinator(alpha, mut_duration, time_step)?;

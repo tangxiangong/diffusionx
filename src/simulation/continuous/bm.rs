@@ -116,6 +116,34 @@ pub fn simulate_bm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if diffusion_coefficient <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The diffusion coefficient must be positive, got {}",
+            diffusion_coefficient
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The duration must be positive, got {}",
+            duration
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The time step must be less than or equal to the duration, got {} > {}",
+            time_step, duration
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The time step must be positive, got {}",
+            time_step
+        ))
+        .into());
+    }
     let t = linspace(0.0, duration, time_step);
     let num_steps = t.len() - 1;
     let mut noise = normal::rands(0.0, 2.0 * diffusion_coefficient * time_step, num_steps)?;
