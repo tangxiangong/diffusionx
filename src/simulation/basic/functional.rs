@@ -67,6 +67,14 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     /// let result = fpt.simulate(1000.0, 0.1).unwrap();
     /// ```
     pub fn simulate(&self, max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>> {
+        let max_duration = max_duration.into();
+        if max_duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `max_duration` must be positive, got `{}`",
+                max_duration
+            ))
+            .into());
+        }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got `{}`",
@@ -74,8 +82,14 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             ))
             .into());
         }
+        if time_step > max_duration {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be less than or equal to the `max_duration`, got `{}` > `{}`",
+                time_step, max_duration
+            ))
+            .into());
+        }
         let (a, b) = self.domain;
-        let max_duration = max_duration.into();
         let mut duration = 10.0;
         loop {
             let (t, x) = self.sp.simulate(duration, time_step)?;
@@ -125,6 +139,16 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got `{}`",
                 particles
+            ))
+            .into());
+        }
+        if order == 0 {
+            return Ok(Some(1.0));
+        }
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{}`",
+                time_step
             ))
             .into());
         }
@@ -187,7 +211,24 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
         max_duration: impl Into<f64>,
         time_step: f64,
     ) -> XResult<Option<f64>> {
+        if order == 0 {
+            return Ok(Some(1.0));
+        }
         let max_duration = max_duration.into();
+        if max_duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `max_duration` must be positive, got `{}`",
+                max_duration
+            ))
+            .into());
+        }
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{}`",
+                time_step
+            ))
+            .into());
+        }
         let mean = self.raw_moment(order, particles, max_duration, time_step)?;
         if mean.is_none() {
             return Ok(None);
@@ -293,6 +334,13 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     /// let result = ot.simulate(0.1).unwrap();
     /// ```
     pub fn simulate(&self, time_step: f64) -> XResult<f64> {
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{}`",
+                time_step
+            ))
+            .into());
+        }
         let (t, x) = self.sp.simulate(self.duration, time_step)?;
         let (a, b) = self.domain;
 
@@ -338,15 +386,15 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
             ))
             .into());
         }
-        if order < 0 {
+        if order == 0 {
+            return Ok(1.0);
+        }
+        if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `order` must be non-negative, got `{}`",
-                order
+                "The `time_step` must be positive, got `{}`",
+                time_step
             ))
             .into());
-        }
-        if order == 0 {
-            return Ok(0.0);
         }
 
         let result = (0..particles)
@@ -381,6 +429,23 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     /// let result = ot.central_moment(1, 1000, 0.1).unwrap();
     /// ```
     pub fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
+        if order == 0 {
+            return Ok(1.0);
+        }
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{}`",
+                time_step
+            ))
+            .into());
+        }
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got `{}`",
+                particles
+            ))
+            .into());
+        }
         let mean = self.raw_moment(order, particles, time_step)?;
         let result = (0..particles)
             .into_par_iter()
@@ -403,8 +468,15 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
     ///
     /// * `max_duration` - The maximum duration of the simulation.
     pub fn simulate_p(&self, max_duration: impl Into<f64>) -> XResult<Option<f64>> {
-        let (a, b) = self.domain;
         let max_duration = max_duration.into();
+        if max_duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `max_duration` must be positive, got `{}`",
+                max_duration
+            ))
+            .into());
+        }
+        let (a, b) = self.domain;
         let mut duration = 10.0;
         loop {
             let (t, x) = self.sp.simulate_with_duration(duration)?;
@@ -437,27 +509,22 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
         particles: usize,
         max_duration: impl Into<f64>,
     ) -> XResult<Option<f64>> {
+        let max_duration = max_duration.into();
+        if max_duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `max_duration` must be positive, got `{}`",
+                max_duration
+            ))
+            .into());
+        }
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(
                 "particles must be positive".to_string(),
             )
             .into());
         }
-        if order < 0 {
-            return Err(SimulationError::InvalidParameters(
-                "order must be non-negative".to_string(),
-            )
-            .into());
-        }
         if order == 0 {
-            return Ok(Some(0.0));
-        }
-        let max_duration = max_duration.into();
-        if max_duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(
-                "max_duration must be positive".to_string(),
-            )
-            .into());
+            return Ok(Some(1.0));
         }
 
         // 使用元组来同时跟踪总和和有效样本数
@@ -498,6 +565,22 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
         max_duration: impl Into<f64>,
     ) -> XResult<Option<f64>> {
         let max_duration = max_duration.into();
+        if max_duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `max_duration` must be positive, got `{}`",
+                max_duration
+            ))
+            .into());
+        }
+        if order == 0 {
+            return Ok(Some(1.0));
+        }
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(
+                "particles must be positive".to_string(),
+            )
+            .into());
+        }
         let mean = self.raw_moment_p(order, particles, max_duration)?;
         if mean.is_none() {
             return Ok(None);
@@ -561,14 +644,8 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
             )
             .into());
         }
-        if order < 0 {
-            return Err(SimulationError::InvalidParameters(
-                "order must be non-negative".to_string(),
-            )
-            .into());
-        }
         if order == 0 {
-            return Ok(0.0);
+            return Ok(1.0);
         }
 
         let result = (0..particles)
@@ -591,6 +668,15 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     pub fn central_moment_p(&self, order: i32, particles: usize) -> XResult<f64> {
+        if order == 0 {
+            return Ok(1.0);
+        }
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(
+                "particles must be positive".to_string(),
+            )
+            .into());
+        }
         let mean = self.raw_moment_p(order, particles)?;
         let result = (0..particles)
             .into_par_iter()
