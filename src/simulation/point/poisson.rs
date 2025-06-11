@@ -76,6 +76,13 @@ impl PointProcess for Poisson {
 /// let (t, x) = simulate_poisson_with_step(1.0, 1000).unwrap();
 /// ```
 pub fn simulate_poisson_with_step(lambda: f64, num_step: usize) -> XResult<Pair> {
+    if lambda <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `lambda` must be greater than 0, got {}",
+            lambda
+        ))
+        .into());
+    }
     let durations = exponential::rands(lambda, num_step)?;
     let t = cumsum(0.0, &durations);
     let x = (0..=num_step).map(|i| i as f64).collect::<Vec<_>>();
@@ -97,6 +104,20 @@ pub fn simulate_poisson_with_step(lambda: f64, num_step: usize) -> XResult<Pair>
 /// let (t, x) = simulate_poisson_with_duration(1.0, 100.0).unwrap();
 /// ```
 pub fn simulate_poisson_with_duration(lambda: f64, duration: f64) -> XResult<Pair> {
+    if lambda <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `lambda` must be greater than 0, got {}",
+            lambda
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{}`",
+            duration
+        ))
+        .into());
+    }
     let poisson = Poisson::new(lambda)?;
     poisson.simulate_with_duration(duration)
 }

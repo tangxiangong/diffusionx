@@ -103,6 +103,27 @@ impl PointProcess for BirthDeath {
 /// let (t, x) = simulate_birth_death_with_step(1.0, 1.0, 100).unwrap();
 /// ```
 pub fn simulate_birth_death_with_step(lambda: f64, mu: f64, num_step: usize) -> XResult<Pair> {
+    if lambda <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `lambda` must be greater than 0, got {}",
+            lambda
+        ))
+        .into());
+    }
+    if mu <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `mu` must be greater than 0, got {}",
+            mu
+        ))
+        .into());
+    }
+    if num_step == 0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `num_step` must be greater than 0, got {}",
+            num_step
+        ))
+        .into());
+    }
     let durations = exponential::rands(lambda + mu, num_step)?;
     let t = cumsum(0.0, &durations);
     let directions = uniform::bool_rands(lambda / (lambda + mu), num_step)?
@@ -129,6 +150,27 @@ pub fn simulate_birth_death_with_step(lambda: f64, mu: f64, num_step: usize) -> 
 /// let (t, x) = simulate_birth_death_with_duration(1.0, 1.0, 100.0).unwrap();
 /// ```
 pub fn simulate_birth_death_with_duration(lambda: f64, mu: f64, duration: f64) -> XResult<Pair> {
+    if lambda <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `lambda` must be greater than 0, got {}",
+            lambda
+        ))
+        .into());
+    }
+    if mu <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `mu` must be greater than 0, got {}",
+            mu
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{}`",
+            duration
+        ))
+        .into());
+    }
     let birth_death = BirthDeath::new(lambda, mu)?;
     birth_death.simulate_with_duration(duration)
 }
