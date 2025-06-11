@@ -17,6 +17,13 @@ pub trait PointProcess: Send + Sync {
     where
         Self: Sized, // simulate_with_step is called, which is dyn-dispatchable
     {
+        if duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {}",
+                duration
+            ))
+            .into());
+        }
         let mut num_step = duration.ceil() as usize;
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;

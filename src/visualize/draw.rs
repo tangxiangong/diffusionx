@@ -18,7 +18,7 @@ pub trait Visualize {
     fn plot(&self, config: &PlotConfig) -> XResult<()>;
 }
 
-impl<CP: ContinuousProcess> Visualize for ContinuousTrajectory<CP> {
+impl<CP: ContinuousProcess + Clone> Visualize for ContinuousTrajectory<CP> {
     /// Plot the continuous trajectory.
     ///
     /// # Arguments
