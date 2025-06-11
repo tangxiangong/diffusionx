@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.5] - 2025-06-11
+
+### 🚀 Features
+
+- Add input parameter validation to enhance the robustness of the simulation function
+- Enhanced input parameter validation to improve the robustness of simulation functions
+- Enhanced input parameter validation for inverse process simulation function
+- Optimize the implementation of continuous/point/jump processes and trajectories, simplify type constraints
+- Enhanced input parameter validation for random walk simulation functions
+- Enhanced Input Validation for Stochastic Process Simulation Functions
+
+### 💼 Other
+
+- Update version to 0.4.5
+
+### ⚙️ Miscellaneous Tasks
+
+- Update version to 0.4.4
+
 ## [0.4.4] - 2025-06-04
 
 ### 🚜 Refactor
