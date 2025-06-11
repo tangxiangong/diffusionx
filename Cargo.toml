@@ -2,7 +2,7 @@
 name = "diffusionx"
 authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.4.4"
+version = "0.4.5"
 description = "A multi-threaded crate for random number generation and stochastic process simulation."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
@@ -24,7 +24,7 @@ default = ["visualize"]
 visualize = ["plotters", "derive_builder", "plotters-backend"]
 
 [dependencies]
-rand_distr =  "0.5"
+rand_distr = "0.5"
 rand = "0.9"
 rayon = "1.10"
 thiserror = "2"
