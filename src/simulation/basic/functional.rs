@@ -90,21 +90,22 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             .into());
         }
         let (a, b) = self.domain;
+        let find = |x: &[f64]| x.iter().position(|&pos| pos <= a || pos >= b);
         let mut duration = (max_duration / 10.0).min(10.0);
         loop {
             let (t, x) = self.sp.simulate(duration, time_step)?;
-            if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
+            if let Some(index) = find(&x) {
                 return Ok(Some(t[index]));
             }
             duration *= 2.0;
             if duration > max_duration {
                 duration = max_duration;
                 let (t, x) = self.sp.simulate(duration, time_step)?;
-                if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
-                    return Ok(Some(t[index]));
+                return if let Some(index) = find(&x) {
+                    Ok(Some(t[index]))
                 } else {
-                    return Ok(None);
-                }
+                    Ok(None)
+                };
             }
         }
     }
