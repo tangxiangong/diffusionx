@@ -177,13 +177,7 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             .filter_map(|x| x)
             .collect::<Vec<_>>();
 
-        if valid_values.is_empty() {
-            Ok(None)
-        } else {
-            let count = valid_values.len();
-            let sum = valid_values.into_par_iter().sum::<f64>();
-            Ok(Some(sum / count as f64))
-        }
+        Ok(average(&valid_values))
     }
 
     /// Get the central moment of the first passage time
@@ -249,13 +243,7 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             .filter_map(|x| x)
             .collect::<Vec<_>>();
 
-        if valid_values.is_empty() {
-            Ok(None)
-        } else {
-            let count = valid_values.len();
-            let sum = valid_values.into_par_iter().sum::<f64>();
-            Ok(Some(sum / count as f64))
-        }
+        Ok(average(&valid_values))
     }
 }
 
@@ -345,18 +333,7 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
         let (t, x) = self.sp.simulate(self.duration, time_step)?;
         let (a, b) = self.domain;
 
-        let occupation_time = x
-            .windows(2)
-            .zip(t.windows(2))
-            .map(|(x_pair, t_pair)| {
-                let in_domain = (a..=b).contains(&x_pair[0]) && (a..=b).contains(&x_pair[1]);
-                if in_domain {
-                    t_pair[1] - t_pair[0]
-                } else {
-                    0.0
-                }
-            })
-            .sum();
+        let occupation_time = oc(&t, &x, a, b);
 
         Ok(occupation_time)
     }
@@ -478,21 +455,22 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
             .into());
         }
         let (a, b) = self.domain;
+        let find = |x: &[f64]| x.iter().position(|&x| x <= a || x >= b);
         let mut duration = (max_duration / 10.0).min(10.0);
         loop {
             let (t, x) = self.sp.simulate_with_duration(duration)?;
-            if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
+            if let Some(index) = find(&x) {
                 return Ok(Some(t[index]));
             }
             duration *= 2.0;
             if duration > max_duration {
                 duration = max_duration;
                 let (t, x) = self.sp.simulate_with_duration(duration)?;
-                if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
-                    return Ok(Some(t[index]));
+                return if let Some(index) = find(&x) {
+                    Ok(Some(t[index]))
                 } else {
-                    return Ok(None);
-                }
+                    Ok(None)
+                };
             }
         }
     }
@@ -542,14 +520,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
             .into_par_iter()
             .filter_map(|x| x)
             .collect::<Vec<_>>();
-
-        if valid_values.is_empty() {
-            Ok(None)
-        } else {
-            let count = valid_values.len();
-            let sum = valid_values.into_par_iter().sum::<f64>();
-            Ok(Some(sum / count as f64))
-        }
+        Ok(average(&valid_values))
     }
 
     /// Get the central moment of the first passage time
@@ -601,13 +572,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
             .filter_map(|x| x)
             .collect::<Vec<_>>();
 
-        if valid_values.is_empty() {
-            Ok(None)
-        } else {
-            let count = valid_values.len();
-            let sum = valid_values.into_par_iter().sum::<f64>();
-            Ok(Some(sum / count as f64))
-        }
+        Ok(average(&valid_values))
     }
 }
 
@@ -616,18 +581,7 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
         let (t, x) = self.sp.simulate_with_duration(self.duration)?;
         let (a, b) = self.domain;
 
-        let occupation_time = x
-            .windows(2)
-            .zip(t.windows(2))
-            .map(|(x_pair, t_pair)| {
-                let in_domain = (a..=b).contains(&x_pair[0]) && (a..=b).contains(&x_pair[1]);
-                if in_domain {
-                    t_pair[1] - t_pair[0]
-                } else {
-                    0.0
-                }
-            })
-            .sum();
+        let occupation_time = oc(&t, &x, a, b);
 
         Ok(occupation_time)
     }
@@ -691,6 +645,30 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
             / particles as f64;
         Ok(result)
     }
+}
+
+fn average(values: &[f64]) -> Option<f64> {
+    if values.is_empty() {
+        None
+    } else {
+        let count = values.len();
+        let sum = values.into_par_iter().sum::<f64>();
+        Some(sum / count as f64)
+    }
+}
+
+fn oc(t: &[f64], x: &[f64], a: f64, b: f64) -> f64 {
+    x.windows(2)
+        .zip(t.windows(2))
+        .map(|(x_pair, t_pair)| {
+            let in_domain = (a..=b).contains(&x_pair[0]) && (a..=b).contains(&x_pair[1]);
+            if in_domain {
+                t_pair[1] - t_pair[0]
+            } else {
+                0.0
+            }
+        })
+        .sum()
 }
 
 #[cfg(test)]
