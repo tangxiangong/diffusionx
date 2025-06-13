@@ -90,7 +90,7 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             .into());
         }
         let (a, b) = self.domain;
-        let mut duration = 10.0;
+        let mut duration = (max_duration / 10.0).min(10.0);
         loop {
             let (t, x) = self.sp.simulate(duration, time_step)?;
             if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
@@ -477,7 +477,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
             .into());
         }
         let (a, b) = self.domain;
-        let mut duration = 10.0;
+        let mut duration = (max_duration / 10.0).min(10.0);
         loop {
             let (t, x) = self.sp.simulate_with_duration(duration)?;
             if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
