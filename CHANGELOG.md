@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.6] - 2025-06-15
+
+### 🐛 Bug Fixes
+
+- Adjust the duration calculation logic to accommodate the maximum duration
+
+### 💼 Other
+
+- Bump version 0.4.6
+
+### 🚜 Refactor
+
+- Optimized the duration calculation logic in the `FirstPassageTime` structure, simplified the process of finding the index using local functions, and improved the readability and maintainability of the code.
+- Extracted and optimized the logic for calculating the average and occupied time, simplified the code structure, and improved readability and maintainability.
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version 0.4.5
+
 ## [0.4.5] - 2025-06-11
 
 ### 🚀 Features
