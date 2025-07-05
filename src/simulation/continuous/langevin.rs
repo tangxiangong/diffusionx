@@ -1,7 +1,7 @@
 //! Langevin equation simulation
 
 use crate::{
-    XResult,
+    SimulationError, XResult,
     random::normal,
     simulation::prelude::*,
     utils::{diff, linspace},
@@ -139,6 +139,24 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{duration}`"
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got `{time_step}`"
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
+        ))
+        .into());
+    }
     let t = linspace(0.0, duration, time_step);
 
     let num_steps = t.len() - 1;
@@ -247,7 +265,7 @@ mod tests {
         let occupation_time = langevin
             .occupation_time((0.0, 10.0), 1.0, 0.01)
             .expect("Failed to calculate occupation time");
-        println!("occupation_time: {}", occupation_time);
+        println!("occupation_time: {occupation_time}");
         // assert!(occupation_time > 0.0);
     }
 }

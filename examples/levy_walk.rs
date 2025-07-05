@@ -17,7 +17,7 @@ fn main() {
     let traj = walk.duration(duration).unwrap();
 
     let (_times, positions) = traj.simulate(time_step).unwrap();
-    println!("positions: {:#?}", positions);
+    println!("positions: {positions:#?}");
 
     // Visualize trajectory
     let config = PlotConfigBuilder::default()

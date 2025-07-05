@@ -1,5 +1,4 @@
 use crate::{SimulationError, XResult};
-use std::sync::Arc;
 
 use super::{DiscretePair, Moment};
 
@@ -20,7 +19,7 @@ pub trait DiscreteProcess: Send + Sync {
     /// * `particles` - The number of particles.
     fn mean(&self, num_step: usize, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + DiscreteTrajectoryTrait,
+        Self: DiscreteTrajectoryTrait,
     {
         let traj = self.step(num_step)?;
         traj.raw_moment(1, particles, 0.1)
@@ -34,7 +33,7 @@ pub trait DiscreteProcess: Send + Sync {
     /// * `particles` - The number of particles.
     fn msd(&self, num_step: usize, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + DiscreteTrajectoryTrait,
+        Self: DiscreteTrajectoryTrait,
     {
         let traj = self.step(num_step)?;
         traj.central_moment(2, particles, 0.1)
@@ -49,7 +48,7 @@ pub trait DiscreteProcess: Send + Sync {
     /// * `particles` - The number of particles.
     fn raw_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + DiscreteTrajectoryTrait,
+        Self: DiscreteTrajectoryTrait,
     {
         let traj = self.step(num_step)?;
         traj.raw_moment(order, particles, 0.1)
@@ -64,17 +63,14 @@ pub trait DiscreteProcess: Send + Sync {
     /// * `particles` - The number of particles.
     fn central_moment(&self, num_step: usize, order: i32, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + DiscreteTrajectoryTrait,
+        Self: DiscreteTrajectoryTrait,
     {
         let traj = self.step(num_step)?;
         traj.central_moment(order, particles, 0.1)
     }
 }
 
-pub trait DiscreteTrajectoryTrait: DiscreteProcess
-where
-    Self: Sized + Clone,
-{
+pub trait DiscreteTrajectoryTrait: DiscreteProcess + Clone {
     /// Create a `DiscreteTrajectory` with given number of steps
     ///
     /// # Arguments
@@ -86,18 +82,18 @@ where
     }
 }
 
-impl<SP: DiscreteProcess + Sized + Clone> DiscreteTrajectoryTrait for SP {}
+impl<SP: DiscreteProcess + Clone> DiscreteTrajectoryTrait for SP {}
 
 /// Discrete trajectory
 #[derive(Debug, Clone)]
-pub struct DiscreteTrajectory<SP: DiscreteProcess> {
+pub struct DiscreteTrajectory<SP: DiscreteProcess + Clone> {
     /// The discrete process
-    pub(crate) sp: Arc<SP>,
+    pub(crate) sp: SP,
     /// The number of steps
     pub(crate) num_step: usize,
 }
 
-impl<SP: DiscreteProcess> DiscreteTrajectory<SP> {
+impl<SP: DiscreteProcess + Clone> DiscreteTrajectory<SP> {
     /// Create a new `DiscreteTrajetory` with given `DiscreteProcess` and num of steps.
     pub fn new(sp: SP, num_step: usize) -> XResult<Self> {
         if num_step == 0 {
@@ -106,10 +102,7 @@ impl<SP: DiscreteProcess> DiscreteTrajectory<SP> {
             )
             .into());
         }
-        Ok(Self {
-            sp: Arc::new(sp),
-            num_step,
-        })
+        Ok(Self { sp, num_step })
     }
 
     /// Get the discrete process

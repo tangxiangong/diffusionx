@@ -44,8 +44,7 @@ impl GeometricBm {
         let sigma = sigma.into();
         if sigma <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The percentage volatility `sigma` must be positive, got {}",
-                sigma
+                "The percentage volatility `sigma` must be positive, got {sigma}"
             ))
             .into());
         }
@@ -130,6 +129,30 @@ pub fn simulate_gbm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if sigma <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The percentage volatility `sigma` must be positive, got {sigma}"
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got `{duration}`"
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got `{time_step}`"
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
+        ))
+        .into());
+    }
     let bm = Bm::default();
     let (t, b) = bm.simulate(duration, time_step)?;
     let tmp = mu - sigma * sigma / 2.0;
@@ -152,8 +175,8 @@ mod tests {
         let duration = 1.0;
         let time_step = 0.1;
         let (t, x) = gbm.simulate(duration, time_step).unwrap();
-        println!("t: {:?}", t);
-        println!("x: {:?}", x);
+        println!("t: {t:?}");
+        println!("x: {x:?}");
     }
 
     #[test]
@@ -163,7 +186,7 @@ mod tests {
         let time_step = 0.1;
         let traj = gbm.duration(duration).unwrap();
         let moment = traj.raw_moment(1, 1000, time_step).unwrap();
-        println!("moment: {:?}", moment);
+        println!("moment: {moment:?}");
     }
 
     #[test]
@@ -171,7 +194,7 @@ mod tests {
         let gbm = GeometricBm::new(10.0, 1.0, 1.0).unwrap();
         let time_step = 0.1;
         let fpt = gbm.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
-        println!("fpt: {:?}", fpt);
+        println!("fpt: {fpt:?}");
     }
 
     #[test]
@@ -179,7 +202,7 @@ mod tests {
         let gbm = GeometricBm::new(10.0, 1.0, 1.0).unwrap();
         let time_step = 0.1;
         let ot = gbm.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
-        println!("ot: {:?}", ot);
+        println!("ot: {ot:?}");
     }
 
     #[test]

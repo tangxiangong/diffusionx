@@ -27,23 +27,20 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
         let delta = delta.into();
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
+                "The `duration` must be positive, got {duration}"
             ))
             .into());
         }
         if delta <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `delta` must be positive, got {}",
-                delta
+                "The `delta` must be positive, got {delta}"
             ))
             .into());
         }
 
         if duration < delta {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be greater than `delta`, got duration {} and delta {}",
-                duration, delta
+                "The `duration` must be greater than `delta`, got duration {duration} and delta {delta}"
             ))
             .into());
         }
@@ -78,6 +75,18 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     pub fn simulate(&self, time_step: f64, quad_order: usize) -> XResult<f64> {
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step}`"
+            ))
+            .into());
+        }
+        if quad_order == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `quad_order` must be positive, got `{quad_order}`"
+            ))
+            .into());
+        }
         let legendre_quad = GaussLegendre::new(quad_order)?;
         let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
         let duration = self.duration;
@@ -99,8 +108,9 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
 
                 Ok((end_position - slag_position).powi(2) * weight)
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / (duration - slag);
         Ok(result)
     }
@@ -113,11 +123,32 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     pub fn mean(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got {particles}"
+            ))
+            .into());
+        }
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step}`"
+            ))
+            .into());
+        }
+
+        if quad_order == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `quad_order` must be positive, got `{quad_order}`"
+            ))
+            .into());
+        }
+
         Ok((0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> { self.simulate(time_step, quad_order) })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64)
     }
 
@@ -129,6 +160,24 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     pub fn variance(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got {particles}"
+            ))
+            .into());
+        }
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step}`"
+            ))
+            .into());
+        }
+        if quad_order == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `quad_order` must be positive, got `{quad_order}`"
+            ))
+            .into());
+        }
         let mean = self.mean(particles, time_step, quad_order)?;
         Ok((0..particles)
             .into_par_iter()
@@ -136,8 +185,9 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
                 let value = self.simulate(time_step, quad_order)?;
                 Ok((value - mean).powi(2))
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64)
     }
 }
@@ -150,6 +200,18 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     pub fn simulate_p(&self, time_step: f64, quad_order: usize) -> XResult<f64> {
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step}`"
+            ))
+            .into());
+        }
+        if quad_order == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `quad_order` must be positive, got `{quad_order}`"
+            ))
+            .into());
+        }
         let legendre_quad = GaussLegendre::new(quad_order)?;
         let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
         let duration = self.duration;
@@ -172,8 +234,9 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
 
                 Ok((end_position - slag_position).powi(2) * weight)
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / (duration - slag);
         Ok(result)
     }
@@ -186,11 +249,30 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     pub fn mean_p(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got {particles}"
+            ))
+            .into());
+        }
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step}`"
+            ))
+            .into());
+        }
+        if quad_order == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `quad_order` must be positive, got `{quad_order}`"
+            ))
+            .into());
+        }
         Ok((0..particles)
             .into_par_iter()
             .map(|_| -> XResult<f64> { self.simulate_p(time_step, quad_order) })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64)
     }
 
@@ -202,6 +284,24 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     pub fn variance_p(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got {particles}"
+            ))
+            .into());
+        }
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step}`"
+            ))
+            .into());
+        }
+        if quad_order == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `quad_order` must be positive, got `{quad_order}`"
+            ))
+            .into());
+        }
         let mean = self.mean_p(particles, time_step, quad_order)?;
         Ok((0..particles)
             .into_par_iter()
@@ -209,8 +309,9 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
                 let value = self.simulate_p(time_step, quad_order)?;
                 Ok((value - mean).powi(2))
             })
-            .try_fold(|| 0.0, |acc, res| res.map(|v| acc + v))
-            .try_reduce(|| 0.0, |a, b| Ok(a + b))?
+            .collect::<XResult<Vec<_>>>()?
+            .into_par_iter()
+            .sum::<f64>()
             / particles as f64)
     }
 }

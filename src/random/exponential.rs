@@ -46,8 +46,7 @@ where
     {
         if lambda <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "The rate parameter `lambda` must be greater than 0, got {}",
-                lambda
+                "The rate parameter `lambda` must be greater than 0, got {lambda}"
             )));
         }
         Ok(Self { lambda })
@@ -206,13 +205,11 @@ mod tests {
 
         assert!(
             (mean - 1.0).abs() < 0.01,
-            "The mean of the standard exponential distribution should be close to 1, but got {}",
-            mean
+            "The mean of the standard exponential distribution should be close to 1, but got {mean}"
         );
         assert!(
             (variance - 1.0).abs() < 0.05,
-            "The variance of the standard exponential distribution should be close to 1, but got {}",
-            variance
+            "The variance of the standard exponential distribution should be close to 1, but got {variance}"
         );
     }
 
@@ -228,15 +225,11 @@ mod tests {
 
         assert!(
             (mean - expected_mean).abs() < 0.01,
-            "The mean of the exponential distribution should be close to {}, but got {}",
-            expected_mean,
-            mean
+            "The mean of the exponential distribution should be close to {expected_mean}, but got {mean}"
         );
         assert!(
             (variance - expected_variance).abs() < 0.05,
-            "The variance of the exponential distribution should be close to {}, but got {}",
-            expected_variance,
-            variance
+            "The variance of the exponential distribution should be close to {expected_variance}, but got {variance}"
         );
     }
 }

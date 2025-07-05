@@ -68,15 +68,13 @@ impl LatticeRandomWalk {
         let start_position = start_position.into();
         if probability <= 0.0 || probability > 1.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `probability` must be between 0 and 1, got {}",
-                probability
+                "The `probability` must be between 0 and 1, got {probability}"
             ))
             .into());
         }
         if step_size <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `step_size` must be greater than 0, got {}",
-                step_size
+                "The `step_size` must be greater than 0, got {step_size}"
             ))
             .into());
         }
@@ -150,6 +148,25 @@ pub fn simulate_lattice_random_walk(
     start_position: f64,
     num_step: usize,
 ) -> XResult<(Vec<usize>, Vec<f64>)> {
+    if step_size <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `step_size` must be positive, got {step_size}"
+        ))
+        .into());
+    }
+    if probability <= 0.0 || probability > 1.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `probability` must be between 0 and 1, got {probability}"
+        ))
+        .into());
+    }
+    if num_step == 0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `num_step` must be greater than 0, got {num_step}"
+        ))
+        .into());
+    }
+
     let delta_x: Vec<f64> = bool_rands(probability, num_step)?
         .into_par_iter()
         .map(|x| if x { step_size } else { -step_size })
@@ -218,15 +235,13 @@ impl RandomWalk {
         let start_position = start_position.into();
         if probability <= 0.0 || probability > 1.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `probability` must be between 0 and 1, got {}",
-                probability
+                "The `probability` must be between 0 and 1, got {probability}"
             ))
             .into());
         }
         if alpha <= 0.0 || alpha > 2.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be between 0 and 2, got {}",
-                alpha
+                "The `alpha` must be between 0 and 2, got {alpha}"
             ))
             .into());
         }
@@ -295,6 +310,24 @@ pub fn simulate_random_walk(
     start_position: f64,
     num_step: usize,
 ) -> XResult<(Vec<usize>, Vec<f64>)> {
+    if probability <= 0.0 || probability > 1.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `probability` must be between 0 and 1, got {probability}"
+        ))
+        .into());
+    }
+    if alpha <= 0.0 || alpha > 2.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be between 0 and 2, got {alpha}"
+        ))
+        .into());
+    }
+    if num_step == 0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `num_step` must be greater than 0, got {num_step}"
+        ))
+        .into());
+    }
     let jump_lengths = if alpha == 1.0 {
         exponential::rands(1.0, num_step)?
     } else {

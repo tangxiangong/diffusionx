@@ -47,14 +47,12 @@ impl<T: Float + Send + Sync> Gamma<T> {
     {
         if shape <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "The shape parameter `shape` must be greater than 0, got {}",
-                shape
+                "The shape parameter `shape` must be greater than 0, got {shape}"
             )));
         }
         if scale <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "The scale parameter `scale` must be greater than 0, got {}",
-                scale
+                "The scale parameter `scale` must be greater than 0, got {scale}"
             )));
         }
         Ok(Self { shape, scale })

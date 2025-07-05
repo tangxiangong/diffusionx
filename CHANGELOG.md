@@ -2,6 +2,77 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.7] - 2025-07-05
+
+### 🚀 Features
+
+- Add Langevin equation macro to simplify the generation of stochastic processes
+- Add generalized and subordinated Langevin equation macros
+- Add loglog plotting functionality and enhance set_config
+
+### 💼 Other
+
+- Bump version 0.4.6
+- Add the example of macro `langevin`
+- Update version to 0.4.7
+
+### 🚜 Refactor
+
+- Simplify error messages in parameter validation across various simulation functions
+
+### ⚙️ Miscellaneous Tasks
+
+- Update dependencies and add optional feature
+
+## [0.4.6] - 2025-06-15
+
+### 🐛 Bug Fixes
+
+- Adjust the duration calculation logic to accommodate the maximum duration
+
+### 💼 Other
+
+- Bump version 0.4.6
+
+### 🚜 Refactor
+
+- Optimized the duration calculation logic in the `FirstPassageTime` structure, simplified the process of finding the index using local functions, and improved the readability and maintainability of the code.
+- Extracted and optimized the logic for calculating the average and occupied time, simplified the code structure, and improved readability and maintainability.
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version 0.4.5
+
+## [0.4.5] - 2025-06-11
+
+### 🚀 Features
+
+- Add input parameter validation to enhance the robustness of the simulation function
+- Enhanced input parameter validation to improve the robustness of simulation functions
+- Enhanced input parameter validation for inverse process simulation function
+- Optimize the implementation of continuous/point/jump processes and trajectories, simplify type constraints
+- Enhanced input parameter validation for random walk simulation functions
+- Enhanced Input Validation for Stochastic Process Simulation Functions
+
+### 💼 Other
+
+- Update version to 0.4.5
+
+### ⚙️ Miscellaneous Tasks
+
+- Update version to 0.4.4
+
+## [0.4.4] - 2025-06-04
+
+### 🚜 Refactor
+
+- Optimize sample aggregation in simulation functions
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.4.3
+- Update version to 0.4.4 and add keywords
+
 ## [0.4.3] - 2025-05-30
 
 ### 🚀 Features

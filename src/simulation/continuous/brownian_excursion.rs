@@ -28,13 +28,18 @@ impl BrownianExcursion {
     pub fn fpt(&self, domain: (f64, f64), time_step: f64) -> XResult<Option<f64>> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {}",
-                time_step
+                "The `time_step` must be positive, got {time_step}"
             ))
             .into());
         }
 
         let (a, b) = domain;
+        if a >= b {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `domain` must be in (a, b), got `{a}` >= `{b}`"
+            ))
+            .into());
+        }
 
         let (t, x) = self.simulate(1.0, time_step)?;
         if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
@@ -87,15 +92,19 @@ impl ContinuousProcess for BrownianExcursion {
 pub fn simulate_brownian_excursion(duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
     if duration <= 0.0 || duration > 1.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be in (0.0, 1.0], got {}",
-            duration
+            "The `duration` must be in (0.0, 1.0], got {duration}"
         ))
         .into());
     }
     if time_step <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got {}",
-            time_step
+            "The `time_step` must be positive, got {time_step}"
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
         ))
         .into());
     }
@@ -142,8 +151,8 @@ mod tests {
         let duration = 1.0;
         let time_step = 0.1;
         let (t, x) = be.simulate(duration, time_step).unwrap();
-        println!("t: {:?}", t);
-        println!("x: {:?}", x);
+        println!("t: {t:?}");
+        println!("x: {x:?}");
     }
 
     #[test]
@@ -153,7 +162,7 @@ mod tests {
         let time_step = 0.1;
         let traj = be.duration(duration).unwrap();
         let moment = traj.raw_moment(1, 1000, time_step).unwrap();
-        println!("moment: {:?}", moment);
+        println!("moment: {moment:?}");
     }
 
     #[test]
@@ -161,7 +170,7 @@ mod tests {
         let be = BrownianExcursion;
         let time_step = 0.1;
         let fpt = be.fpt((-1.0, 1.0), time_step).unwrap();
-        println!("fpt: {:?}", fpt);
+        println!("fpt: {fpt:?}");
     }
 
     #[test]
@@ -169,7 +178,7 @@ mod tests {
         let be = BrownianExcursion;
         let time_step = 0.1;
         let ot = be.occupation_time((-1.0, 1.0), 1.0, time_step).unwrap();
-        println!("ot: {:?}", ot);
+        println!("ot: {ot:?}");
     }
 
     #[test]

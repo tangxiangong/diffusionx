@@ -25,8 +25,7 @@ impl CIR {
         let speed: f64 = speed.into();
         if speed <= 0.0 {
             return Err(XError::InvalidParameters(format!(
-                "speed must be greater than 0, but got {}",
-                speed
+                "speed must be greater than 0, but got {speed}"
             )));
         }
         Ok(Self {

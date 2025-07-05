@@ -35,8 +35,7 @@ impl AsymmetricCauchy {
         let beta = beta.into();
         if !(-1.0..=1.0).contains(&beta) {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `beta` must be in the range [-1, 1], got {}",
-                beta,
+                "The `beta` must be in the range [-1, 1], got {beta}",
             ))
             .into());
         }
@@ -76,20 +75,6 @@ impl ContinuousProcess for AsymmetricCauchy {
     /// let (t, x) = cauchy.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {}",
-                time_step
-            ))
-            .into());
-        }
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
-            ))
-            .into());
-        }
         simulate_asymmetric_cauchy(self.start_position, self.beta, duration, time_step)
     }
 }
@@ -180,20 +165,6 @@ impl ContinuousProcess for Cauchy {
     /// let (t, x) = cauchy.simulate(duration, time_step).unwrap();
     /// ```
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {}",
-                time_step
-            ))
-            .into());
-        }
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
-            ))
-            .into());
-        }
         simulate_cauchy(self.start_position, duration, time_step)
     }
 }
@@ -234,11 +205,11 @@ mod tests {
         let time_step = 0.1;
         let duration = 1.0;
         let (t, x) = cauchy.simulate(duration, time_step).unwrap();
-        println!("t: {:?}", t);
-        println!("x: {:?}", x);
+        println!("t: {t:?}");
+        println!("x: {x:?}");
         let (t, x) = asymmetric_cauchy.simulate(duration, time_step).unwrap();
-        println!("t: {:?}", t);
-        println!("x: {:?}", x);
+        println!("t: {t:?}");
+        println!("x: {x:?}");
     }
 
     #[test]
@@ -247,11 +218,11 @@ mod tests {
         let asymmetric_cauchy = AsymmetricCauchy::new(0.0, 0.4).unwrap();
         let time_step = 0.1;
         let fpt = cauchy.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
-        println!("fpt: {:?}", fpt);
+        println!("fpt: {fpt:?}");
         let fpt = asymmetric_cauchy
             .fpt((-1.0, 1.0), 1000.0, time_step)
             .unwrap();
-        println!("fpt: {:?}", fpt);
+        println!("fpt: {fpt:?}");
     }
 
     #[test]
@@ -262,11 +233,11 @@ mod tests {
         let ot = cauchy
             .occupation_time((-1.0, 1.0), 10.0, time_step)
             .unwrap();
-        println!("ot: {:?}", ot);
+        println!("ot: {ot:?}");
         let ot = asymmetric_cauchy
             .occupation_time((-1.0, 1.0), 10.0, time_step)
             .unwrap();
-        println!("ot: {:?}", ot);
+        println!("ot: {ot:?}");
     }
 
     #[test]

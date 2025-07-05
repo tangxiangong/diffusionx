@@ -12,3 +12,6 @@ pub mod continuous;
 pub mod point;
 
 pub mod discrete;
+
+/// Macros for generating stochastic processes
+pub mod macros;

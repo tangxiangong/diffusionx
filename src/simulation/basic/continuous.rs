@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     SimulationError, XResult,
     simulation::prelude::{FirstPassageTime, OccupationTime},
@@ -26,7 +24,7 @@ pub trait ContinuousProcess: Send + Sync {
     /// * `time_step` - The time step of the simulation.
     fn mean(&self, duration: f64, particles: usize, time_step: f64) -> XResult<f64>
     where
-        Self: Sized + Clone + ContinuousTrajectoryTrait,
+        Self: ContinuousTrajectoryTrait,
     {
         let traj = self.duration(duration)?;
         traj.raw_moment(1, particles, time_step)
@@ -41,7 +39,7 @@ pub trait ContinuousProcess: Send + Sync {
     /// * `time_step` - The time step of the simulation.
     fn msd(&self, duration: f64, particles: usize, time_step: f64) -> XResult<f64>
     where
-        Self: Sized + Clone + ContinuousTrajectoryTrait,
+        Self: ContinuousTrajectoryTrait,
     {
         let traj = self.duration(duration)?;
         traj.central_moment(2, particles, time_step)
@@ -63,7 +61,7 @@ pub trait ContinuousProcess: Send + Sync {
         time_step: f64,
     ) -> XResult<f64>
     where
-        Self: Sized + Clone + ContinuousTrajectoryTrait,
+        Self: ContinuousTrajectoryTrait,
     {
         let traj = self.duration(duration)?;
         traj.raw_moment(order, particles, time_step)
@@ -85,7 +83,7 @@ pub trait ContinuousProcess: Send + Sync {
         time_step: f64,
     ) -> XResult<f64>
     where
-        Self: Sized + Clone + ContinuousTrajectoryTrait,
+        Self: ContinuousTrajectoryTrait,
     {
         let traj = self.duration(duration)?;
         traj.central_moment(order, particles, time_step)
@@ -164,26 +162,23 @@ pub trait ContinuousProcess: Send + Sync {
 
 /// Continuous trajectory
 #[derive(Debug, Clone)]
-pub struct ContinuousTrajectory<SP: ContinuousProcess> {
+pub struct ContinuousTrajectory<SP: ContinuousProcess + Clone> {
     /// The continuous process
-    pub(crate) sp: Arc<SP>,
+    pub(crate) sp: SP,
     /// The duration of the simulation
     pub(crate) duration: f64,
 }
 
-pub trait ContinuousTrajectoryTrait: ContinuousProcess
-where
-    Self: Sized + Clone,
-{
+pub trait ContinuousTrajectoryTrait: ContinuousProcess + Clone {
     fn duration(&self, duration_arg: f64) -> XResult<ContinuousTrajectory<Self>> {
         let traj = ContinuousTrajectory::new(self.clone(), duration_arg)?;
         Ok(traj)
     }
 }
 
-impl<SP: ContinuousProcess + Sized + Clone> ContinuousTrajectoryTrait for SP {}
+impl<SP: ContinuousProcess + Clone> ContinuousTrajectoryTrait for SP {}
 
-impl<SP: ContinuousProcess> ContinuousTrajectory<SP> {
+impl<SP: ContinuousProcess + Clone> ContinuousTrajectory<SP> {
     /// Create a new `ContinuousTrajectory` with given `ContinuousProcess` and duration.
     ///
     /// # Arguments
@@ -193,15 +188,11 @@ impl<SP: ContinuousProcess> ContinuousTrajectory<SP> {
     pub fn new(sp: SP, duration: f64) -> XResult<Self> {
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
+                "The `duration` must be positive, got {duration}"
             ))
             .into());
         }
-        Ok(Self {
-            sp: Arc::new(sp),
-            duration,
-        })
+        Ok(Self { sp, duration })
     }
 
     /// Get the continuous process

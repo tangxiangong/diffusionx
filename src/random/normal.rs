@@ -49,8 +49,7 @@ impl<T: Float + Send + Sync> Normal<T> {
     {
         if sigma <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "The standard deviation `sigma` must be greater than 0, got {}",
-                sigma
+                "The standard deviation `sigma` must be greater than 0, got {sigma}"
             )));
         }
         Ok(Self { mu, sigma })
@@ -307,13 +306,11 @@ mod tests {
 
         assert!(
             mean.abs() < 0.01,
-            "The mean of the standard normal distribution should be close to 0, got {}",
-            mean
+            "The mean of the standard normal distribution should be close to 0, got {mean}"
         );
         assert!(
             (std_dev - 1.0).abs() < 0.01,
-            "The standard deviation of the standard normal distribution should be close to 1, got {}",
-            std_dev
+            "The standard deviation of the standard normal distribution should be close to 1, got {std_dev}"
         );
     }
 
@@ -328,15 +325,11 @@ mod tests {
 
         assert!(
             (mean - mu).abs() < 0.05,
-            "The mean of the normal distribution should be close to {}, got {}",
-            mu,
-            mean
+            "The mean of the normal distribution should be close to {mu}, got {mean}"
         );
         assert!(
             (std_dev - sigma).abs() < 0.05,
-            "The standard deviation of the normal distribution should be close to {}, got {}",
-            sigma,
-            std_dev
+            "The standard deviation of the normal distribution should be close to {sigma}, got {std_dev}"
         );
     }
 }

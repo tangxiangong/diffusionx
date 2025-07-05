@@ -40,8 +40,7 @@ impl Bm {
         let diffusion_coefficient = diffusion_coefficient.into();
         if diffusion_coefficient <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The diffusion coefficient must be positive, got {}",
-                diffusion_coefficient
+                "The diffusion coefficient must be positive, got {diffusion_coefficient}"
             ))
             .into());
         }
@@ -116,6 +115,30 @@ pub fn simulate_bm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if diffusion_coefficient <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The diffusion coefficient must be positive, got {diffusion_coefficient}"
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The duration must be positive, got {duration}"
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The time step must be less than or equal to the duration, got {time_step} > {duration}"
+        ))
+        .into());
+    }
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The time step must be positive, got {time_step}"
+        ))
+        .into());
+    }
     let t = linspace(0.0, duration, time_step);
     let num_steps = t.len() - 1;
     let mut noise = normal::rands(0.0, 2.0 * diffusion_coefficient * time_step, num_steps)?;
@@ -140,8 +163,8 @@ mod tests {
         let duration = 1.0;
         let time_step = 0.1;
         let (t, x) = bm.simulate(duration, time_step).unwrap();
-        println!("t: {:?}", t);
-        println!("x: {:?}", x);
+        println!("t: {t:?}");
+        println!("x: {x:?}");
     }
 
     #[test]
@@ -151,7 +174,7 @@ mod tests {
         let time_step = 0.1;
         let traj = bm.duration(duration).unwrap();
         let moment = traj.raw_moment(1, 1000, time_step).unwrap();
-        println!("moment: {:?}", moment);
+        println!("moment: {moment:?}");
     }
 
     #[test]
@@ -159,7 +182,7 @@ mod tests {
         let bm = Bm::new(0.0, 1.0).unwrap();
         let time_step = 0.1;
         let fpt = bm.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
-        println!("fpt: {:?}", fpt);
+        println!("fpt: {fpt:?}");
     }
 
     #[test]
@@ -167,7 +190,7 @@ mod tests {
         let bm = Bm::new(0.0, 1.0).unwrap();
         let time_step = 0.1;
         let ot = bm.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
-        println!("ot: {:?}", ot);
+        println!("ot: {ot:?}");
     }
 
     #[test]

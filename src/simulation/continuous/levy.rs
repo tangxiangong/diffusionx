@@ -46,16 +46,14 @@ impl AsymmetricLevy {
         let alpha = alpha.into();
         if alpha <= 0.0 || alpha > 2.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 2], got {}",
-                alpha
+                "The `alpha` must be in the range (0, 2], got {alpha}"
             ))
             .into());
         }
         let beta = beta.into();
         if !(-1.0..=1.0).contains(&beta) {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `beta` must be in the range [-1, 1], got {}",
-                beta
+                "The `beta` must be in the range [-1, 1], got {beta}"
             ))
             .into());
         }
@@ -99,20 +97,6 @@ impl ContinuousProcess for AsymmetricLevy {
     /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
     /// ```
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {}",
-                time_step
-            ))
-            .into());
-        }
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
-            ))
-            .into());
-        }
         simulate_asymmetric_levy(
             self.start_position,
             self.alpha,
@@ -148,6 +132,36 @@ pub fn simulate_asymmetric_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got {time_step}"
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got {duration}"
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
+        ))
+        .into());
+    }
+    if alpha <= 0.0 || alpha > 2.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be in the range (0, 2], got {alpha}"
+        ))
+        .into());
+    }
+    if !(-1.0..=1.0).contains(&beta) {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `beta` must be in the range [-1, 1], got {beta}"
+        ))
+        .into());
+    }
     let t = linspace(0.0, duration, time_step);
     let num_steps = t.len() - 1;
     let delta = diff(&t);
@@ -189,8 +203,7 @@ impl Levy {
         let alpha = alpha.into();
         if alpha <= 0.0 || alpha > 2.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 2], got {}",
-                alpha
+                "The `alpha` must be in the range (0, 2], got {alpha}"
             ))
             .into());
         }
@@ -228,20 +241,6 @@ impl ContinuousProcess for Levy {
     /// let (t, x) = levy.simulate(1.0, 0.1).unwrap();
     /// ```
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {}",
-                time_step
-            ))
-            .into());
-        }
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
-            ))
-            .into());
-        }
         simulate_levy(self.start_position, self.alpha, duration, time_step)
     }
 }
@@ -268,6 +267,30 @@ pub fn simulate_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    if time_step <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be positive, got {time_step}"
+        ))
+        .into());
+    }
+    if duration <= 0.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `duration` must be positive, got {duration}"
+        ))
+        .into());
+    }
+    if time_step > duration {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
+        ))
+        .into());
+    }
+    if alpha <= 0.0 || alpha > 2.0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be in the range (0, 2], got {alpha}"
+        ))
+        .into());
+    }
     let t = linspace(0.0, duration, time_step);
     let num_steps = t.len() - 1;
     let delta = diff(&t);
@@ -291,11 +314,11 @@ mod tests {
         let time_step = 0.1;
         let duration = 1.0;
         let (t, x) = levy.simulate(duration, time_step).unwrap();
-        println!("t: {:?}", t);
-        println!("x: {:?}", x);
+        println!("t: {t:?}");
+        println!("x: {x:?}");
         let (t, x) = asymmetric_levy.simulate(duration, time_step).unwrap();
-        println!("t: {:?}", t);
-        println!("x: {:?}", x);
+        println!("t: {t:?}");
+        println!("x: {x:?}");
     }
 
     #[test]
@@ -304,9 +327,9 @@ mod tests {
         let asymmetric_levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
         let time_step = 0.1;
         let fpt = levy.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
-        println!("fpt: {:?}", fpt);
+        println!("fpt: {fpt:?}");
         let fpt = asymmetric_levy.fpt((-1.0, 1.0), 1000.0, time_step).unwrap();
-        println!("fpt: {:?}", fpt);
+        println!("fpt: {fpt:?}");
     }
 
     #[test]
@@ -315,11 +338,11 @@ mod tests {
         let asymmetric_levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
         let time_step = 0.1;
         let ot = levy.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
-        println!("ot: {:?}", ot);
+        println!("ot: {ot:?}");
         let ot = asymmetric_levy
             .occupation_time((-1.0, 1.0), 10.0, time_step)
             .unwrap();
-        println!("ot: {:?}", ot);
+        println!("ot: {ot:?}");
     }
 
     #[test]
