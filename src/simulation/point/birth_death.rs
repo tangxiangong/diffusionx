@@ -41,15 +41,13 @@ impl BirthDeath {
         let mu = mu.into();
         if lambda <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `lambda` must be greater than 0, got {}",
-                lambda
+                "The `lambda` must be greater than 0, got {lambda}"
             ))
             .into());
         }
         if mu <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `mu` must be greater than 0, got {}",
-                mu
+                "The `mu` must be greater than 0, got {mu}"
             ))
             .into());
         }
@@ -105,22 +103,19 @@ impl PointProcess for BirthDeath {
 pub fn simulate_birth_death_with_step(lambda: f64, mu: f64, num_step: usize) -> XResult<Pair> {
     if lambda <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `lambda` must be greater than 0, got {}",
-            lambda
+            "The `lambda` must be greater than 0, got {lambda}"
         ))
         .into());
     }
     if mu <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `mu` must be greater than 0, got {}",
-            mu
+            "The `mu` must be greater than 0, got {mu}"
         ))
         .into());
     }
     if num_step == 0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `num_step` must be greater than 0, got {}",
-            num_step
+            "The `num_step` must be greater than 0, got {num_step}"
         ))
         .into());
     }
@@ -152,22 +147,19 @@ pub fn simulate_birth_death_with_step(lambda: f64, mu: f64, num_step: usize) -> 
 pub fn simulate_birth_death_with_duration(lambda: f64, mu: f64, duration: f64) -> XResult<Pair> {
     if lambda <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `lambda` must be greater than 0, got {}",
-            lambda
+            "The `lambda` must be greater than 0, got {lambda}"
         ))
         .into());
     }
     if mu <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `mu` must be greater than 0, got {}",
-            mu
+            "The `mu` must be greater than 0, got {mu}"
         ))
         .into());
     }
     if duration <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{}`",
-            duration
+            "The `duration` must be positive, got `{duration}`"
         ))
         .into());
     }

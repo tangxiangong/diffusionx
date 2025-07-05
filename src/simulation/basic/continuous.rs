@@ -188,8 +188,7 @@ impl<SP: ContinuousProcess + Clone> ContinuousTrajectory<SP> {
     pub fn new(sp: SP, duration: f64) -> XResult<Self> {
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
+                "The `duration` must be positive, got {duration}"
             ))
             .into());
         }

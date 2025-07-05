@@ -7,6 +7,6 @@ fn main() {
     // dx = f(x, t)dt + g(x, t)dB, x(0) = 1.0
     let equation = langevin!(dx = f(x, t)dt + g(x, t)dB, x(0) = 1.0);
     let (t, x) = equation.simulate(1.0, 0.1).unwrap();
-    println!("t: {:?}", t);
-    println!("x: {:?}", x);
+    println!("t: {t:?}");
+    println!("x: {x:?}");
 }

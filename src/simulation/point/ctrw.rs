@@ -73,15 +73,13 @@ impl CTRW {
         let start_position = start_position.into();
         if alpha <= 0.0 || alpha > 1.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be between 0 and 1, got {}",
-                alpha
+                "The `alpha` must be between 0 and 1, got {alpha}"
             ))
             .into());
         }
         if beta <= 0.0 || beta > 2.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `beta` must be between 0 and 2, got {}",
-                beta
+                "The `beta` must be between 0 and 2, got {beta}"
             ))
             .into());
         }
@@ -153,22 +151,19 @@ pub fn simulate_ctrw_with_step(
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     if alpha <= 0.0 || alpha > 1.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `alpha` must be between 0 and 1, got {}",
-            alpha
+            "The `alpha` must be between 0 and 1, got {alpha}"
         ))
         .into());
     }
     if beta <= 0.0 || beta > 2.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `beta` must be between 0 and 2, got {}",
-            beta
+            "The `beta` must be between 0 and 2, got {beta}"
         ))
         .into());
     }
     if num_step == 0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `num_step` must be greater than 0, got {}",
-            num_step
+            "The `num_step` must be greater than 0, got {num_step}"
         ))
         .into());
     }
@@ -211,8 +206,7 @@ pub fn simulate_ctrw_with_duration(
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     if duration <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{}`",
-            duration
+            "The `duration` must be positive, got `{duration}`"
         ))
         .into());
     }

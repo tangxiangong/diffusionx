@@ -30,8 +30,7 @@ impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
     fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
@@ -41,8 +40,7 @@ impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
@@ -71,15 +69,13 @@ impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
@@ -106,8 +102,7 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
     fn raw_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
@@ -141,8 +136,7 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
 
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
@@ -170,8 +164,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
     fn raw_moment(&self, order: i32, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
@@ -211,8 +204,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
 
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }

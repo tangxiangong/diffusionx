@@ -64,8 +64,7 @@ where
         let alpha = alpha.into();
         if alpha <= 0.0 || alpha > 2.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 2], got {}",
-                alpha
+                "The `alpha` must be in the range (0, 2], got {alpha}"
             ))
             .into());
         }
@@ -178,29 +177,25 @@ where
 {
     if duration <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{}`",
-            duration
+            "The `duration` must be positive, got `{duration}`"
         ))
         .into());
     }
     if time_step <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{}`",
-            time_step
+            "The `time_step` must be positive, got `{time_step}`"
         ))
         .into());
     }
     if time_step > duration {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
-            time_step, duration
+            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
         ))
         .into());
     }
     if alpha <= 0.0 || alpha > 2.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `alpha` must be in the range (0, 2], got {}",
-            alpha
+            "The `alpha` must be in the range (0, 2], got {alpha}"
         ))
         .into());
     }
@@ -287,8 +282,7 @@ where
         let alpha = alpha.into();
         if alpha <= 0.0 || alpha >= 1.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 1), got {}",
-                alpha
+                "The `alpha` must be in the range (0, 1), got {alpha}"
             ))
             .into());
         }
@@ -404,36 +398,31 @@ where
 {
     if duration <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{}`",
-            duration
+            "The `duration` must be positive, got `{duration}`"
         ))
         .into());
     }
     if time_step <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{}`",
-            time_step
+            "The `time_step` must be positive, got `{time_step}`"
         ))
         .into());
     }
     if time_step > duration {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
-            time_step, duration
+            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
         ))
         .into());
     }
     if duration <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{}`",
-            duration
+            "The `duration` must be positive, got `{duration}`"
         ))
         .into());
     }
     if alpha <= 0.0 || alpha >= 1.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `alpha` must be in the range (0, 1), got {}",
-            alpha
+            "The `alpha` must be in the range (0, 1), got {alpha}"
         ))
         .into());
     }

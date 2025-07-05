@@ -35,8 +35,7 @@ impl Poisson {
         let lambda = lambda.into();
         if lambda <= 0.0 {
             return Err(XError::InvalidParameters(format!(
-                "The rate parameter `lambda` must be greater than 0, got {}",
-                lambda
+                "The rate parameter `lambda` must be greater than 0, got {lambda}"
             )));
         }
         Ok(Self { lambda })
@@ -120,15 +119,11 @@ mod tests {
 
         assert!(
             (mean - lambda).abs() < 0.05,
-            "The mean of the Poisson distribution should be close to {}, got {}",
-            lambda,
-            mean
+            "The mean of the Poisson distribution should be close to {lambda}, got {mean}"
         );
         assert!(
             (variance - lambda).abs() < 0.1,
-            "The variance of the Poisson distribution should be close to {}, got {}",
-            lambda,
-            variance
+            "The variance of the Poisson distribution should be close to {lambda}, got {variance}"
         );
     }
 
@@ -141,15 +136,11 @@ mod tests {
 
         assert!(
             (mean - lambda).abs() < 0.02,
-            "The mean of the Poisson distribution should be close to {}, got {}",
-            lambda,
-            mean
+            "The mean of the Poisson distribution should be close to {lambda}, got {mean}"
         );
         assert!(
             (variance - lambda).abs() < 0.05,
-            "The variance of the Poisson distribution should be close to {}, got {}",
-            lambda,
-            variance
+            "The variance of the Poisson distribution should be close to {lambda}, got {variance}"
         );
     }
 
@@ -162,15 +153,11 @@ mod tests {
 
         assert!(
             (mean - lambda).abs() / lambda < 0.02,
-            "The mean of the Poisson distribution should be close to {}, got {}",
-            lambda,
-            mean
+            "The mean of the Poisson distribution should be close to {lambda}, got {mean}"
         );
         assert!(
             (variance - lambda).abs() / lambda < 0.05,
-            "The variance of the Poisson distribution should be close to {}, got {}",
-            lambda,
-            variance
+            "The variance of the Poisson distribution should be close to {lambda}, got {variance}"
         );
     }
 }

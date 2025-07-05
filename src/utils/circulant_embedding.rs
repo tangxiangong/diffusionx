@@ -315,18 +315,13 @@ mod tests {
 
         // Calculate the sample mean (should be close to 0)
         let mean = field.iter().sum::<f64>() / size as f64;
-        assert!(
-            mean.abs() < 0.5,
-            "Mean {} is not in the expected range",
-            mean
-        );
+        assert!(mean.abs() < 0.5, "Mean {mean} is not in the expected range");
 
         // Calculate the sample variance (should be close to 1)
         let variance = field.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / size as f64;
         assert!(
             (variance - 1.0).abs() < 1.0,
-            "Variance {} is not in the expected range",
-            variance
+            "Variance {variance} is not in the expected range"
         );
     }
 

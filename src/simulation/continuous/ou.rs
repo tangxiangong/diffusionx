@@ -122,22 +122,19 @@ pub fn simulate_ou(
 ) -> XResult<Pair> {
     if duration <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{}`",
-            duration
+            "The `duration` must be positive, got `{duration}`"
         ))
         .into());
     }
     if time_step <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{}`",
-            time_step
+            "The `time_step` must be positive, got `{time_step}`"
         ))
         .into());
     }
     if time_step > duration {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
-            time_step, duration
+            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
         ))
         .into());
     }

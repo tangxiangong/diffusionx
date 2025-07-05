@@ -27,8 +27,7 @@ impl Poisson {
         let lambda = lambda.into();
         if lambda <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `lambda` must be greater than 0, but got {}",
-                lambda
+                "The `lambda` must be greater than 0, but got {lambda}"
             ))
             .into());
         }
@@ -78,8 +77,7 @@ impl PointProcess for Poisson {
 pub fn simulate_poisson_with_step(lambda: f64, num_step: usize) -> XResult<Pair> {
     if lambda <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `lambda` must be greater than 0, got {}",
-            lambda
+            "The `lambda` must be greater than 0, got {lambda}"
         ))
         .into());
     }
@@ -106,15 +104,13 @@ pub fn simulate_poisson_with_step(lambda: f64, num_step: usize) -> XResult<Pair>
 pub fn simulate_poisson_with_duration(lambda: f64, duration: f64) -> XResult<Pair> {
     if lambda <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `lambda` must be greater than 0, got {}",
-            lambda
+            "The `lambda` must be greater than 0, got {lambda}"
         ))
         .into());
     }
     if duration <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{}`",
-            duration
+            "The `duration` must be positive, got `{duration}`"
         ))
         .into());
     }

@@ -40,15 +40,13 @@ impl Gamma {
         let rate = rate.into();
         if shape <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `shape` must be positive, got {}",
-                shape
+                "The `shape` must be positive, got {shape}"
             ))
             .into());
         }
         if rate <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `rate` must be positive, got {}",
-                rate
+                "The `rate` must be positive, got {rate}"
             ))
             .into());
         }
@@ -117,36 +115,31 @@ pub fn simulate_gamma(
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     if duration <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{}`",
-            duration
+            "The `duration` must be positive, got `{duration}`"
         ))
         .into());
     }
     if time_step <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{}`",
-            time_step
+            "The `time_step` must be positive, got `{time_step}`"
         ))
         .into());
     }
     if time_step > duration {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{}` > `{}`",
-            time_step, duration
+            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
         ))
         .into());
     }
     if shape <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `shape` must be positive, got `{}`",
-            shape
+            "The `shape` must be positive, got `{shape}`"
         ))
         .into());
     }
     if rate <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `rate` must be positive, got `{}`",
-            rate
+            "The `rate` must be positive, got `{rate}`"
         ))
         .into());
     }
@@ -174,8 +167,8 @@ mod tests {
         let time_step = 0.1;
         let duration = 1.0;
         let (t, x) = gamma.simulate(duration, time_step).unwrap();
-        println!("t: {:?}", t);
-        println!("x: {:?}", x);
+        println!("t: {t:?}");
+        println!("x: {x:?}");
     }
 
     #[test]
@@ -183,7 +176,7 @@ mod tests {
         let gamma = Gamma::new(0.5, 1.0).unwrap();
         let time_step = 0.1;
         let fpt = gamma.fpt((-1.0, 1.0), 1000.0, time_step).unwrap().unwrap();
-        println!("fpt: {:?}", fpt);
+        println!("fpt: {fpt:?}");
     }
 
     #[test]
@@ -191,7 +184,7 @@ mod tests {
         let gamma = Gamma::new(0.5, 1.0).unwrap();
         let time_step = 0.1;
         let ot = gamma.occupation_time((-1.0, 1.0), 10.0, time_step).unwrap();
-        println!("ot: {:?}", ot);
+        println!("ot: {ot:?}");
     }
 
     #[test]

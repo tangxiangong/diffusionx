@@ -27,23 +27,20 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
         let delta = delta.into();
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {}",
-                duration
+                "The `duration` must be positive, got {duration}"
             ))
             .into());
         }
         if delta <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `delta` must be positive, got {}",
-                delta
+                "The `delta` must be positive, got {delta}"
             ))
             .into());
         }
 
         if duration < delta {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be greater than `delta`, got duration {} and delta {}",
-                duration, delta
+                "The `duration` must be greater than `delta`, got duration {duration} and delta {delta}"
             ))
             .into());
         }
@@ -80,15 +77,13 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     pub fn simulate(&self, time_step: f64, quad_order: usize) -> XResult<f64> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
         if quad_order == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `quad_order` must be positive, got `{}`",
-                quad_order
+                "The `quad_order` must be positive, got `{quad_order}`"
             ))
             .into());
         }
@@ -130,23 +125,20 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     pub fn mean(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
 
         if quad_order == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `quad_order` must be positive, got `{}`",
-                quad_order
+                "The `quad_order` must be positive, got `{quad_order}`"
             ))
             .into());
         }
@@ -170,22 +162,19 @@ impl<'a, SP: ContinuousProcess> TAMSD<'a, SP> {
     pub fn variance(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
         if quad_order == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `quad_order` must be positive, got `{}`",
-                quad_order
+                "The `quad_order` must be positive, got `{quad_order}`"
             ))
             .into());
         }
@@ -213,15 +202,13 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
     pub fn simulate_p(&self, time_step: f64, quad_order: usize) -> XResult<f64> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
         if quad_order == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `quad_order` must be positive, got `{}`",
-                quad_order
+                "The `quad_order` must be positive, got `{quad_order}`"
             ))
             .into());
         }
@@ -264,22 +251,19 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
     pub fn mean_p(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
         if quad_order == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `quad_order` must be positive, got `{}`",
-                quad_order
+                "The `quad_order` must be positive, got `{quad_order}`"
             ))
             .into());
         }
@@ -302,22 +286,19 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
     pub fn variance_p(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {}",
-                particles
+                "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
         if quad_order == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `quad_order` must be positive, got `{}`",
-                quad_order
+                "The `quad_order` must be positive, got `{quad_order}`"
             ))
             .into());
         }

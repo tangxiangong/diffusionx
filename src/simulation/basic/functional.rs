@@ -39,8 +39,7 @@ impl<'a, SP: Send + Sync> FirstPassageTime<'a, SP> {
         let domain = (domain.0.into(), domain.1.into());
         if domain.0 >= domain.1 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{:?}`",
-                domain
+                "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{domain:?}`"
             ))
             .into());
         }
@@ -70,22 +69,19 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
         let max_duration = max_duration.into();
         if max_duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{}`",
-                max_duration
+                "The `max_duration` must be positive, got `{max_duration}`"
             ))
             .into());
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
         if time_step > max_duration {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be less than or equal to the `max_duration`, got `{}` > `{}`",
-                time_step, max_duration
+                "The `time_step` must be less than or equal to the `max_duration`, got `{time_step}` > `{max_duration}`"
             ))
             .into());
         }
@@ -138,8 +134,7 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     ) -> XResult<Option<f64>> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got `{}`",
-                particles
+                "The `particles` must be positive, got `{particles}`"
             ))
             .into());
         }
@@ -148,16 +143,14 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
         let max_duration = max_duration.into();
         if max_duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{}`",
-                max_duration
+                "The `max_duration` must be positive, got `{max_duration}`"
             ))
             .into());
         }
@@ -212,15 +205,13 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
         let max_duration = max_duration.into();
         if max_duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{}`",
-                max_duration
+                "The `max_duration` must be positive, got `{max_duration}`"
             ))
             .into());
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
@@ -285,15 +276,13 @@ impl<'a, SP: Send + Sync> OccupationTime<'a, SP> {
         let duration = duration.into();
         if domain.0 >= domain.1 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{:?}`",
-                domain
+                "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{domain:?}`"
             ))
             .into());
         }
         if duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got `{}`",
-                duration
+                "The `duration` must be positive, got `{duration}`"
             ))
             .into());
         }
@@ -325,8 +314,7 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     pub fn simulate(&self, time_step: f64) -> XResult<f64> {
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
@@ -359,8 +347,7 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     pub fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got `{}`",
-                particles
+                "The `particles` must be positive, got `{particles}`"
             ))
             .into());
         }
@@ -369,8 +356,7 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
@@ -412,15 +398,13 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
         }
         if time_step <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{}`",
-                time_step
+                "The `time_step` must be positive, got `{time_step}`"
             ))
             .into());
         }
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got `{}`",
-                particles
+                "The `particles` must be positive, got `{particles}`"
             ))
             .into());
         }
@@ -449,8 +433,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
         let max_duration = max_duration.into();
         if max_duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{}`",
-                max_duration
+                "The `max_duration` must be positive, got `{max_duration}`"
             ))
             .into());
         }
@@ -491,8 +474,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
         let max_duration = max_duration.into();
         if max_duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{}`",
-                max_duration
+                "The `max_duration` must be positive, got `{max_duration}`"
             ))
             .into());
         }
@@ -539,8 +521,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
         let max_duration = max_duration.into();
         if max_duration <= 0.0 {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{}`",
-                max_duration
+                "The `max_duration` must be positive, got `{max_duration}`"
             ))
             .into());
         }

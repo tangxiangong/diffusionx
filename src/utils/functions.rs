@@ -209,12 +209,10 @@ pub fn calculate_bool_mean(samples: &[bool]) -> f64 {
 /// assert_eq!(result, vec![0.0, 0.25, 0.5, 0.75, 1.0]);
 /// ```
 pub fn linspace(start: f64, end: f64, step: f64) -> Vec<f64> {
-    assert!(step > 0.0, "step must be positive, got {}", step);
+    assert!(step > 0.0, "step must be positive, got {step}");
     assert!(
         start <= end,
-        "start must be <= end, got start={}, end={}",
-        start,
-        end
+        "start must be <= end, got start={start}, end={end}"
     );
 
     if approx_eq(start, end, f64::EPSILON) {
@@ -551,9 +549,9 @@ mod tests {
     #[test]
     fn test_interpolate() {
         let (t, x) = simulate_levy_walk_with_duration(1.0, 1.0, 10.0, 0.0).unwrap();
-        println!("t: {:?}, x: {:?}", t, x);
+        println!("t: {t:?}, x: {x:?}");
         let result = linear_interpolate(&t, &x, 0.1).unwrap();
-        println!("result: {:?}", result);
+        println!("result: {result:?}");
     }
 
     #[test]
@@ -575,20 +573,14 @@ mod tests {
         for (i, (&actual_t, &expected_t)) in t_new.iter().zip(expected_t.iter()).enumerate() {
             assert!(
                 approx_eq(actual_t, expected_t, 1e-10),
-                "t_new[{}]: expected {}, got {}",
-                i,
-                expected_t,
-                actual_t
+                "t_new[{i}]: expected {expected_t}, got {actual_t}"
             );
         }
 
         for (i, (&actual_x, &expected_x)) in x_new.iter().zip(expected_x.iter()).enumerate() {
             assert!(
                 approx_eq(actual_x, expected_x, 1e-10),
-                "x_new[{}]: expected {}, got {}",
-                i,
-                expected_x,
-                actual_x
+                "x_new[{i}]: expected {expected_x}, got {actual_x}"
             );
         }
     }
@@ -671,20 +663,14 @@ mod tests {
         for (i, (&actual_t, &expected_t)) in t_new.iter().zip(expected_t.iter()).enumerate() {
             assert!(
                 approx_eq(actual_t, expected_t, 1e-10),
-                "t_new[{}]: expected {}, got {}",
-                i,
-                expected_t,
-                actual_t
+                "t_new[{i}]: expected {expected_t}, got {actual_t}"
             );
         }
 
         for (i, (&actual_x, &expected_x)) in x_new.iter().zip(expected_x.iter()).enumerate() {
             assert!(
                 approx_eq(actual_x, expected_x, 1e-10),
-                "x_new[{}]: expected {}, got {}",
-                i,
-                expected_x,
-                actual_x
+                "x_new[{i}]: expected {expected_x}, got {actual_x}"
             );
         }
     }
@@ -703,10 +689,7 @@ mod tests {
         for (i, (&t_lin, &t_flat)) in t_linear.iter().zip(t_flatten.iter()).enumerate() {
             assert!(
                 approx_eq(t_lin, t_flat, 1e-10),
-                "Time sequences differ at index {}: linear={}, flatten={}",
-                i,
-                t_lin,
-                t_flat
+                "Time sequences differ at index {i}: linear={t_lin}, flatten={t_flat}"
             );
         }
     }
@@ -721,9 +704,9 @@ mod tests {
         let (t_linear, x_linear) = linear_interpolate(&t, &x, step).unwrap();
         let (t_flatten, x_flatten) = flatten_interpolate(&t, &x, step).unwrap();
 
-        println!("原始数据: t={:?}, x={:?}", t, x);
-        println!("线性插值: t_new={:?}, x_new={:?}", t_linear, x_linear);
-        println!("阶梯插值: t_new={:?}, x_new={:?}", t_flatten, x_flatten);
+        println!("原始数据: t={t:?}, x={x:?}");
+        println!("线性插值: t_new={t_linear:?}, x_new={x_linear:?}");
+        println!("阶梯插值: t_new={t_flatten:?}, x_new={x_flatten:?}");
 
         // 验证时间序列一致
         assert_eq!(t_linear, t_flatten);

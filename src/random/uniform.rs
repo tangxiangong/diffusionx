@@ -225,16 +225,13 @@ mod tests {
 
         assert!(
             (mean - 0.5).abs() < 0.01,
-            "The mean of the standard uniform distribution should be close to 0.5, but got {}",
-            mean
+            "The mean of the standard uniform distribution should be close to 0.5, but got {mean}"
         );
 
         let expected_variance = 1.0 / 12.0;
         assert!(
             (variance - expected_variance).abs() < 0.01,
-            "The variance of the standard uniform distribution should be close to {}, but got {}",
-            expected_variance,
-            variance
+            "The variance of the standard uniform distribution should be close to {expected_variance}, but got {variance}"
         );
     }
 
@@ -251,15 +248,11 @@ mod tests {
 
         assert!(
             (mean - expected_mean).abs() < 0.01,
-            "The mean of the uniform distribution should be close to {}, but got {}",
-            expected_mean,
-            mean
+            "The mean of the uniform distribution should be close to {expected_mean}, but got {mean}"
         );
         assert!(
             (variance - expected_variance).abs() < 0.01,
-            "The variance of the uniform distribution should be close to {}, but got {}",
-            expected_variance,
-            variance
+            "The variance of the uniform distribution should be close to {expected_variance}, but got {variance}"
         );
     }
 
@@ -272,9 +265,7 @@ mod tests {
 
         assert!(
             (mean - p).abs() < 0.01,
-            "The proportion of True in the boolean random numbers should be close to {}, but got {}",
-            p,
-            mean
+            "The proportion of True in the boolean random numbers should be close to {p}, but got {mean}"
         );
     }
 }
