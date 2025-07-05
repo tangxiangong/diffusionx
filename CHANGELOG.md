@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.7] - 2025-07-05
+
+### 🚀 Features
+
+- Add Langevin equation macro to simplify the generation of stochastic processes
+- Add generalized and subordinated Langevin equation macros
+- Add loglog plotting functionality and enhance set_config
+
+### 💼 Other
+
+- Bump version 0.4.6
+- Add the example of macro `langevin`
+- Update version to 0.4.7
+
+### 🚜 Refactor
+
+- Simplify error messages in parameter validation across various simulation functions
+
+### ⚙️ Miscellaneous Tasks
+
+- Update dependencies and add optional feature
+
 ## [0.4.6] - 2025-06-15
 
 ### 🐛 Bug Fixes
