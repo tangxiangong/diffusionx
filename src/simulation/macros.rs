@@ -2,7 +2,7 @@
 ///
 /// # Example
 /// ```
-/// use diffusionx::simulation::macros::langevin;
+/// use diffusionx::langevin;
 ///
 /// let f = |x: f64, t: f64| x * t;
 /// let g = |x: f64, t: f64| x * t;
@@ -21,7 +21,7 @@ macro_rules! langevin {
 ///
 /// # Example
 /// ```
-/// use diffusionx::simulation::macros::generalized_langevin;
+/// use diffusionx::generalized_langevin;
 ///
 /// let f = |x: f64, t: f64| x * t;
 /// let g = |x: f64, t: f64| x * t;
@@ -40,7 +40,7 @@ macro_rules! generalized_langevin {
 ///
 /// # Example
 /// ```
-/// use diffusionx::simulation::macros::subordinated_langevin;
+/// use diffusionx::subordinated_langevin;
 ///
 /// let f = |x: f64, t: f64| x * t;
 /// let g = |x: f64, t: f64| x * t;

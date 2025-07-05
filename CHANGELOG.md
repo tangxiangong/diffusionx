@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.8] - 2025-07-05
+
+### 💼 Other
+
+- Update version to 0.4.8
+
+### 📚 Documentation
+
+- Update macro usage examples for clarity
+- Update README files for improved formatting and clarity
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.4.7
+
 ## [0.4.7] - 2025-07-05
 
 ### 🚀 Features

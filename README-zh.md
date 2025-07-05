@@ -1,12 +1,20 @@
-# DiffusionX
-
-[English](README.md) | 简体中文
-
-> DiffusionX 是一个多线程高性能的 Rust 随机数生成和随机过程模拟库。
-
-[![文档](https://img.shields.io/badge/文档-最新-blue.svg)](https://docs.rs/diffusionx/latest/diffusionx/)
-[![crates.io](https://img.shields.io/crates/v/diffusionx.svg)](https://crates.io/crates/diffusionx)
-[![许可证: MIT/Apache-2.0](https://img.shields.io/badge/许可证-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
+<div align=center>
+<h1 aligh="center">
+DiffusionX
+</h1>
+<p align="center">
+一个多线程高性能的 Rust 随机数生成和随机过程模拟库
+</p>
+<p align="center">
+<a href="README.md">English</a> | 简体中文
+</p>
+<p align="center">
+<a href="https://crates.io/crates/diffusionx"> <img alt="Crates.io Version" src="https://img.shields.io/crates/v/diffusionx?style=for-the-badge"> </a>
+<a href="https://docs.rs/diffusionx"> <img alt="docs.rs" src="https://img.shields.io/docsrs/diffusion?style=for-the-badge"> </a>
+<img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/crates/l/diffusionx?style=for-the-badge">
+<img alt="Downloads" src="https://img.shields.io/crates/d/diffusionx?style=for-the-badge">
+</p>
+</div>
 
 ## 已实现功能
 
