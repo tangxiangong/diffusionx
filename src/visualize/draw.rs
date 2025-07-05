@@ -90,11 +90,44 @@ pub fn plot(times: &[f64], positions: &[f64], config: &PlotConfig) -> XResult<()
     match config.backend {
         PlotterBackend::BitMap => {
             let backend = BitMapBackend::new(&config.output_path, config.size);
-            set_config(config, backend, points, meta)
+            set_config(config, backend, points, meta, false)
         }
         PlotterBackend::SVG => {
             let backend = SVGBackend::new(&config.output_path, config.size);
-            set_config(config, backend, points, meta)
+            set_config(config, backend, points, meta, false)
+        }
+    }
+}
+
+/// Plot a loglog.
+///
+/// # Arguments
+///
+/// * `times` - The times of the trajectory.
+/// * `positions` - The positions of the trajectory.
+/// * `config` - The configuration for the plot.
+///
+/// # Examples
+///
+/// ```rust
+/// let times = vec![1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0];
+/// let positions = vec![2.0, 20.0, 200.0, 2000.0, 20000.0, 200000.0];
+/// let config = PlotConfig::default();
+/// loglog(&times, &positions, &config).unwrap();
+/// ```
+pub fn loglog(times: &[f64], positions: &[f64], config: &PlotConfig) -> XResult<()> {
+    let max_time = *times.last().unwrap();
+    let (min_x, max_x) = minmax(positions);
+    let meta = (max_time, min_x, max_x);
+    let points: Vec<(f64, f64)> = times.iter().zip(positions).map(|(&t, &x)| (t, x)).collect();
+    match config.backend {
+        PlotterBackend::BitMap => {
+            let backend = BitMapBackend::new(&config.output_path, config.size);
+            set_config(config, backend, points, meta, true)
+        }
+        PlotterBackend::SVG => {
+            let backend = SVGBackend::new(&config.output_path, config.size);
+            set_config(config, backend, points, meta, true)
         }
     }
 }
@@ -135,11 +168,11 @@ pub fn stair(times: &[f64], positions: &[i64], config: &PlotConfig) -> XResult<(
     match config.backend {
         PlotterBackend::BitMap => {
             let backend = BitMapBackend::new(&config.output_path, config.size);
-            set_config(config, backend, points, meta)
+            set_config(config, backend, points, meta, false)
         }
         PlotterBackend::SVG => {
             let backend = SVGBackend::new(&config.output_path, config.size);
-            set_config(config, backend, points, meta)
+            set_config(config, backend, points, meta, false)
         }
     }
 }
@@ -187,5 +220,24 @@ mod tests {
             .build()
             .unwrap();
         traj.plot(&config).unwrap()
+    }
+
+    #[test]
+    #[ignore]
+    fn test_loglog() {
+        let times = vec![1.0, 10.0, 100.0, 1000.0];
+        let positions = vec![2.0, 20.0, 200.0, 2000.0];
+        let config = PlotConfigBuilder::default()
+            .time_step(0.01)
+            .backend(PlotterBackend::SVG)
+            .output_path("tmp/loglog.svg")
+            .caption("loglog")
+            .show_grid(false)
+            .title("中文")
+            .title_font_size(40)
+            .title_font_style(FontStyle::Bold)
+            .build()
+            .unwrap();
+        loglog(&times, &positions, &config).unwrap()
     }
 }

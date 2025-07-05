@@ -1,7 +1,8 @@
 use crate::{XResult, utils::minmax};
 use derive_builder::Builder;
+use either::Either;
 use plotters::{prelude::*, style::Color as _};
-use std::{ops::Range, path::PathBuf};
+use std::{f64, ops::Range, path::PathBuf};
 
 pub use plotters::prelude::FontStyle;
 
@@ -245,7 +246,7 @@ impl PlotConfig {
         let (min_x, max_x) = minmax(&positions);
         let meta = (max_time, min_x, max_x);
         let points: Vec<(f64, f64)> = times.iter().zip(positions).map(|(&t, x)| (t, x)).collect();
-        set_config(self, backend, points, meta)
+        set_config(self, backend, points, meta, false)
     }
 
     /// Plot the stair trajectory
@@ -270,7 +271,7 @@ impl PlotConfig {
                 }
             })
             .collect();
-        set_config(self, backend, points, meta)
+        set_config(self, backend, points, meta, false)
     }
 }
 
@@ -280,6 +281,7 @@ pub(crate) fn set_config<Backend: DrawingBackend>(
     backend: Backend,
     data: Vec<(f64, f64)>,
     meta: (f64, f64, f64),
+    log_scale: bool,
 ) -> XResult<()> {
     let (max_time, min_x, max_x) = meta;
 
@@ -318,26 +320,55 @@ pub(crate) fn set_config<Backend: DrawingBackend>(
         config.caption_font_size,
         config.caption_font_style,
     );
-    let mut chart = ChartBuilder::on(&root)
+    let mut chart_builder = ChartBuilder::on(&root);
+    let chart_builder = chart_builder
         .caption(&config.caption, caption_font)
         .margin(config.margin)
         .x_label_area_size(config.x_label_area_size)
-        .y_label_area_size(config.y_label_area_size)
-        .build_cartesian_2d(x_spec, y_spec)?;
+        .y_label_area_size(config.y_label_area_size);
+
+    let mut chart = if log_scale {
+        Either::Left(chart_builder.build_cartesian_2d(x_spec.log_scale(), y_spec.log_scale())?)
+    } else {
+        Either::Right(chart_builder.build_cartesian_2d(x_spec, y_spec)?)
+    };
 
     if config.show_grid {
-        chart
-            .configure_mesh()
-            .x_desc(&config.x_label)
-            .y_desc(&config.y_label)
-            .draw()?;
+        match &mut chart {
+            Either::Left(chart) => {
+                chart
+                    .configure_mesh()
+                    .x_desc(&config.x_label)
+                    .y_desc(&config.y_label)
+                    .draw()?;
+            }
+            Either::Right(chart) => {
+                chart
+                    .configure_mesh()
+                    .x_desc(&config.x_label)
+                    .y_desc(&config.y_label)
+                    .draw()?;
+            }
+        }
     } else {
-        chart
-            .configure_mesh()
-            .disable_mesh()
-            .x_desc(&config.x_label)
-            .y_desc(&config.y_label)
-            .draw()?;
+        match &mut chart {
+            Either::Left(chart) => {
+                chart
+                    .configure_mesh()
+                    .disable_mesh()
+                    .x_desc(&config.x_label)
+                    .y_desc(&config.y_label)
+                    .draw()?;
+            }
+            Either::Right(chart) => {
+                chart
+                    .configure_mesh()
+                    .disable_mesh()
+                    .x_desc(&config.x_label)
+                    .y_desc(&config.y_label)
+                    .draw()?;
+            }
+        }
     };
 
     let line_color: RGBColor = config.line_color.clone().into();
@@ -366,7 +397,10 @@ pub(crate) fn set_config<Backend: DrawingBackend>(
             } else {
                 LineSeries::new(data, line_color)
             };
-            chart.draw_series(line)?
+            match &mut chart {
+                Either::Left(chart) => chart.draw_series(line)?,
+                Either::Right(chart) => chart.draw_series(line)?,
+            }
         }
         LineStyle::Dashed => {
             let line = DashedLineSeries::new(
@@ -375,7 +409,10 @@ pub(crate) fn set_config<Backend: DrawingBackend>(
                 config.dash_style[1],
                 dash_shape_style,
             );
-            chart.draw_series(line)?
+            match &mut chart {
+                Either::Left(chart) => chart.draw_series(line)?,
+                Either::Right(chart) => chart.draw_series(line)?,
+            }
         }
         LineStyle::Dotted => {
             let line = DashedLineSeries::new(
@@ -384,7 +421,10 @@ pub(crate) fn set_config<Backend: DrawingBackend>(
                 config.dot_style[1],
                 dot_shape_style,
             );
-            chart.draw_series(line)?
+            match &mut chart {
+                Either::Left(chart) => chart.draw_series(line)?,
+                Either::Right(chart) => chart.draw_series(line)?,
+            }
         }
     };
 
@@ -394,12 +434,24 @@ pub(crate) fn set_config<Backend: DrawingBackend>(
         tmp.legend(move |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], legend_color));
     }
 
-    chart
-        .configure_series_labels()
-        .position(config.legend_position.into())
-        .background_style(background_color)
-        .border_style(BLACK)
-        .draw()?;
+    match &mut chart {
+        Either::Left(chart) => {
+            chart
+                .configure_series_labels()
+                .position(config.legend_position.into())
+                .background_style(background_color)
+                .border_style(BLACK)
+                .draw()?;
+        }
+        Either::Right(chart) => {
+            chart
+                .configure_series_labels()
+                .position(config.legend_position.into())
+                .background_style(background_color)
+                .border_style(BLACK)
+                .draw()?;
+        }
+    }
 
     root.present()?;
 
