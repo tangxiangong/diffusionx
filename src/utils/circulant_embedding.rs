@@ -170,7 +170,7 @@ impl CirculantEmbedding {
         // Special handling for real output: Z_k = conj(Z_{m-k})
         // This implies z_imag[0] = 0 and z_imag[m/2] = 0 (if m is even)
         z_imag[0] = 0.0;
-        if m % 2 == 0 {
+        if m.is_multiple_of(2) {
             z_imag[m / 2] = 0.0;
         }
 

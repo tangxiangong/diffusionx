@@ -2,7 +2,7 @@
 name = "diffusionx"
 authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.4.8"
+version = "0.4.9"
 description = "A multi-threaded crate for random number generation and stochastic process simulation."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
@@ -14,29 +14,29 @@ keywords = ["stochastic-process", "simulation", "Monte-Carlo"]
 name = "diffusionx"
 doctest = false
 
-[profile.release]
-lto = true
-codegen-units = 1
-panic = "abort"
-
 [features]
 default = ["visualize"]
 visualize = ["plotters", "derive_builder", "plotters-backend", "either"]
 
 [dependencies]
-rand_distr = "0.5"
-rand = "0.9"
-rayon = "1.10"
-thiserror = "2"
-num-traits = "0.2"
-rustfft = "6.4"
-num-complex = "0.4"
-once_cell = "1.21"
-gauss-quad = "0.2.3"
 csv = "1.3.1"
+gauss-quad = "0.2.4"
+num-complex = "0.4"
+num-traits = "0.2"
+once_cell = "1.21"
+rand = "0.9"
+rand_distr = "0.5"
+rayon = "1.11"
+rustfft = "6.4"
+thiserror = "2"
 
 # optional dependencies
-plotters = { version = "0.3", optional = true }
-plotters-backend = { version = "0.3", optional = true }
 derive_builder = { version = "0.20", optional = true }
 either = { version = "1", optional = true }
+plotters = { version = "0.3", optional = true }
+plotters-backend = { version = "0.3", optional = true }
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"

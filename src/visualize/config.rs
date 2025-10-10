@@ -98,7 +98,6 @@ impl From<LegendPosition> for SeriesLabelPosition {
     }
 }
 
-#[allow(dead_code)]
 /// Configuration for plotting
 #[derive(Builder, Clone)]
 #[builder(pattern = "mutable")]
