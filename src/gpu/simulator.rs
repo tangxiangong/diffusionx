@@ -11,7 +11,7 @@ use crate::{
     utils::linspace,
 };
 
-use super::{GpuBackend, backend::GpuConfig};
+use super::{GpuBackend, backend::GpuConfig, montecarlo::MonteCarloStats};
 
 /// GPU-accelerated simulator for stochastic processes
 pub struct GpuSimulator {
@@ -263,6 +263,150 @@ impl GpuSimulator {
         Ok(all_trajectories)
     }
 
+    /// Simulate Brownian motion Monte Carlo on CUDA (statistics only)
+    #[cfg(feature = "cuda")]
+    pub fn montecarlo_bm_cuda(
+        &self,
+        bm: &Bm,
+        duration: f64,
+        time_step: f64,
+        num_samples: usize,
+    ) -> XResult<MonteCarloStats> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_samples, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let start_position = bm.get_start_position() as f32;
+        let diffusion_coefficient = bm.get_diffusion_coefficient() as f32;
+        let seed = 12345u64;
+
+        // Simulate all particles on GPU
+        let positions = kernel_manager.simulate_bm_f32(
+            &params,
+            start_position,
+            diffusion_coefficient,
+            time_step as f32,
+            seed,
+        )?;
+
+        // Compute statistics on GPU
+        let stats = kernel_manager.compute_montecarlo_stats(&positions, num_samples, num_steps)?;
+
+        // Convert to MonteCarloStats
+        let times = linspace(0.0, duration, num_steps + 1);
+        let mut mc_stats = MonteCarloStats::new(num_steps, num_samples);
+        mc_stats.times = times;
+        mc_stats.mean = stats.mean.iter().map(|&x| x as f64).collect();
+        mc_stats.msd = stats.msd.iter().map(|&x| x as f64).collect();
+        mc_stats.variance = stats.variance.iter().map(|&x| x as f64).collect();
+
+        Ok(mc_stats)
+    }
+
+    /// Simulate OU process Monte Carlo on CUDA (statistics only)
+    #[cfg(feature = "cuda")]
+    pub fn montecarlo_ou_cuda(
+        &self,
+        ou: &OrnsteinUhlenbeck,
+        duration: f64,
+        time_step: f64,
+        num_samples: usize,
+    ) -> XResult<MonteCarloStats> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_samples, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let start_position = ou.get_start_position() as f32;
+        let theta = ou.get_theta() as f32;
+        let mu = 0.0f32;
+        let sigma = ou.get_sigma() as f32;
+        let seed = 12345u64;
+
+        // Simulate all particles on GPU
+        let positions = kernel_manager.simulate_ou_f32(
+            &params,
+            start_position,
+            theta,
+            mu,
+            sigma,
+            time_step as f32,
+            seed,
+        )?;
+
+        // Compute statistics on GPU
+        let stats = kernel_manager.compute_montecarlo_stats(&positions, num_samples, num_steps)?;
+
+        // Convert to MonteCarloStats
+        let times = linspace(0.0, duration, num_steps + 1);
+        let mut mc_stats = MonteCarloStats::new(num_steps, num_samples);
+        mc_stats.times = times;
+        mc_stats.mean = stats.mean.iter().map(|&x| x as f64).collect();
+        mc_stats.msd = stats.msd.iter().map(|&x| x as f64).collect();
+        mc_stats.variance = stats.variance.iter().map(|&x| x as f64).collect();
+
+        Ok(mc_stats)
+    }
+
+    /// Simulate GBM Monte Carlo on CUDA (statistics only)
+    #[cfg(feature = "cuda")]
+    pub fn montecarlo_gbm_cuda(
+        &self,
+        gbm: &GeometricBm,
+        duration: f64,
+        time_step: f64,
+        num_samples: usize,
+    ) -> XResult<MonteCarloStats> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_samples, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let start_position = gbm.get_start_position() as f32;
+        let mu = gbm.get_mu() as f32;
+        let sigma = gbm.get_sigma() as f32;
+        let seed = 12345u64;
+
+        // Simulate all particles on GPU
+        let positions = kernel_manager.simulate_gbm_f32(
+            &params,
+            start_position,
+            mu,
+            sigma,
+            time_step as f32,
+            seed,
+        )?;
+
+        // Compute statistics on GPU
+        let stats = kernel_manager.compute_montecarlo_stats(&positions, num_samples, num_steps)?;
+
+        // Convert to MonteCarloStats
+        let times = linspace(0.0, duration, num_steps + 1);
+        let mut mc_stats = MonteCarloStats::new(num_steps, num_samples);
+        mc_stats.times = times;
+        mc_stats.mean = stats.mean.iter().map(|&x| x as f64).collect();
+        mc_stats.msd = stats.msd.iter().map(|&x| x as f64).collect();
+        mc_stats.variance = stats.variance.iter().map(|&x| x as f64).collect();
+
+        Ok(mc_stats)
+    }
+
     /// Simulate GBM on CUDA
     #[cfg(feature = "cuda")]
     pub fn simulate_gbm_cuda(
@@ -348,7 +492,7 @@ impl GpuSimulator {
         let num_steps = (duration / time_step).ceil() as usize;
 
         let kernel = library
-            .get_function("simulate_bm_f32", None)
+            .get_function("simulate_bm", None)
             .map_err(|e| crate::XError::GpuError(format!("Failed to get kernel: {}", e)))?;
 
         let rng = MetalRng::new(device.clone());
@@ -432,99 +576,6 @@ impl GpuSimulator {
         }
 
         Ok(all_trajectories)
-    }
-
-    /// Compute mean square displacement on GPU for many particles
-    ///
-    /// This is more efficient than simulating trajectories and computing MSD on CPU
-    pub fn compute_msd_parallel<P: ContinuousProcess>(
-        &self,
-        process: &P,
-        duration: f64,
-        time_step: f64,
-        num_particles: usize,
-    ) -> XResult<Vec<f64>> {
-        // Simulate trajectories first
-        let trajectories = self.simulate_parallel(process, duration, time_step, num_particles)?;
-
-        let num_steps = (duration / time_step).ceil() as usize + 1;
-        let mut msd = vec![0.0; num_steps];
-
-        // Compute MSD for each time step
-        for step_idx in 0..num_steps {
-            let mut sum_sq = 0.0;
-            for traj in &trajectories {
-                let position = traj.1[step_idx];
-                sum_sq += position * position;
-            }
-            msd[step_idx] = sum_sq / num_particles as f64;
-        }
-
-        Ok(msd)
-    }
-
-    /// Compute raw moments on GPU
-    pub fn compute_moments_parallel<P: ContinuousProcess>(
-        &self,
-        process: &P,
-        order: i32,
-        duration: f64,
-        time_step: f64,
-        num_particles: usize,
-    ) -> XResult<Vec<f64>> {
-        #[cfg(feature = "cuda")]
-        {
-            if matches!(self.backend, GpuBackend::Cuda) {
-                use crate::gpu::cuda::{CudaBackend, KernelManager};
-
-                // First simulate trajectories
-                let trajectories =
-                    self.simulate_parallel(process, duration, time_step, num_particles)?;
-
-                // Convert to flat f32 array
-                let num_steps = (duration / time_step).ceil() as usize + 1;
-                let mut positions_flat = Vec::with_capacity(num_particles * num_steps);
-
-                for traj in &trajectories {
-                    for &pos in &traj.1 {
-                        positions_flat.push(pos as f32);
-                    }
-                }
-
-                // Create CUDA backend and kernel manager
-                let cuda = CudaBackend::new(0)?;
-                let device = cuda.device();
-                let mut kernel_manager = KernelManager::new(device.clone());
-
-                // Compute moments on GPU
-                let moments_f32 = kernel_manager.compute_raw_moments(
-                    &positions_flat,
-                    order,
-                    num_particles,
-                    num_steps,
-                )?;
-
-                // Convert back to f64
-                let moments: Vec<f64> = moments_f32.iter().map(|&x| x as f64).collect();
-                return Ok(moments);
-            }
-        }
-
-        // Fallback: compute on CPU
-        let trajectories = self.simulate_parallel(process, duration, time_step, num_particles)?;
-        let num_steps = (duration / time_step).ceil() as usize + 1;
-        let mut moments = vec![0.0; num_steps];
-
-        for step_idx in 0..num_steps {
-            let mut sum = 0.0;
-            for traj in &trajectories {
-                let position = traj.1[step_idx];
-                sum += position.powi(order);
-            }
-            moments[step_idx] = sum / num_particles as f64;
-        }
-
-        Ok(moments)
     }
 
     /// Get GPU information string

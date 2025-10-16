@@ -1,7 +1,8 @@
-//! CUDA kernel implementations for stochastic process simulation
+//! CUDA kernel management for stochastic process simulation
 //!
-//! This module contains CUDA kernel code and Rust wrappers for GPU-accelerated
-//! simulation of stochastic processes.
+//! This module provides kernel loading, compilation, and execution management
+//! for CUDA-based GPU acceleration. All kernel implementations are in the
+//! `kernels/cuda/` directory as .cu files.
 
 use crate::{XError, XResult};
 
@@ -13,193 +14,6 @@ use cudarc::nvrtc::compile_ptx;
 use std::path::Path;
 #[cfg(feature = "cuda")]
 use std::sync::Arc;
-
-/// CUDA kernel source code for Brownian motion simulation
-pub const BROWNIAN_MOTION_KERNEL: &str = r#"
-extern "C" __global__ void simulate_brownian_motion(
-    const float* __restrict__ random_normals,
-    float* __restrict__ positions,
-    float start_position,
-    float diffusion_coefficient,
-    float time_step,
-    int num_steps,
-    int num_particles
-) {
-    int particle_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (particle_idx >= num_particles) return;
-
-    float position = start_position;
-    int offset = particle_idx * num_steps;
-
-    // Store initial position
-    positions[offset] = position;
-
-    // Simulate trajectory
-    float noise_scale = sqrtf(2.0f * diffusion_coefficient * time_step);
-    for (int step = 0; step < num_steps; step++) {
-        position += noise_scale * random_normals[offset + step];
-        positions[offset + step + 1] = position;
-    }
-}
-
-extern "C" __global__ void simulate_brownian_motion_f64(
-    const double* __restrict__ random_normals,
-    double* __restrict__ positions,
-    double start_position,
-    double diffusion_coefficient,
-    double time_step,
-    int num_steps,
-    int num_particles
-) {
-    int particle_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (particle_idx >= num_particles) return;
-
-    double position = start_position;
-    int offset = particle_idx * num_steps;
-
-    // Store initial position
-    positions[offset] = position;
-
-    // Simulate trajectory
-    double noise_scale = sqrt(2.0 * diffusion_coefficient * time_step);
-    for (int step = 0; step < num_steps; step++) {
-        position += noise_scale * random_normals[offset + step];
-        positions[offset + step + 1] = position;
-    }
-}
-"#;
-
-/// CUDA kernel for computing statistical moments
-pub const MOMENTS_KERNEL: &str = r#"
-extern "C" __global__ void compute_raw_moment(
-    const float* __restrict__ positions,
-    float* __restrict__ moments,
-    int order,
-    int num_particles,
-    int num_steps
-) {
-    int step_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (step_idx >= num_steps) return;
-
-    float sum = 0.0f;
-    for (int i = 0; i < num_particles; i++) {
-        float pos = positions[i * (num_steps + 1) + step_idx];
-        float value = pos;
-        for (int j = 1; j < order; j++) {
-            value *= pos;
-        }
-        sum += value;
-    }
-
-    moments[step_idx] = sum / num_particles;
-}
-
-extern "C" __global__ void compute_central_moment(
-    const float* __restrict__ positions,
-    const float* __restrict__ means,
-    float* __restrict__ moments,
-    int order,
-    int num_particles,
-    int num_steps
-) {
-    int step_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (step_idx >= num_steps) return;
-
-    float mean = means[step_idx];
-    float sum = 0.0f;
-
-    for (int i = 0; i < num_particles; i++) {
-        float pos = positions[i * (num_steps + 1) + step_idx];
-        float deviation = pos - mean;
-        float value = deviation;
-        for (int j = 1; j < order; j++) {
-            value *= deviation;
-        }
-        sum += value;
-    }
-
-    moments[step_idx] = sum / num_particles;
-}
-"#;
-
-/// CUDA kernel for Ornstein-Uhlenbeck process
-pub const OU_PROCESS_KERNEL: &str = r#"
-extern "C" __global__ void simulate_ou_process(
-    const float* __restrict__ random_normals,
-    float* __restrict__ positions,
-    float start_position,
-    float theta,
-    float mu,
-    float sigma,
-    float time_step,
-    int num_steps,
-    int num_particles
-) {
-    int particle_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (particle_idx >= num_particles) return;
-
-    float position = start_position;
-    int offset = particle_idx * num_steps;
-
-    positions[offset] = position;
-
-    float sqrt_dt = sqrtf(time_step);
-    for (int step = 0; step < num_steps; step++) {
-        float drift = theta * (mu - position) * time_step;
-        float diffusion = sigma * sqrt_dt * random_normals[offset + step];
-        position += drift + diffusion;
-        positions[offset + step + 1] = position;
-    }
-}
-"#;
-
-/// CUDA kernel for Geometric Brownian Motion
-pub const GBM_KERNEL: &str = r#"
-extern "C" __global__ void simulate_gbm(
-    const float* __restrict__ random_normals,
-    float* __restrict__ positions,
-    float start_position,
-    float mu,
-    float sigma,
-    float time_step,
-    int num_steps,
-    int num_particles
-) {
-    int particle_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (particle_idx >= num_particles) return;
-
-    float position = start_position;
-    int offset = particle_idx * num_steps;
-
-    positions[offset] = position;
-
-    float sqrt_dt = sqrtf(time_step);
-    for (int step = 0; step < num_steps; step++) {
-        float drift = (mu - 0.5f * sigma * sigma) * time_step;
-        float diffusion = sigma * sqrt_dt * random_normals[offset + step];
-        position *= expf(drift + diffusion);
-        positions[offset + step + 1] = position;
-    }
-}
-"#;
-
-/// Kernel manager for loading and caching CUDA kernels
-#[cfg(feature = "cuda")]
-pub struct KernelManager {
-    device: Arc<CudaDevice>,
-    brownian_motion_f32: Option<Arc<CudaFunction>>,
-    brownian_motion_f64: Option<Arc<CudaFunction>>,
-    init_curand: Option<Arc<CudaFunction>>,
-    moments: Option<Arc<CudaFunction>>,
-    ou_process: Option<Arc<CudaFunction>>,
-    gbm: Option<Arc<CudaFunction>>,
-}
 
 /// Launch parameters for kernel execution
 #[cfg(feature = "cuda")]
@@ -234,6 +48,34 @@ impl KernelLaunchParams {
     }
 }
 
+/// Monte Carlo statistics computed on GPU
+#[cfg(feature = "cuda")]
+#[derive(Debug, Clone)]
+pub struct GpuMonteCarloResult {
+    /// Mean at each time step
+    pub mean: Vec<f32>,
+    /// MSD at each time step
+    pub msd: Vec<f32>,
+    /// Variance at each time step
+    pub variance: Vec<f32>,
+}
+
+/// Kernel manager for loading and caching CUDA kernels
+#[cfg(feature = "cuda")]
+pub struct KernelManager {
+    device: Arc<CudaDevice>,
+    brownian_motion_f32: Option<Arc<CudaFunction>>,
+    brownian_motion_f64: Option<Arc<CudaFunction>>,
+    init_curand: Option<Arc<CudaFunction>>,
+    moments: Option<Arc<CudaFunction>>,
+    ou_process: Option<Arc<CudaFunction>>,
+    gbm: Option<Arc<CudaFunction>>,
+    fbm: Option<Arc<CudaFunction>>,
+    langevin: Option<Arc<CudaFunction>>,
+    levy: Option<Arc<CudaFunction>>,
+    compute_stats: Option<Arc<CudaFunction>>,
+}
+
 #[cfg(feature = "cuda")]
 impl KernelManager {
     /// Create a new kernel manager
@@ -246,32 +88,36 @@ impl KernelManager {
             moments: None,
             ou_process: None,
             gbm: None,
+            fbm: None,
+            langevin: None,
+            levy: None,
+            compute_stats: None,
         }
     }
 
-    /// Load kernel from .cu file if available, otherwise use embedded source
-    fn load_kernel_from_file_or_source(
+    /// Load kernel from .cu file
+    fn load_kernel_from_file(
         &self,
         file_path: &str,
-        embedded_source: &str,
         module_name: &str,
         function_names: &[&str],
     ) -> XResult<()> {
-        let ptx = if Path::new(file_path).exists() {
-            // Try to compile from file
-            let source = std::fs::read_to_string(file_path)
-                .map_err(|e| XError::GpuError(format!("Failed to read kernel file: {}", e)))?;
-            compile_ptx(source)
-                .map_err(|e| XError::GpuError(format!("Failed to compile PTX from file: {}", e)))?
-        } else {
-            // Use embedded source
-            compile_ptx(embedded_source)
-                .map_err(|e| XError::GpuError(format!("Failed to compile embedded PTX: {}", e)))?
-        };
+        // Read source from .cu file
+        let source = std::fs::read_to_string(file_path).map_err(|e| {
+            XError::GpuError(format!("Failed to read kernel file {}: {}", file_path, e))
+        })?;
 
+        // Compile PTX
+        let ptx = compile_ptx(source).map_err(|e| {
+            XError::GpuError(format!("Failed to compile PTX for {}: {}", module_name, e))
+        })?;
+
+        // Load PTX into device
         self.device
             .load_ptx(ptx, module_name, function_names)
-            .map_err(|e| XError::GpuError(format!("Failed to load PTX: {}", e)))?;
+            .map_err(|e| {
+                XError::GpuError(format!("Failed to load PTX module {}: {}", module_name, e))
+            })?;
 
         Ok(())
     }
@@ -284,9 +130,8 @@ impl KernelManager {
     ) -> XResult<DevicePtrMut<u8>> {
         // Load init kernel if not already loaded
         if self.init_curand.is_none() {
-            self.load_kernel_from_file_or_source(
+            self.load_kernel_from_file(
                 "kernels/cuda/bm.cu",
-                BROWNIAN_MOTION_KERNEL,
                 "curand_init_module",
                 &["init_curand_states"],
             )?;
@@ -331,12 +176,7 @@ impl KernelManager {
             return Ok(kernel.clone());
         }
 
-        self.load_kernel_from_file_or_source(
-            "kernels/cuda/bm.cu",
-            BROWNIAN_MOTION_KERNEL,
-            "bm_f32",
-            &["simulate_bm_f32"],
-        )?;
+        self.load_kernel_from_file("kernels/cuda/bm.cu", "bm_f32", &["simulate_bm_f32"])?;
 
         let kernel = self
             .device
@@ -406,12 +246,7 @@ impl KernelManager {
             return Ok(kernel.clone());
         }
 
-        self.load_kernel_from_file_or_source(
-            "kernels/cuda/bm.cu",
-            BROWNIAN_MOTION_KERNEL,
-            "bm_f64",
-            &["simulate_bm_f64"],
-        )?;
+        self.load_kernel_from_file("kernels/cuda/bm.cu", "bm_f64", &["simulate_bm_f64"])?;
 
         let kernel = self
             .device
@@ -475,100 +310,14 @@ impl KernelManager {
         Ok(positions)
     }
 
-    /// Load moments kernel
-    pub fn load_moments_kernel(&mut self) -> XResult<Arc<CudaFunction>> {
-        if let Some(ref kernel) = self.moments {
-            return Ok(kernel.clone());
-        }
-
-        let ptx = compile_ptx(MOMENTS_KERNEL)
-            .map_err(|e| XError::GpuError(format!("Failed to compile PTX: {}", e)))?;
-
-        self.device
-            .load_ptx(
-                ptx,
-                "moments",
-                &["compute_raw_moment", "compute_central_moment"],
-            )
-            .map_err(|e| XError::GpuError(format!("Failed to load PTX: {}", e)))?;
-
-        let kernel = self
-            .device
-            .get_func("moments", "compute_raw_moment")
-            .map_err(|e| XError::GpuError(format!("Failed to get kernel function: {}", e)))?;
-
-        self.moments = Some(kernel.clone());
-        Ok(kernel)
-    }
-
-    /// Compute raw moments on GPU
-    pub fn compute_raw_moments(
-        &mut self,
-        positions: &[f32],
-        order: i32,
-        num_particles: usize,
-        num_steps: usize,
-    ) -> XResult<Vec<f32>> {
-        // Copy positions to device
-        let d_positions = self
-            .device
-            .htod_sync_copy(positions)
-            .map_err(|e| XError::GpuError(format!("Failed to copy positions: {}", e)))?;
-
-        // Allocate output buffer
-        let mut d_moments = self
-            .device
-            .alloc_zeros::<f32>(num_steps)
-            .map_err(|e| XError::GpuError(format!("Failed to allocate moments: {}", e)))?;
-
-        // Load and launch kernel
-        let kernel = self.load_moments_kernel()?;
-        let threads_per_block = 256;
-        let num_blocks = (num_steps + threads_per_block - 1) / threads_per_block;
-
-        let config = LaunchConfig {
-            grid_dim: (num_blocks as u32, 1, 1),
-            block_dim: (threads_per_block as u32, 1, 1),
-            shared_mem_bytes: 0,
-        };
-
-        unsafe {
-            kernel
-                .launch(
-                    config,
-                    (
-                        &d_positions,
-                        &mut d_moments,
-                        order,
-                        num_particles as i32,
-                        num_steps as i32,
-                    ),
-                )
-                .map_err(|e| XError::GpuError(format!("Failed to launch moments kernel: {}", e)))?;
-        }
-
-        // Synchronize and copy results back
-        self.device
-            .synchronize()
-            .map_err(|e| XError::GpuError(format!("Failed to synchronize: {}", e)))?;
-
-        let moments = self
-            .device
-            .dtoh_sync_copy(&d_moments)
-            .map_err(|e| XError::GpuError(format!("Failed to copy moments: {}", e)))?;
-
-        Ok(moments)
-    }
-
     /// Load OU process kernel
     pub fn load_ou_process_kernel(&mut self) -> XResult<Arc<CudaFunction>> {
         if let Some(ref kernel) = self.ou_process {
             return Ok(kernel.clone());
         }
 
-        self.load_kernel_from_file_or_source(
+        self.load_kernel_from_file(
             "kernels/cuda/ou.cu",
-            OU_PROCESS_KERNEL,
             "ou_process",
             &["simulate_ou_process_f32"],
         )?;
@@ -645,12 +394,7 @@ impl KernelManager {
             return Ok(kernel.clone());
         }
 
-        self.load_kernel_from_file_or_source(
-            "kernels/cuda/geometric_bm.cu",
-            GBM_KERNEL,
-            "gbm",
-            &["simulate_gbm_f32"],
-        )?;
+        self.load_kernel_from_file("kernels/cuda/geometric_bm.cu", "gbm", &["simulate_gbm_f32"])?;
 
         let kernel = self
             .device
@@ -716,6 +460,106 @@ impl KernelManager {
         Ok(positions)
     }
 
+    /// Compute Monte Carlo statistics on GPU
+    pub fn compute_montecarlo_stats(
+        &mut self,
+        positions: &[f32],
+        num_particles: usize,
+        num_steps: usize,
+    ) -> XResult<GpuMonteCarloResult> {
+        // Copy positions to device
+        let d_positions = self
+            .device
+            .htod_sync_copy(positions)
+            .map_err(|e| XError::GpuError(format!("Failed to copy positions: {}", e)))?;
+
+        // Allocate output buffers
+        let mut d_mean = self
+            .device
+            .alloc_zeros::<f32>(num_steps + 1)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate mean buffer: {}", e)))?;
+
+        let mut d_msd = self
+            .device
+            .alloc_zeros::<f32>(num_steps + 1)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate MSD buffer: {}", e)))?;
+
+        let mut d_variance = self
+            .device
+            .alloc_zeros::<f32>(num_steps + 1)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate variance buffer: {}", e)))?;
+
+        // Load kernel if not cached
+        if self.compute_stats.is_none() {
+            self.load_kernel_from_file(
+                "kernels/cuda/stats.cu",
+                "stats_module",
+                &["compute_stats_f32"],
+            )?;
+
+            let kernel = self
+                .device
+                .get_func("stats_module", "compute_stats_f32")
+                .map_err(|e| XError::GpuError(format!("Failed to get stats kernel: {}", e)))?;
+
+            self.compute_stats = Some(kernel);
+        }
+
+        let kernel = self.compute_stats.as_ref().unwrap();
+
+        // Launch kernel
+        let threads_per_block = 256;
+        let num_blocks = (num_steps + threads_per_block) / threads_per_block;
+        let config = LaunchConfig {
+            grid_dim: (num_blocks as u32, 1, 1),
+            block_dim: (threads_per_block as u32, 1, 1),
+            shared_mem_bytes: 0,
+        };
+
+        unsafe {
+            kernel
+                .clone()
+                .launch(
+                    config,
+                    (
+                        &d_positions,
+                        &mut d_mean,
+                        &mut d_msd,
+                        &mut d_variance,
+                        num_particles as i32,
+                        num_steps as i32,
+                    ),
+                )
+                .map_err(|e| XError::GpuError(format!("Failed to launch stats kernel: {}", e)))?;
+        }
+
+        // Synchronize and copy results
+        self.device
+            .synchronize()
+            .map_err(|e| XError::GpuError(format!("Failed to synchronize: {}", e)))?;
+
+        let mean = self
+            .device
+            .dtoh_sync_copy(&d_mean)
+            .map_err(|e| XError::GpuError(format!("Failed to copy mean: {}", e)))?;
+
+        let msd = self
+            .device
+            .dtoh_sync_copy(&d_msd)
+            .map_err(|e| XError::GpuError(format!("Failed to copy MSD: {}", e)))?;
+
+        let variance = self
+            .device
+            .dtoh_sync_copy(&d_variance)
+            .map_err(|e| XError::GpuError(format!("Failed to copy variance: {}", e)))?;
+
+        Ok(GpuMonteCarloResult {
+            mean,
+            msd,
+            variance,
+        })
+    }
+
     /// Get optimal launch configuration
     pub fn get_launch_config(&self, num_particles: usize) -> LaunchConfig {
         let threads_per_block = 256;
@@ -734,10 +578,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_kernel_source_not_empty() {
-        assert!(!BROWNIAN_MOTION_KERNEL.is_empty());
-        assert!(!MOMENTS_KERNEL.is_empty());
-        assert!(!OU_PROCESS_KERNEL.is_empty());
-        assert!(!GBM_KERNEL.is_empty());
+    fn test_launch_params() {
+        #[cfg(feature = "cuda")]
+        {
+            let params = KernelLaunchParams::new(1000, 100);
+            assert_eq!(params.num_particles, 1000);
+            assert_eq!(params.num_steps, 100);
+            assert_eq!(params.threads_per_block, 256);
+
+            let config = params.get_launch_config();
+            assert_eq!(config.grid_dim.0, 4); // ceil(1000/256) = 4
+        }
     }
 }

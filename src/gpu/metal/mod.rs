@@ -6,9 +6,6 @@ use crate::{XError, XResult};
 
 #[cfg(feature = "metal")]
 use metal::*;
-#[cfg(feature = "metal")]
-mod kernels;
-pub use kernels::*;
 
 mod rng;
 pub use rng::*;
@@ -90,13 +87,60 @@ impl MetalBackend {
         })
     }
 
-    /// Compile Metal shader library
+    /// Compile Metal shader library from .metal files
     fn compile_library(device: &Device) -> XResult<Library> {
-        let source = kernels::METAL_SHADERS;
-        let compile_options = CompileOptions::new();
+        // Try to load from compiled metallib first, then fall back to source compilation
+        let metallib_path = "kernels/metal/libkernels.metallib";
 
+        if std::path::Path::new(metallib_path).exists() {
+            // Load pre-compiled library
+            device
+                .new_library_with_file(metallib_path)
+                .map_err(|e| XError::GpuError(format!("Failed to load Metal library: {}", e)))
+        } else {
+            // Fall back to compiling from source files
+            Self::compile_from_source(device)
+        }
+    }
+
+    /// Compile Metal shaders from individual .metal source files
+    fn compile_from_source(device: &Device) -> XResult<Library> {
+        // List of all metal shader files
+        let shader_files = vec![
+            "kernels/metal/bm.metal",
+            "kernels/metal/ou_process.metal",
+            "kernels/metal/geometric_bm.metal",
+            "kernels/metal/fbm.metal",
+            "kernels/metal/cauchy.metal",
+            "kernels/metal/gamma.metal",
+            "kernels/metal/langevin.metal",
+            "kernels/metal/levy.metal",
+            "kernels/metal/levy_walk.metal",
+            "kernels/metal/brownian_bridge.metal",
+            "kernels/metal/brownian_excursion.metal",
+            "kernels/metal/brownian_meander.metal",
+            "kernels/metal/bng.metal",
+        ];
+
+        // Combine all shader sources
+        let mut combined_source = String::new();
+        for file_path in shader_files {
+            if let Ok(source) = std::fs::read_to_string(file_path) {
+                combined_source.push_str(&source);
+                combined_source.push('\n');
+            }
+        }
+
+        // If no files found, return error
+        if combined_source.is_empty() {
+            return Err(XError::GpuError(
+                "No Metal shader files found in kernels/metal/ directory".to_string(),
+            ));
+        }
+
+        let compile_options = CompileOptions::new();
         device
-            .new_library_with_source(source, &compile_options)
+            .new_library_with_source(&combined_source, &compile_options)
             .map_err(|e| XError::GpuError(format!("Failed to compile Metal shaders: {}", e)))
     }
 

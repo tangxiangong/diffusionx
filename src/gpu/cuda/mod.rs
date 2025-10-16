@@ -9,9 +9,6 @@ use cudarc::driver::{CudaDevice, CudaStream, DevicePtr, DevicePtrMut, LaunchAsyn
 #[cfg(feature = "cuda")]
 use std::sync::Arc;
 
-mod kernels;
-pub use kernels::*;
-
 mod rng;
 pub use rng::*;
 
