@@ -19,3 +19,7 @@ pub mod utils;
 /// Visualization module
 #[cfg(feature = "visualize")]
 pub mod visualize;
+
+/// GPU acceleration module
+#[cfg(any(feature = "cuda", feature = "metal"))]
+pub mod gpu;
