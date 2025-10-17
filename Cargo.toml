@@ -17,8 +17,8 @@ doctest = false
 [features]
 default = ["visualize"]
 visualize = ["dep:plotters", "dep:derive_builder", "dep:plotters-backend", "dep:either"]
-cuda = ["dep:cudarc", "dep:bytemuck"]
-metal = ["dep:metal", "dep:objc"]
+cuda = ["dep:cudarc", "dep:bytemuck", "dep:cuda-kernel"]
+metal = ["dep:metal", "dep:objc", "dep:metal-kernel"]
 
 [dependencies]
 csv = "1.3.1"
@@ -43,6 +43,8 @@ cudarc = { version = "0.17", optional = true, features = ["std", "cuda-version-f
 bytemuck = { version = "1.14", optional = true }
 metal = { version = "0.32", optional = true }
 objc = { version = "0.2", optional = true }
+cuda-kernel = { path = "./cuda-kernel", optional = true }
+metal-kernel = { path = "./metal-kernel", optional = true }
 
 [profile.release]
 lto = true

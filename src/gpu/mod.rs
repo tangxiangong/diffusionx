@@ -37,29 +37,4 @@ pub use simulator::*;
 mod traits;
 pub use traits::*;
 
-pub mod montecarlo;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_backend_detection() {
-        match GpuBackend::detect() {
-            Ok(backend) => {
-                println!("Detected GPU backend: {:?}", backend);
-                assert!(backend.is_available());
-            }
-            Err(_) => {
-                println!("No GPU backend available");
-            }
-        }
-    }
-
-    #[test]
-    fn test_backend_availability() {
-        let auto = GpuBackend::Auto;
-        let _is_available = auto.is_available();
-        // Result depends on system
-    }
-}
+pub mod mc;

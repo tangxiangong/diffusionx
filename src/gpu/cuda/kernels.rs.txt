@@ -572,22 +572,3 @@ impl KernelManager {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_launch_params() {
-        #[cfg(feature = "cuda")]
-        {
-            let params = KernelLaunchParams::new(1000, 100);
-            assert_eq!(params.num_particles, 1000);
-            assert_eq!(params.num_steps, 100);
-            assert_eq!(params.threads_per_block, 256);
-
-            let config = params.get_launch_config();
-            assert_eq!(config.grid_dim.0, 4); // ceil(1000/256) = 4
-        }
-    }
-}

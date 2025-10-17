@@ -162,41 +162,6 @@ impl MetalRng {
     }
 }
 
-/// Notes for Production Implementation
-///
-/// For a production-ready GPU RNG implementation, consider:
-///
-/// 1. **GPU-side RNG**: Implement Philox, Threefry, or PCG on GPU
-///    - Each thread maintains its own state
-///    - Avoids CPU-GPU memory transfers
-///    - Much faster for large-scale simulations
-///
-/// 2. **Memory pooling**: Reuse allocated buffers
-///    - Pre-allocate buffers for common sizes
-///    - Reduce allocation overhead
-///
-/// 3. **Async generation**: Generate random numbers asynchronously
-///    - Use Metal's command buffer callbacks
-///    - Overlap generation with computation
-///
-/// 4. **Quality considerations**:
-///    - Ensure statistical quality of GPU RNG
-///    - Test for correlations between threads
-///    - Use appropriate seeding strategies
-///
-/// Example Philox RNG implementation (pseudo-code):
-/// ```metal
-/// struct PhiloxState {
-///     uint4 counter;
-///     uint2 key;
-/// };
-///
-/// uint4 philox4x32(PhiloxState state) {
-///     // Philox algorithm implementation
-///     // Returns 4 random uint32 values
-/// }
-/// ```
-
 #[cfg(test)]
 mod tests {
     use super::*;
