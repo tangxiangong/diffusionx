@@ -9,6 +9,7 @@ repository = "https://github.com/tangxiangong/diffusionx"
 readme = "README.md"
 categories = ["science", "mathematics"]
 keywords = ["stochastic-process", "simulation", "Monte-Carlo"]
+rust-version = "1.87"
 
 [lib]
 name = "diffusionx"

@@ -329,26 +329,13 @@ pub fn linear_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>,
 /// Generate a flattened (step function) interpolation over a specified range
 ///
 /// This function generates the same time sequence as `linear_interpolate`, but instead of
-/// linear interpolation, it creates a left-continuous step function where each value
-/// corresponds to x[j] for the interval [t[j], t[j+1]).
+/// linear interpolation, it creates a left-continuous step function.
 ///
 /// # Arguments
 ///
 /// * `t` - The time points (must be strictly monotonically increasing)
 /// * `x` - The corresponding values
 /// * `step` - The step size for the output time sequence (must be positive)
-///
-/// # Returns
-///
-/// A tuple (t_new, x_new) where:
-/// - t_new: evenly spaced time points from t[0] to t[end] with given step
-/// - x_new: left-continuous step function values
-///
-/// # Example
-///
-/// For input t=[0, 1, 2], x=[10, 20, 30], step=0.5:
-/// - t_new = [0.0, 0.5, 1.0, 1.5, 2.0]
-/// - x_new = [10, 10, 20, 20, 30]  (left-continuous steps)
 pub fn flatten_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
     if t.len() != x.len() {
         return Err(XError::Other(
