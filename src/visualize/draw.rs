@@ -1,12 +1,11 @@
 use crate::{
-    XResult,
+    XError, XResult,
     simulation::prelude::*,
     utils::{ensure_output_dir, minmax},
-    visualize::{PlotConfig, PlotterBackend},
+    visualize::{PlotConfig, PlotterBackend, set_config},
 };
 use plotters::prelude::*;
-
-use super::set_config;
+use std::path::PathBuf;
 
 /// Trait for visualizing a trajectory.
 pub trait Visualize {
@@ -29,11 +28,13 @@ impl<CP: ContinuousProcess + Clone> Visualize for ContinuousTrajectory<CP> {
         let traj = self.simulate(config.time_step)?;
         match config.backend {
             PlotterBackend::BitMap => {
-                let backend = BitMapBackend::new(&config.output_path, config.size);
+                let path = svg2png(&config.output_path)?;
+                let backend = BitMapBackend::new(&path, config.size);
                 config.plot(backend, traj)
             }
             PlotterBackend::SVG => {
-                let backend = SVGBackend::new(&config.output_path, config.size);
+                let path = png2svg(&config.output_path)?;
+                let backend = SVGBackend::new(&path, config.size);
                 config.plot(backend, traj)
             }
         }
@@ -47,7 +48,8 @@ impl<P: PointProcess> Visualize for PointTrajectory<P> {
         let traj = self.simulate_with_duration()?;
         match config.backend {
             PlotterBackend::BitMap => {
-                let backend = BitMapBackend::new(&config.output_path, config.size);
+                let path = svg2png(&config.output_path)?;
+                let backend = BitMapBackend::new(&path, config.size);
                 if config.stairs {
                     config.stair(backend, traj)
                 } else {
@@ -55,7 +57,8 @@ impl<P: PointProcess> Visualize for PointTrajectory<P> {
                 }
             }
             PlotterBackend::SVG => {
-                let backend = SVGBackend::new(&config.output_path, config.size);
+                let path = png2svg(&config.output_path)?;
+                let backend = SVGBackend::new(&path, config.size);
                 if config.stairs {
                     config.stair(backend, traj)
                 } else {
@@ -89,11 +92,13 @@ pub fn plot(times: &[f64], positions: &[f64], config: &PlotConfig) -> XResult<()
     let points: Vec<(f64, f64)> = times.iter().zip(positions).map(|(&t, &x)| (t, x)).collect();
     match config.backend {
         PlotterBackend::BitMap => {
-            let backend = BitMapBackend::new(&config.output_path, config.size);
+            let path = svg2png(&config.output_path)?;
+            let backend = BitMapBackend::new(&path, config.size);
             set_config(config, backend, points, meta, false)
         }
         PlotterBackend::SVG => {
-            let backend = SVGBackend::new(&config.output_path, config.size);
+            let path = png2svg(&config.output_path)?;
+            let backend = SVGBackend::new(&path, config.size);
             set_config(config, backend, points, meta, false)
         }
     }
@@ -122,11 +127,13 @@ pub fn loglog(times: &[f64], positions: &[f64], config: &PlotConfig) -> XResult<
     let points: Vec<(f64, f64)> = times.iter().zip(positions).map(|(&t, &x)| (t, x)).collect();
     match config.backend {
         PlotterBackend::BitMap => {
-            let backend = BitMapBackend::new(&config.output_path, config.size);
+            let path = svg2png(&config.output_path)?;
+            let backend = BitMapBackend::new(&path, config.size);
             set_config(config, backend, points, meta, true)
         }
         PlotterBackend::SVG => {
-            let backend = SVGBackend::new(&config.output_path, config.size);
+            let path = png2svg(&config.output_path)?;
+            let backend = SVGBackend::new(&path, config.size);
             set_config(config, backend, points, meta, true)
         }
     }
@@ -167,13 +174,49 @@ pub fn stair(times: &[f64], positions: &[i64], config: &PlotConfig) -> XResult<(
         .collect();
     match config.backend {
         PlotterBackend::BitMap => {
-            let backend = BitMapBackend::new(&config.output_path, config.size);
+            let path = svg2png(&config.output_path)?;
+            let backend = BitMapBackend::new(&path, config.size);
             set_config(config, backend, points, meta, false)
         }
         PlotterBackend::SVG => {
-            let backend = SVGBackend::new(&config.output_path, config.size);
+            let path = png2svg(&config.output_path)?;
+            let backend = SVGBackend::new(&path, config.size);
             set_config(config, backend, points, meta, false)
         }
+    }
+}
+
+/// Convert PNG file path to SVG file path.
+fn png2svg(path: &std::path::Path) -> XResult<PathBuf> {
+    if path.extension().is_some_and(|ext| ext == "png") {
+        let parent = path.parent().unwrap_or_else(|| std::path::Path::new("/"));
+        let file_stem = path
+            .file_stem()
+            .ok_or_else(|| {
+                XError::Other("The `output_path`  does not have the file name.".to_string())
+            })?
+            .to_string_lossy()
+            .to_string();
+        Ok(parent.join(format!("{}.svg", file_stem)))
+    } else {
+        Ok(path.into())
+    }
+}
+
+/// Convert SVG file path to PNG file path.
+fn svg2png(path: &std::path::Path) -> XResult<PathBuf> {
+    if path.extension().is_some_and(|ext| ext == "svg") {
+        let parent = path.parent().unwrap_or_else(|| std::path::Path::new("/"));
+        let file_stem = path
+            .file_stem()
+            .ok_or_else(|| {
+                XError::Other("The `output_path`  does not have the file name.".to_string())
+            })?
+            .to_string_lossy()
+            .to_string();
+        Ok(parent.join(format!("{}.png", file_stem)))
+    } else {
+        Ok(path.into())
     }
 }
 
