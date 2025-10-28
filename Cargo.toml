@@ -16,10 +16,10 @@ name = "diffusionx"
 doctest = false
 
 [package.metadata.docs.rs]
-# Disable scrape-examples to avoid rustc ICE on docs.rs
-cargo-args = ["-Zunstable-options", "-Zrustdoc-scrape-examples=disabled"]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+default-target = "x86_64-unknown-linux-gnu"
+targets = []
 
 [features]
 default = ["visualize"]
