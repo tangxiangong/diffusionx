@@ -4,14 +4,13 @@
 //! of stochastic processes. It abstracts away backend-specific details and
 //! provides a unified API for both CUDA and Metal.
 
+use super::{GpuBackend, backend::GpuConfig, mc::MonteCarloStats};
 use crate::{
     XResult,
     simulation::continuous::{Bm, GeometricBm, OrnsteinUhlenbeck},
     simulation::prelude::{ContinuousProcess, Pair},
     utils::linspace,
 };
-
-use super::{GpuBackend, backend::GpuConfig, montecarlo::MonteCarloStats};
 
 /// GPU-accelerated simulator for stochastic processes
 pub struct GpuSimulator {
