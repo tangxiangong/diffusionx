@@ -2,9 +2,8 @@
 
 use crate::{
     SimulationError, XResult,
-    random::normal,
     simulation::prelude::*,
-    utils::{CirculantEmbedding, cumsum, fbm_correlation, linspace},
+    utils::{CirculantEmbedding, cumsum, fbm_correlation},
 };
 
 /// Fractional Brownian motion
@@ -134,29 +133,31 @@ pub fn simulate_fbm(
         ))
         .into());
     }
-    let t = linspace(0.0, duration, time_step);
-    let num_steps = t.len() - 1;
+    if hurst_exponent == 0.5 {
+        // Delegate to standard Brownian motion with D = 0.5 so Var[B(t)] = t
+        return crate::simulation::continuous::bm::simulate_bm(
+            start_position,
+            0.5,
+            duration,
+            time_step,
+        );
+    }
 
-    // Use `fbm_correlation` function to create the correlation function
-    let correlation_fn = fbm_correlation(hurst_exponent, time_step);
+    // Enforce a uniform time step for H != 0.5
+    let num_steps = ((duration / time_step).round() as usize).max(1);
+    let dt = duration / num_steps as f64;
 
-    // Create a `CirculantEmbedding` instance
-    let circulant = CirculantEmbedding::new(num_steps, correlation_fn);
+    // Uniform time grid [0, duration] with step dt
+    let mut t = Vec::with_capacity(num_steps + 1);
+    for i in 0..=num_steps {
+        t.push(i as f64 * dt);
+    }
 
-    // Generate fBn
-    let mut noise = if hurst_exponent == 0.5 {
-        normal::rands(0.0, 2.0 * time_step, num_steps)?
-    } else {
-        circulant.generate()?
-    };
-    let last = match noise.last_mut() {
-        Some(last) => last,
-        None => return Err(SimulationError::Unknown.into()),
-    };
-    let delta = t[num_steps] - t[num_steps - 1];
-    *last *= delta / time_step;
+    // Fractional Gaussian noise with covariance determined by dt and H
+    let circulant = CirculantEmbedding::new(num_steps, fbm_correlation(hurst_exponent, dt));
+    let noise = circulant.generate()?;
 
-    // Calculate the cumulative sum
+    // Calculate the cumulative sum to obtain fBm
     let x = cumsum(start_position, &noise);
 
     Ok((t, x))
