@@ -79,7 +79,7 @@ impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
             ))
             .into());
         }
-        let mean = self.raw_moment(order, particles, time_step)?;
+        let mean = self.raw_moment(1, particles, time_step)?;
         let duration = self.duration;
         let values: Vec<f64> = (0..particles)
             .into_par_iter()
@@ -141,7 +141,7 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
             .into());
         }
 
-        let mean = self.raw_moment(order, particles, 0.01)?;
+        let mean = self.raw_moment(1, particles, 0.01)?;
         let num_step = self.num_step;
         let values: Vec<f64> = (0..particles)
             .into_par_iter()
@@ -209,7 +209,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
             .into());
         }
 
-        let mean = self.raw_moment(order, particles, _time_step)?;
+        let mean = self.raw_moment(1, particles, _time_step)?;
         let duration = self.duration.unwrap();
         let values: Vec<f64> = (0..particles)
             .into_par_iter()
