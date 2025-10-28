@@ -6,7 +6,6 @@ use crate::{
     simulation::prelude::*,
     utils::{cumsum, linspace},
 };
-use rayon::prelude::*;
 
 /// Brownian motion
 #[derive(Debug, Clone)]
@@ -142,10 +141,8 @@ pub fn simulate_bm(
     }
     let t = linspace(0.0, duration, time_step);
     let num_steps = t.len() - 1;
-    let mut noise = normal::standard_rands(num_steps);
-    noise
-        .par_iter_mut()
-        .for_each(|v| *v *= (2.0 * diffusion_coefficient * time_step).sqrt());
+    let std_dev = (2.0 * diffusion_coefficient * time_step).sqrt();
+    let mut noise = normal::rands(0.0, std_dev, num_steps)?;
     let last = match noise.last_mut() {
         Some(last) => last,
         None => return Err(SimulationError::Unknown.into()),
