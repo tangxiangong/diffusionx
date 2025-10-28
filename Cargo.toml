@@ -2,7 +2,7 @@
 name = "diffusionx"
 authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.4.14"
+version = "0.4.15"
 description = "A multi-threaded crate for random number generation and stochastic process simulation."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
@@ -15,14 +15,58 @@ rust-version = "1.87"
 name = "diffusionx"
 doctest = false
 
+# Workaround for rustc ICE with scrape-examples and Unicode characters
+# See: https://github.com/rust-lang/rust/issues/147399
+# Disable scrape-examples for all example targets
+[[example]]
+name = "CIR"
+doc-scrape-examples = false
+
+[[example]]
+name = "bm"
+doc-scrape-examples = false
+
+[[example]]
+name = "bridge"
+doc-scrape-examples = false
+
+[[example]]
+name = "ctrw"
+doc-scrape-examples = false
+
+[[example]]
+name = "excursion"
+doc-scrape-examples = false
+
+[[example]]
+name = "fbm"
+doc-scrape-examples = false
+
+[[example]]
+name = "levy"
+doc-scrape-examples = false
+
+[[example]]
+name = "levy_walk"
+doc-scrape-examples = false
+
+[[example]]
+name = "macros"
+doc-scrape-examples = false
+
+[[example]]
+name = "ou"
+doc-scrape-examples = false
+
+[[example]]
+name = "randoms"
+doc-scrape-examples = false
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 default-target = "x86_64-unknown-linux-gnu"
 targets = []
-# Workaround for rustc ICE with scrape-examples and Unicode characters
-# See: https://github.com/rust-lang/rust/issues/147399
-cargo-args = ["-Z", "unstable-options", "--config", "doc.scrape-examples=false"]
 
 [features]
 default = ["visualize"]
