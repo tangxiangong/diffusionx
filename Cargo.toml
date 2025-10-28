@@ -2,32 +2,87 @@
 name = "diffusionx"
 authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.4.9"
+version = "0.4.15"
 description = "A multi-threaded crate for random number generation and stochastic process simulation."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 readme = "README.md"
 categories = ["science", "mathematics"]
 keywords = ["stochastic-process", "simulation", "Monte-Carlo"]
+rust-version = "1.87"
 
 [lib]
 name = "diffusionx"
 doctest = false
 
+# Workaround for rustc ICE with scrape-examples and Unicode characters
+# See: https://github.com/rust-lang/rust/issues/147399
+# Disable scrape-examples for all example targets
+[[example]]
+name = "CIR"
+doc-scrape-examples = false
+
+[[example]]
+name = "bm"
+doc-scrape-examples = false
+
+[[example]]
+name = "bridge"
+doc-scrape-examples = false
+
+[[example]]
+name = "ctrw"
+doc-scrape-examples = false
+
+[[example]]
+name = "excursion"
+doc-scrape-examples = false
+
+[[example]]
+name = "fbm"
+doc-scrape-examples = false
+
+[[example]]
+name = "levy"
+doc-scrape-examples = false
+
+[[example]]
+name = "levy_walk"
+doc-scrape-examples = false
+
+[[example]]
+name = "macros"
+doc-scrape-examples = false
+
+[[example]]
+name = "ou"
+doc-scrape-examples = false
+
+[[example]]
+name = "randoms"
+doc-scrape-examples = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+default-target = "x86_64-unknown-linux-gnu"
+targets = []
+
 [features]
 default = ["visualize"]
-visualize = ["plotters", "derive_builder", "plotters-backend", "either"]
+visualize = ["dep:plotters", "dep:derive_builder", "dep:plotters-backend", "dep:either"]
+# cuda = ["dep:cudarc", "dep:bytemuck", "dep:cuda-kernel"]
+# metal = ["dep:metal", "dep:objc", "dep:metal-kernel"]
 
 [dependencies]
-csv = "1.3.1"
+csv = "1.4"
 gauss-quad = "0.2.4"
 num-complex = "0.4"
 num-traits = "0.2"
-once_cell = "1.21"
 rand = "0.9"
 rand_distr = "0.5"
 rayon = "1.11"
-rustfft = "6.4"
+realfft = "3.5"
 thiserror = "2"
 
 # optional dependencies
@@ -35,6 +90,14 @@ derive_builder = { version = "0.20", optional = true }
 either = { version = "1", optional = true }
 plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }
+
+# # GPU acceleration dependencies
+# cudarc = { version = "0.17", optional = true, features = ["std", "cuda-version-from-build-system"] }
+# bytemuck = { version = "1.14", optional = true }
+# metal = { version = "0.32", optional = true }
+# objc = { version = "0.2", optional = true }
+# cuda-kernel = { path = "./cuda-kernel", optional = true }
+# metal-kernel = { path = "./metal-kernel", optional = true }
 
 [profile.release]
 lto = true

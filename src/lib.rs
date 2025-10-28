@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 //!
 //! ## 简体中文
@@ -18,4 +19,9 @@ pub mod utils;
 
 /// Visualization module
 #[cfg(feature = "visualize")]
+#[cfg_attr(docsrs, doc(cfg(feature = "visualize")))]
 pub mod visualize;
+
+// /// GPU acceleration module
+// #[cfg(any(feature = "cuda", feature = "metal"))]
+// pub mod gpu;

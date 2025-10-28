@@ -250,7 +250,7 @@ pub fn simulate_levy_walk_with_duration(
     x_[..index].copy_from_slice(&x[..index]);
     if t[index] > duration {
         t_[index] = duration;
-        let direction = if rng().random_bool(0.5) {
+        let direction = if x[index] >= x[index - 1] {
             velocity
         } else {
             -velocity

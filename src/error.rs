@@ -68,6 +68,9 @@ pub enum XError {
     #[cfg(feature = "visualize")]
     #[error("Plotter Config Error: {0}")]
     BuilderError(#[from] crate::visualize::config::PlotConfigBuilderError),
+    /// Error for GPU operations
+    #[error("GPU Error: {0}")]
+    GpuError(String),
     /// Other errors
     #[error("Error: {0}")]
     Other(String),
@@ -114,6 +117,9 @@ pub enum SimulationError {
     /// Error for unknown simulation errors
     #[error("Unknown error, simulation failed")]
     Unknown,
+    /// Error when no result is available
+    #[error("No result available")]
+    NoResult,
 }
 
 /// Error wrapper for the `plotters` crate visualization errors

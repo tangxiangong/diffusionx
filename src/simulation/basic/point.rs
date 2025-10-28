@@ -1,9 +1,9 @@
+use super::{Moment, Pair};
 use crate::{
     SimulationError, XResult,
     simulation::prelude::{FirstPassageTime, OccupationTime},
 };
-
-use super::{Moment, Pair};
+use rayon::prelude::*;
 use std::sync::Arc;
 
 /// Point process trait
@@ -75,8 +75,30 @@ pub trait PointProcess: Send + Sync {
     where
         Self: Sized + Clone + PointTrajectoryTrait,
     {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, 0.1)
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got {particles}"
+            ))
+            .into());
+        }
+
+        let values: Vec<f64> = (0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let (_, x) = self.simulate_with_duration(duration)?;
+                let first_position = x.first();
+                let end_position = x.last();
+                match (first_position, end_position) {
+                    (Some(initial), Some(position)) => {
+                        Ok((position - initial) * (position - initial))
+                    }
+                    _ => Err(SimulationError::Unknown.into()),
+                }
+            })
+            .collect::<XResult<Vec<_>>>()?;
+
+        let result = values.into_par_iter().sum::<f64>() / particles as f64;
+        Ok(result)
     }
 
     /// Get the raw moment of the point process

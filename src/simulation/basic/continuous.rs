@@ -1,9 +1,9 @@
+use super::{Moment, Pair, TAMSD};
 use crate::{
     SimulationError, XResult,
     simulation::prelude::{FirstPassageTime, OccupationTime},
 };
-
-use super::{Moment, Pair, TAMSD};
+use rayon::prelude::*;
 
 /// Continuous process trait
 pub trait ContinuousProcess: Send + Sync {
@@ -41,8 +41,37 @@ pub trait ContinuousProcess: Send + Sync {
     where
         Self: ContinuousTrajectoryTrait,
     {
-        let traj = self.duration(duration)?;
-        traj.central_moment(2, particles, time_step)
+        if particles == 0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `particles` must be positive, got {particles}"
+            ))
+            .into());
+        }
+
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step}`"
+            ))
+            .into());
+        }
+
+        let values = (0..particles)
+            .into_par_iter()
+            .map(|_| -> XResult<f64> {
+                let (_, x) = self.simulate(duration, time_step)?;
+                let first_position = x.first();
+                let end_position = x.last();
+                match (first_position, end_position) {
+                    (Some(initial), Some(position)) => {
+                        Ok((position - initial) * (position - initial))
+                    }
+                    _ => Err(SimulationError::Unknown.into()),
+                }
+            })
+            .collect::<XResult<Vec<_>>>()?;
+
+        let result = values.into_par_iter().sum::<f64>() / particles as f64;
+        Ok(result)
     }
 
     /// Get the raw moment of the continuous process

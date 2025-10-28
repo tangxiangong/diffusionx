@@ -1,0 +1,574 @@
+//! CUDA kernel management for stochastic process simulation
+//!
+//! This module provides kernel loading, compilation, and execution management
+//! for CUDA-based GPU acceleration. All kernel implementations are in the
+//! `kernels/cuda/` directory as .cu files.
+
+use crate::{XError, XResult};
+
+#[cfg(feature = "cuda")]
+use cudarc::driver::{CudaDevice, CudaFunction, DevicePtrMut, LaunchAsync, LaunchConfig};
+#[cfg(feature = "cuda")]
+use cudarc::nvrtc::compile_ptx;
+#[cfg(feature = "cuda")]
+use std::path::Path;
+#[cfg(feature = "cuda")]
+use std::sync::Arc;
+
+/// Launch parameters for kernel execution
+#[cfg(feature = "cuda")]
+pub struct KernelLaunchParams {
+    pub num_particles: usize,
+    pub num_steps: usize,
+    pub threads_per_block: usize,
+}
+
+#[cfg(feature = "cuda")]
+impl KernelLaunchParams {
+    pub fn new(num_particles: usize, num_steps: usize) -> Self {
+        Self {
+            num_particles,
+            num_steps,
+            threads_per_block: 256,
+        }
+    }
+
+    pub fn with_threads(mut self, threads: usize) -> Self {
+        self.threads_per_block = threads;
+        self
+    }
+
+    pub fn get_launch_config(&self) -> LaunchConfig {
+        let num_blocks = (self.num_particles + self.threads_per_block - 1) / self.threads_per_block;
+        LaunchConfig {
+            grid_dim: (num_blocks as u32, 1, 1),
+            block_dim: (self.threads_per_block as u32, 1, 1),
+            shared_mem_bytes: 0,
+        }
+    }
+}
+
+/// Monte Carlo statistics computed on GPU
+#[cfg(feature = "cuda")]
+#[derive(Debug, Clone)]
+pub struct GpuMonteCarloResult {
+    /// Mean at each time step
+    pub mean: Vec<f32>,
+    /// MSD at each time step
+    pub msd: Vec<f32>,
+    /// Variance at each time step
+    pub variance: Vec<f32>,
+}
+
+/// Kernel manager for loading and caching CUDA kernels
+#[cfg(feature = "cuda")]
+pub struct KernelManager {
+    device: Arc<CudaDevice>,
+    brownian_motion_f32: Option<Arc<CudaFunction>>,
+    brownian_motion_f64: Option<Arc<CudaFunction>>,
+    init_curand: Option<Arc<CudaFunction>>,
+    moments: Option<Arc<CudaFunction>>,
+    ou_process: Option<Arc<CudaFunction>>,
+    gbm: Option<Arc<CudaFunction>>,
+    fbm: Option<Arc<CudaFunction>>,
+    langevin: Option<Arc<CudaFunction>>,
+    levy: Option<Arc<CudaFunction>>,
+    compute_stats: Option<Arc<CudaFunction>>,
+}
+
+#[cfg(feature = "cuda")]
+impl KernelManager {
+    /// Create a new kernel manager
+    pub fn new(device: Arc<CudaDevice>) -> Self {
+        Self {
+            device,
+            brownian_motion_f32: None,
+            brownian_motion_f64: None,
+            init_curand: None,
+            moments: None,
+            ou_process: None,
+            gbm: None,
+            fbm: None,
+            langevin: None,
+            levy: None,
+            compute_stats: None,
+        }
+    }
+
+    /// Load kernel from .cu file
+    fn load_kernel_from_file(
+        &self,
+        file_path: &str,
+        module_name: &str,
+        function_names: &[&str],
+    ) -> XResult<()> {
+        // Read source from .cu file
+        let source = std::fs::read_to_string(file_path).map_err(|e| {
+            XError::GpuError(format!("Failed to read kernel file {}: {}", file_path, e))
+        })?;
+
+        // Compile PTX
+        let ptx = compile_ptx(source).map_err(|e| {
+            XError::GpuError(format!("Failed to compile PTX for {}: {}", module_name, e))
+        })?;
+
+        // Load PTX into device
+        self.device
+            .load_ptx(ptx, module_name, function_names)
+            .map_err(|e| {
+                XError::GpuError(format!("Failed to load PTX module {}: {}", module_name, e))
+            })?;
+
+        Ok(())
+    }
+
+    /// Initialize cuRAND states on device
+    pub fn init_curand_states(
+        &mut self,
+        num_particles: usize,
+        seed: u64,
+    ) -> XResult<DevicePtrMut<u8>> {
+        // Load init kernel if not already loaded
+        if self.init_curand.is_none() {
+            self.load_kernel_from_file(
+                "kernels/cuda/bm.cu",
+                "curand_init_module",
+                &["init_curand_states"],
+            )?;
+
+            let kernel = self
+                .device
+                .get_func("curand_init_module", "init_curand_states")
+                .map_err(|e| XError::GpuError(format!("Failed to get init kernel: {}", e)))?;
+
+            self.init_curand = Some(kernel);
+        }
+
+        // Allocate memory for cuRAND states (48 bytes per state for curandState)
+        let state_size = 48;
+        let total_size = num_particles * state_size;
+        let mut d_states = self
+            .device
+            .alloc_zeros::<u8>(total_size)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate cuRAND states: {}", e)))?;
+
+        // Launch initialization kernel
+        let config = KernelLaunchParams::new(num_particles, 0).get_launch_config();
+        let kernel = self.init_curand.as_ref().unwrap();
+
+        unsafe {
+            kernel
+                .clone()
+                .launch(config, (&d_states, seed, num_particles as i32))
+                .map_err(|e| XError::GpuError(format!("Failed to launch cuRAND init: {}", e)))?;
+        }
+
+        self.device.synchronize().map_err(|e| {
+            XError::GpuError(format!("Failed to synchronize after cuRAND init: {}", e))
+        })?;
+
+        Ok(d_states)
+    }
+
+    /// Load Brownian motion kernel (f32)
+    pub fn load_brownian_motion_f32(&mut self) -> XResult<Arc<CudaFunction>> {
+        if let Some(ref kernel) = self.brownian_motion_f32 {
+            return Ok(kernel.clone());
+        }
+
+        self.load_kernel_from_file("kernels/cuda/bm.cu", "bm_f32", &["simulate_bm_f32"])?;
+
+        let kernel = self
+            .device
+            .get_func("bm_f32", "simulate_bm_f32")
+            .map_err(|e| XError::GpuError(format!("Failed to get kernel function: {}", e)))?;
+
+        self.brownian_motion_f32 = Some(kernel.clone());
+        Ok(kernel)
+    }
+
+    /// Simulate Brownian motion on GPU (f32)
+    pub fn simulate_bm_f32(
+        &mut self,
+        params: &KernelLaunchParams,
+        start_position: f32,
+        diffusion_coefficient: f32,
+        time_step: f32,
+        seed: u64,
+    ) -> XResult<Vec<f32>> {
+        // Initialize cuRAND states
+        let d_states = self.init_curand_states(params.num_particles, seed)?;
+
+        // Allocate output buffer
+        let output_size = params.num_particles * (params.num_steps + 1);
+        let mut d_positions = self
+            .device
+            .alloc_zeros::<f32>(output_size)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate positions: {}", e)))?;
+
+        // Load and launch kernel
+        let kernel = self.load_brownian_motion_f32()?;
+        let config = params.get_launch_config();
+
+        unsafe {
+            kernel
+                .launch(
+                    config,
+                    (
+                        &d_states,
+                        &mut d_positions,
+                        start_position,
+                        diffusion_coefficient,
+                        time_step,
+                        params.num_steps as i32,
+                        params.num_particles as i32,
+                    ),
+                )
+                .map_err(|e| XError::GpuError(format!("Failed to launch BM kernel: {}", e)))?;
+        }
+
+        // Synchronize and copy results back
+        self.device
+            .synchronize()
+            .map_err(|e| XError::GpuError(format!("Failed to synchronize: {}", e)))?;
+
+        let positions = self
+            .device
+            .dtoh_sync_copy(&d_positions)
+            .map_err(|e| XError::GpuError(format!("Failed to copy results: {}", e)))?;
+
+        Ok(positions)
+    }
+
+    /// Load Brownian motion kernel (f64)
+    pub fn load_brownian_motion_f64(&mut self) -> XResult<Arc<CudaFunction>> {
+        if let Some(ref kernel) = self.brownian_motion_f64 {
+            return Ok(kernel.clone());
+        }
+
+        self.load_kernel_from_file("kernels/cuda/bm.cu", "bm_f64", &["simulate_bm_f64"])?;
+
+        let kernel = self
+            .device
+            .get_func("bm_f64", "simulate_bm_f64")
+            .map_err(|e| XError::GpuError(format!("Failed to get kernel function: {}", e)))?;
+
+        self.brownian_motion_f64 = Some(kernel.clone());
+        Ok(kernel)
+    }
+
+    /// Simulate Brownian motion on GPU (f64)
+    pub fn simulate_bm_f64(
+        &mut self,
+        params: &KernelLaunchParams,
+        start_position: f64,
+        diffusion_coefficient: f64,
+        time_step: f64,
+        seed: u64,
+    ) -> XResult<Vec<f64>> {
+        // Initialize cuRAND states
+        let d_states = self.init_curand_states(params.num_particles, seed)?;
+
+        // Allocate output buffer
+        let output_size = params.num_particles * (params.num_steps + 1);
+        let mut d_positions = self
+            .device
+            .alloc_zeros::<f64>(output_size)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate positions: {}", e)))?;
+
+        // Load and launch kernel
+        let kernel = self.load_brownian_motion_f64()?;
+        let config = params.get_launch_config();
+
+        unsafe {
+            kernel
+                .launch(
+                    config,
+                    (
+                        &d_states,
+                        &mut d_positions,
+                        start_position,
+                        diffusion_coefficient,
+                        time_step,
+                        params.num_steps as i32,
+                        params.num_particles as i32,
+                    ),
+                )
+                .map_err(|e| XError::GpuError(format!("Failed to launch BM kernel: {}", e)))?;
+        }
+
+        // Synchronize and copy results back
+        self.device
+            .synchronize()
+            .map_err(|e| XError::GpuError(format!("Failed to synchronize: {}", e)))?;
+
+        let positions = self
+            .device
+            .dtoh_sync_copy(&d_positions)
+            .map_err(|e| XError::GpuError(format!("Failed to copy results: {}", e)))?;
+
+        Ok(positions)
+    }
+
+    /// Load OU process kernel
+    pub fn load_ou_process_kernel(&mut self) -> XResult<Arc<CudaFunction>> {
+        if let Some(ref kernel) = self.ou_process {
+            return Ok(kernel.clone());
+        }
+
+        self.load_kernel_from_file(
+            "kernels/cuda/ou.cu",
+            "ou_process",
+            &["simulate_ou_process_f32"],
+        )?;
+
+        let kernel = self
+            .device
+            .get_func("ou_process", "simulate_ou_process_f32")
+            .map_err(|e| XError::GpuError(format!("Failed to get kernel function: {}", e)))?;
+
+        self.ou_process = Some(kernel.clone());
+        Ok(kernel)
+    }
+
+    /// Simulate OU process on GPU
+    pub fn simulate_ou_f32(
+        &mut self,
+        params: &KernelLaunchParams,
+        start_position: f32,
+        theta: f32,
+        mu: f32,
+        sigma: f32,
+        time_step: f32,
+        seed: u64,
+    ) -> XResult<Vec<f32>> {
+        // Initialize cuRAND states
+        let d_states = self.init_curand_states(params.num_particles, seed)?;
+
+        // Allocate output buffer
+        let output_size = params.num_particles * (params.num_steps + 1);
+        let mut d_positions = self
+            .device
+            .alloc_zeros::<f32>(output_size)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate positions: {}", e)))?;
+
+        // Load and launch kernel
+        let kernel = self.load_ou_process_kernel()?;
+        let config = params.get_launch_config();
+
+        unsafe {
+            kernel
+                .launch(
+                    config,
+                    (
+                        &d_states,
+                        &mut d_positions,
+                        start_position,
+                        theta,
+                        mu,
+                        sigma,
+                        time_step,
+                        params.num_steps as i32,
+                        params.num_particles as i32,
+                    ),
+                )
+                .map_err(|e| XError::GpuError(format!("Failed to launch OU kernel: {}", e)))?;
+        }
+
+        // Synchronize and copy results back
+        self.device
+            .synchronize()
+            .map_err(|e| XError::GpuError(format!("Failed to synchronize: {}", e)))?;
+
+        let positions = self
+            .device
+            .dtoh_sync_copy(&d_positions)
+            .map_err(|e| XError::GpuError(format!("Failed to copy results: {}", e)))?;
+
+        Ok(positions)
+    }
+
+    /// Load GBM kernel
+    pub fn load_gbm_kernel(&mut self) -> XResult<Arc<CudaFunction>> {
+        if let Some(ref kernel) = self.gbm {
+            return Ok(kernel.clone());
+        }
+
+        self.load_kernel_from_file("kernels/cuda/geometric_bm.cu", "gbm", &["simulate_gbm_f32"])?;
+
+        let kernel = self
+            .device
+            .get_func("gbm", "simulate_gbm_f32")
+            .map_err(|e| XError::GpuError(format!("Failed to get kernel function: {}", e)))?;
+
+        self.gbm = Some(kernel.clone());
+        Ok(kernel)
+    }
+
+    /// Simulate GBM on GPU
+    pub fn simulate_gbm_f32(
+        &mut self,
+        params: &KernelLaunchParams,
+        start_position: f32,
+        mu: f32,
+        sigma: f32,
+        time_step: f32,
+        seed: u64,
+    ) -> XResult<Vec<f32>> {
+        // Initialize cuRAND states
+        let d_states = self.init_curand_states(params.num_particles, seed)?;
+
+        // Allocate output buffer
+        let output_size = params.num_particles * (params.num_steps + 1);
+        let mut d_positions = self
+            .device
+            .alloc_zeros::<f32>(output_size)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate positions: {}", e)))?;
+
+        // Load and launch kernel
+        let kernel = self.load_gbm_kernel()?;
+        let config = params.get_launch_config();
+
+        unsafe {
+            kernel
+                .launch(
+                    config,
+                    (
+                        &d_states,
+                        &mut d_positions,
+                        start_position,
+                        mu,
+                        sigma,
+                        time_step,
+                        params.num_steps as i32,
+                        params.num_particles as i32,
+                    ),
+                )
+                .map_err(|e| XError::GpuError(format!("Failed to launch GBM kernel: {}", e)))?;
+        }
+
+        // Synchronize and copy results back
+        self.device
+            .synchronize()
+            .map_err(|e| XError::GpuError(format!("Failed to synchronize: {}", e)))?;
+
+        let positions = self
+            .device
+            .dtoh_sync_copy(&d_positions)
+            .map_err(|e| XError::GpuError(format!("Failed to copy results: {}", e)))?;
+
+        Ok(positions)
+    }
+
+    /// Compute Monte Carlo statistics on GPU
+    pub fn compute_montecarlo_stats(
+        &mut self,
+        positions: &[f32],
+        num_particles: usize,
+        num_steps: usize,
+    ) -> XResult<GpuMonteCarloResult> {
+        // Copy positions to device
+        let d_positions = self
+            .device
+            .htod_sync_copy(positions)
+            .map_err(|e| XError::GpuError(format!("Failed to copy positions: {}", e)))?;
+
+        // Allocate output buffers
+        let mut d_mean = self
+            .device
+            .alloc_zeros::<f32>(num_steps + 1)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate mean buffer: {}", e)))?;
+
+        let mut d_msd = self
+            .device
+            .alloc_zeros::<f32>(num_steps + 1)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate MSD buffer: {}", e)))?;
+
+        let mut d_variance = self
+            .device
+            .alloc_zeros::<f32>(num_steps + 1)
+            .map_err(|e| XError::GpuError(format!("Failed to allocate variance buffer: {}", e)))?;
+
+        // Load kernel if not cached
+        if self.compute_stats.is_none() {
+            self.load_kernel_from_file(
+                "kernels/cuda/stats.cu",
+                "stats_module",
+                &["compute_stats_f32"],
+            )?;
+
+            let kernel = self
+                .device
+                .get_func("stats_module", "compute_stats_f32")
+                .map_err(|e| XError::GpuError(format!("Failed to get stats kernel: {}", e)))?;
+
+            self.compute_stats = Some(kernel);
+        }
+
+        let kernel = self.compute_stats.as_ref().unwrap();
+
+        // Launch kernel
+        let threads_per_block = 256;
+        let num_blocks = (num_steps + threads_per_block) / threads_per_block;
+        let config = LaunchConfig {
+            grid_dim: (num_blocks as u32, 1, 1),
+            block_dim: (threads_per_block as u32, 1, 1),
+            shared_mem_bytes: 0,
+        };
+
+        unsafe {
+            kernel
+                .clone()
+                .launch(
+                    config,
+                    (
+                        &d_positions,
+                        &mut d_mean,
+                        &mut d_msd,
+                        &mut d_variance,
+                        num_particles as i32,
+                        num_steps as i32,
+                    ),
+                )
+                .map_err(|e| XError::GpuError(format!("Failed to launch stats kernel: {}", e)))?;
+        }
+
+        // Synchronize and copy results
+        self.device
+            .synchronize()
+            .map_err(|e| XError::GpuError(format!("Failed to synchronize: {}", e)))?;
+
+        let mean = self
+            .device
+            .dtoh_sync_copy(&d_mean)
+            .map_err(|e| XError::GpuError(format!("Failed to copy mean: {}", e)))?;
+
+        let msd = self
+            .device
+            .dtoh_sync_copy(&d_msd)
+            .map_err(|e| XError::GpuError(format!("Failed to copy MSD: {}", e)))?;
+
+        let variance = self
+            .device
+            .dtoh_sync_copy(&d_variance)
+            .map_err(|e| XError::GpuError(format!("Failed to copy variance: {}", e)))?;
+
+        Ok(GpuMonteCarloResult {
+            mean,
+            msd,
+            variance,
+        })
+    }
+
+    /// Get optimal launch configuration
+    pub fn get_launch_config(&self, num_particles: usize) -> LaunchConfig {
+        let threads_per_block = 256;
+        let num_blocks = (num_particles + threads_per_block - 1) / threads_per_block;
+
+        LaunchConfig {
+            grid_dim: (num_blocks as u32, 1, 1),
+            block_dim: (threads_per_block as u32, 1, 1),
+            shared_mem_bytes: 0,
+        }
+    }
+}
