@@ -165,8 +165,8 @@ where
 
     let x = std::iter::once(start_position)
         .chain(
-            t[0..num_steps]
-                .iter()
+            t.iter()
+                .take(num_steps)
                 .zip(noise.into_iter().zip(delta))
                 .scan(start_position, |state, (&ti, (xi, delta_t))| {
                     let current_x = *state;
