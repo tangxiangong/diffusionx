@@ -113,3 +113,10 @@ plotters-backend = { version = "0.3", optional = true }
 lto = true
 codegen-units = 1
 panic = "abort"
+
+[dev-dependencies]
+criterion = "0.7"
+
+[[bench]]
+name = "simulation"
+harness = false
