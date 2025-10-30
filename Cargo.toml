@@ -62,6 +62,11 @@ doc-scrape-examples = false
 name = "randoms"
 doc-scrape-examples = false
 
+[[example]]
+name = "langevin-bench"
+path = "examples/timeit/langevin.rs"
+doc-scrape-examples = false
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
@@ -70,7 +75,12 @@ targets = []
 
 [features]
 default = ["visualize"]
-visualize = ["dep:plotters", "dep:derive_builder", "dep:plotters-backend", "dep:either"]
+visualize = [
+    "dep:plotters",
+    "dep:derive_builder",
+    "dep:plotters-backend",
+    "dep:either",
+]
 # cuda = ["dep:cudarc", "dep:bytemuck", "dep:cuda-kernel"]
 # metal = ["dep:metal", "dep:objc", "dep:metal-kernel"]
 
