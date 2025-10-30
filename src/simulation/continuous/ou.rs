@@ -1,11 +1,6 @@
 //! Ornstein-Uhlenbeck process simulation
 
-use crate::{
-    SimulationError, XResult,
-    random::normal,
-    simulation::prelude::*,
-    utils::{diff, linspace},
-};
+use crate::{XResult, random::normal, simulation::prelude::*};
 
 /// Ornstein–Uhlenbeck process
 ///
@@ -120,44 +115,53 @@ pub fn simulate_ou(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{time_step}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
-    let t = linspace(0.0, duration, time_step);
-    let num_steps = t.len() - 1;
+    // if duration <= 0.0 {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The `duration` must be positive, got `{duration}`"
+    //     ))
+    //     .into());
+    // }
+    // if time_step <= 0.0 {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The `time_step` must be positive, got `{time_step}`"
+    //     ))
+    //     .into());
+    // }
+    // if time_step > duration {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
+    //     ))
+    //     .into());
+    // }
+
+    let num_steps = (duration / time_step).ceil() as usize;
+    let actual_time_step = duration / num_steps as f64;
+
+    let mut t = Vec::with_capacity(num_steps + 1);
+    let mut x = Vec::with_capacity(num_steps + 1);
+    t.push(0.0);
+    x.push(start_position);
+
     let noise = normal::standard_rands::<f64>(num_steps);
-    let delta = diff(&t);
+    let sqrt_dt = actual_time_step.sqrt();
 
-    let x = std::iter::once(start_position)
-        .chain(
-            noise
-                .iter()
-                .zip(delta)
-                .scan(start_position, |state, (&xi, delta_t)| {
-                    let current_x = *state;
-                    let next_x =
-                        current_x - theta * current_x * delta_t + sigma * xi * delta_t.sqrt();
+    unsafe {
+        let mut current_x = start_position;
+        for i in 0..num_steps {
+            let current_t = (i + 1) as f64 * actual_time_step;
+            let xi = *noise.get_unchecked(i);
 
-                    *state = next_x;
-                    Some(next_x)
-                }),
-        )
-        .collect();
+            current_x = current_x - theta * current_x * actual_time_step + sigma * xi * sqrt_dt;
+
+            x.push(current_x);
+            t.push(current_t);
+        }
+    }
+
+    if let Some(last_t) = t.last_mut() {
+        *last_t = duration;
+    }
+
     Ok((t, x))
 }
 

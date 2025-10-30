@@ -1,11 +1,6 @@
 //! Langevin equation simulation
 
-use crate::{
-    SimulationError, XResult,
-    random::normal,
-    simulation::prelude::*,
-    utils::{diff, linspace},
-};
+use crate::{XResult, random::normal, simulation::prelude::*};
 
 /// Langevin equation
 ///
@@ -139,48 +134,32 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{time_step}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
-    let t = linspace(0.0, duration, time_step);
+    let num_steps = (duration / time_step).ceil() as usize;
+    let actual_time_step = duration / num_steps as f64;
+    let mut x = Vec::with_capacity(num_steps + 1);
+    x.push(start_position);
 
-    let num_steps = t.len() - 1;
+    let mut t = Vec::with_capacity(num_steps + 1);
+    t.push(0.0);
     let noise = normal::standard_rands::<f64>(num_steps);
-    let delta = diff(&t);
+    let sigma = actual_time_step.sqrt();
+    unsafe {
+        for i in 0..num_steps {
+            let current_x = *x.get_unchecked(i);
+            let next_t = (i + 1) as f64 * actual_time_step;
+            let xi = *noise.get_unchecked(i);
 
-    let x = std::iter::once(start_position)
-        .chain(
-            t.iter()
-                .take(num_steps)
-                .zip(noise.into_iter().zip(delta))
-                .scan(start_position, |state, (&ti, (xi, delta_t))| {
-                    let current_x = *state;
+            let next_x = current_x
+                + drift(current_x, next_t) * actual_time_step
+                + diffusion(current_x, next_t) * xi * sigma;
 
-                    let next_x = current_x
-                        + drift(current_x, ti) * delta_t
-                        + diffusion(current_x, ti) * xi * delta_t.sqrt();
-
-                    *state = next_x;
-                    Some(next_x)
-                }),
-        )
-        .collect();
-
+            x.push(next_x);
+            t.push(next_t);
+        }
+    }
+    if let Some(last_t) = t.last_mut() {
+        *last_t = duration;
+    }
     Ok((t, x))
 }
 

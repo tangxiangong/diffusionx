@@ -1,11 +1,6 @@
 //! Subordinator simulation
 
-use crate::{
-    SimulationError, XResult,
-    random::stable,
-    simulation::prelude::*,
-    utils::{cumsum, diff, linspace},
-};
+use crate::{SimulationError, XResult, random::stable, simulation::prelude::*};
 use rayon::prelude::*;
 
 /// alpha-stable subordinator
@@ -90,39 +85,63 @@ pub fn simulate_subordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if alpha <= 0.0 || alpha > 1.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `alpha` must be in the range (0, 1], got {alpha}"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got {time_step}"
-        ))
-        .into());
-    }
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
-    let t = linspace(0.0, duration, time_step);
-    let num_steps = t.len() - 1;
-    let delta = diff(&t);
+    // if alpha <= 0.0 || alpha > 1.0 {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The `alpha` must be in the range (0, 1], got {alpha}"
+    //     ))
+    //     .into());
+    // }
+    // if time_step <= 0.0 {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The `time_step` must be positive, got {time_step}"
+    //     ))
+    //     .into());
+    // }
+    // if duration <= 0.0 {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The `duration` must be positive, got `{duration}`"
+    //     ))
+    //     .into());
+    // }
+    // if time_step > duration {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
+    //     ))
+    //     .into());
+    // }
+
+    let num_steps = (duration / time_step).ceil() as usize;
+    let actual_time_step = duration / num_steps as f64;
+
+    let mut t = Vec::with_capacity(num_steps + 1);
+
+    let power = 1.0 / alpha;
+    let dt_power = actual_time_step.powf(power);
     let noise = stable::skew_rands(alpha, num_steps)?
         .into_par_iter()
-        .zip(delta)
-        .map(|(x, delta_t)| x * delta_t.powf(1.0 / alpha))
+        .map(|x| x * dt_power)
         .collect::<Vec<_>>();
-    let x = cumsum(0.0, &noise);
+
+    let x = unsafe {
+        let mut x = Vec::with_capacity(num_steps + 1);
+        x.push(0.0);
+        t.push(0.0);
+
+        let mut sum = 0.0;
+        for i in 0..num_steps {
+            let current_t = (i + 1) as f64 * actual_time_step;
+            sum += *noise.get_unchecked(i);
+            x.push(sum);
+            t.push(current_t);
+        }
+
+        x
+    };
+
+    if let Some(last_t) = t.last_mut() {
+        *last_t = duration;
+    }
+
     Ok((t, x))
 }
 
@@ -241,9 +260,21 @@ pub fn simulate_invsubordinator(
         mut_duration *= 2.0;
     };
 
-    let inv_times = linspace(0.0, duration, time_step);
+    // 计算逆过程的时间点，避免使用 linspace
+    let num_inv_steps = (duration / time_step).ceil() as usize;
+    let actual_inv_time_step = duration / num_inv_steps as f64;
 
-    let mut inv_path = Vec::with_capacity(inv_times.len());
+    let mut inv_times = Vec::with_capacity(num_inv_steps + 1);
+    let mut inv_path = Vec::with_capacity(num_inv_steps + 1);
+
+    for i in 0..=num_inv_steps {
+        inv_times.push(i as f64 * actual_inv_time_step);
+    }
+
+    // 确保最后一个时间点精确等于 duration
+    if let Some(last_t) = inv_times.last_mut() {
+        *last_t = duration;
+    }
 
     for &target_time in &inv_times {
         let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {

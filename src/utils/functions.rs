@@ -12,10 +12,12 @@
 //! - `calculate_stats`: Calculate the mean and variance of an array.
 //! - `calculate_int_stats`: Calculate the mean and variance of an integer array.
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
+//!
+
 use crate::{XError, XResult};
 use num_traits::Num;
-use rayon::prelude::*;
 use std::path::Path;
+
 /// Calculate the cumulative sum of a vector
 ///
 /// Returns a vector of cumulative sums
@@ -221,7 +223,6 @@ pub fn linspace(start: f64, end: f64, step: f64) -> Vec<f64> {
 
     let len = ((end - start) / step).ceil() as usize + 1;
     let mut result = (0..len)
-        .into_par_iter()
         .map(|i| start + i as f64 * step)
         .collect::<Vec<_>>();
 
