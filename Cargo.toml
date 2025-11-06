@@ -11,6 +11,12 @@ categories = ["science", "mathematics"]
 keywords = ["stochastic-process", "simulation", "Monte-Carlo"]
 rust-version = "1.87"
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "./src/docs-header.html"]
+default-target = "x86_64-unknown-linux-gnu"
+targets = []
+
 [lib]
 name = "diffusionx"
 doctest = false
@@ -67,12 +73,6 @@ name = "langevin-bench"
 path = "examples/timeit/langevin.rs"
 doc-scrape-examples = false
 
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
-default-target = "x86_64-unknown-linux-gnu"
-targets = []
-
 [features]
 default = ["visualize"]
 visualize = [
@@ -86,20 +86,18 @@ visualize = [
 
 [dependencies]
 csv = "1.4"
+derive_builder = { version = "0.20", optional = true }
+either = { version = "1", optional = true }
 gauss-quad = "0.2.4"
 num-complex = "0.4"
 num-traits = "0.2"
+plotters = { version = "0.3", optional = true }
+plotters-backend = { version = "0.3", optional = true }
 rand = "0.9"
 rand_distr = "0.5"
 rayon = "1.11"
 realfft = "3.5"
 thiserror = "2"
-
-# optional dependencies
-derive_builder = { version = "0.20", optional = true }
-either = { version = "1", optional = true }
-plotters = { version = "0.3", optional = true }
-plotters-backend = { version = "0.3", optional = true }
 
 # # GPU acceleration dependencies
 # cudarc = { version = "0.17", optional = true, features = ["std", "cuda-version-from-build-system"] }
