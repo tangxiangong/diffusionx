@@ -1,4 +1,17 @@
 //! Gamma distribution random number generation
+//!
+//! **PDF**:
+//!
+//! $$
+//!   f(x;\alpha, \theta) = \begin{cases}
+//! \dfrac{1}{\Gamma(\alpha) \theta^{\alpha}} x^{\alpha - 1} \mathrm{e}^{-{x}/{\theta}}, & x \geqslant 0, \\\\
+//! 0, & x < 0.
+//! \end{cases}
+//! $$
+//!
+//! - $\alpha > 0$: shape parameter
+//! - $\theta > 0$: scale parameter
+//!
 
 use crate::{XError, XResult};
 use num_traits::float::Float;
@@ -6,7 +19,7 @@ use rand::{prelude::*, rng};
 use rand_distr::{Exp1, Open01, StandardNormal};
 use rayon::prelude::*;
 
-/// Gamma distribution
+/// Gamma distribution with shape parameter $\alpha$ and scale parameter $\theta$
 #[derive(Debug, Clone)]
 pub struct Gamma<T: Float + Send + Sync = f64> {
     /// shape parameter
@@ -29,8 +42,8 @@ impl<T: Float + Send + Sync> Gamma<T> {
     ///
     /// # Arguments
     ///
-    /// * `shape` - The shape parameter of the gamma distribution, must be greater than 0.
-    /// * `scale` - The scale parameter of the gamma distribution, must be greater than 0.
+    /// * `shape` - The shape parameter $\alpha$ of the gamma distribution, must be greater than 0.
+    /// * `scale` - The scale parameter $\theta$ of the gamma distribution, must be greater than 0.
     ///
     /// # Example
     ///
@@ -58,12 +71,12 @@ impl<T: Float + Send + Sync> Gamma<T> {
         Ok(Self { shape, scale })
     }
 
-    /// Get the shape parameter
+    /// Get the shape parameter $\alpha$
     pub fn get_shape(&self) -> T {
         self.shape
     }
 
-    /// Get the scale parameter
+    /// Get the scale parameter $\theta$
     pub fn get_scale(&self) -> T {
         self.scale
     }
@@ -96,8 +109,8 @@ impl<T: Float + Send + Sync> Gamma<T> {
 ///
 /// # Arguments
 ///
-/// * `shape` - The shape parameter of the gamma distribution, must be greater than 0.
-/// * `scale` - The scale parameter of the gamma distribution, must be greater than 0.
+/// * `shape` - The shape parameter $\alpha$ of the gamma distribution, must be greater than 0.
+/// * `scale` - The scale parameter $\theta$ of the gamma distribution, must be greater than 0.
 ///
 /// # Example
 ///
@@ -121,8 +134,8 @@ where
 ///
 /// # Arguments
 ///
-/// * `shape` - The shape parameter of the gamma distribution, must be greater than 0.
-/// * `scale` - The scale parameter of the gamma distribution, must be greater than 0.
+/// * `shape` - The shape parameter $\alpha$ of the gamma distribution, must be greater than 0.
+/// * `scale` - The scale parameter $\theta$ of the gamma distribution, must be greater than 0.
 /// * `n` - The number of random numbers to generate, must be greater than 0.
 ///
 /// # Example

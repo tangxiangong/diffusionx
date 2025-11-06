@@ -1,4 +1,13 @@
-//! Exponential distribution random number generation
+//! Exponential distribution random number generator.
+//!
+//! **PDF**:
+//!
+//! $$
+//! f(x;\lambda) = \begin{cases}
+//! \lambda \mathrm{e}^{-\lambda x}, & x \geqslant 0, \\\\
+//! 0, & x < 0.
+//! \end{cases}
+//! $$
 
 use crate::{XError, XResult};
 use num_traits::float::Float;
@@ -6,7 +15,7 @@ use rand::{prelude::*, rng};
 use rand_distr::{Exp, Exp1};
 use rayon::prelude::*;
 
-/// Exponential distribution
+/// Exponential distribution with rate parameter $\lambda$
 #[derive(Debug, Clone)]
 pub struct Exponential<T: Float + Send + Sync = f64>
 where
@@ -27,11 +36,11 @@ impl<T: Float + Send + Sync> Exponential<T>
 where
     Exp1: Distribution<T>,
 {
-    /// Create a new exponential distribution with a given rate parameter
+    /// Create a new exponential distribution with a given rate parameter $\lambda$
     ///
     /// # Arguments
     ///
-    /// * `lambda` - The rate parameter of the exponential distribution, must be greater than 0.
+    /// * `lambda` - The rate parameter $\lambda$ of the exponential distribution, must be greater than 0.
     ///
     /// # Example
     ///
@@ -52,7 +61,7 @@ where
         Ok(Self { lambda })
     }
 
-    /// Get the rate parameter
+    /// Get the rate parameter $\lambda$
     pub fn get_lambda(&self) -> T {
         self.lambda
     }
@@ -145,7 +154,7 @@ where
 ///
 /// # Arguments
 ///
-/// * `lambda` - The rate parameter of the exponential distribution, must be greater than 0.
+/// * `lambda` - The rate parameter $\lambda$ of the exponential distribution, must be greater than 0.
 /// * `n` - The number of random numbers to generate, must be greater than 0.
 ///
 /// # Example
