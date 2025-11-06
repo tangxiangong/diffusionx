@@ -15,6 +15,11 @@ pub trait ContinuousProcess: Send + Sync {
     /// * `time_step` - The time step of the simulation.
     fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair>;
 
+    fn displacement(&self, duration: f64, time_step: f64) -> f64 {
+        let (_, x) = self.simulate(duration, time_step).unwrap();
+        *x.last().unwrap() - x.first().unwrap()
+    }
+
     /// Get the mean of the continuous process
     ///
     /// # Arguments
@@ -55,23 +60,14 @@ pub trait ContinuousProcess: Send + Sync {
             .into());
         }
 
-        let values = (0..particles)
+        let values: f64 = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.simulate(duration, time_step)?;
-                let first_position = x.first();
-                let end_position = x.last();
-                match (first_position, end_position) {
-                    (Some(initial), Some(position)) => {
-                        Ok((position - initial) * (position - initial))
-                    }
-                    _ => Err(SimulationError::Unknown.into()),
-                }
+            .map(|_| -> f64 {
+                let displacement = self.displacement(duration, time_step);
+                displacement * displacement
             })
-            .collect::<XResult<Vec<_>>>()?;
-
-        let result = values.into_par_iter().sum::<f64>() / particles as f64;
-        Ok(result)
+            .sum();
+        Ok(values / (particles as f64))
     }
 
     /// Get the raw moment of the continuous process

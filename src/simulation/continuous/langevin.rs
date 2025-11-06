@@ -101,6 +101,35 @@ where
             time_step,
         )
     }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> f64 {
+        let num_steps = (duration / time_step).ceil() as usize;
+        let actual_time_step = duration / num_steps as f64;
+
+        let mut prev_x = self.start_position;
+        let mut current_x;
+
+        // let mut prev_t = 0.0;
+        let mut current_t;
+
+        // let noise = normal::standard_rands::<f64>(num_steps);
+        let sigma = actual_time_step.sqrt();
+        let drift = &self.drift_func;
+        let diffusion = &self.diffusion_func;
+
+        for i in 0..num_steps {
+            current_t = (i + 1) as f64 * actual_time_step;
+            let xi: f64 = normal::standard_rand();
+
+            current_x = prev_x
+                + drift(prev_x, current_t) * actual_time_step
+                + diffusion(prev_x, current_t) * xi * sigma;
+
+            prev_x = current_x;
+        }
+
+        prev_x - self.start_position
+    }
 }
 
 /// Simulate the Langevin equation
