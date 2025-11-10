@@ -1,11 +1,6 @@
 //! Brownian motion simulation
 
-use crate::{
-    SimulationError, XResult,
-    random::normal,
-    simulation::prelude::*,
-    utils::{cumsum, linspace},
-};
+use crate::{SimulationError, XResult, random::normal, simulation::prelude::*};
 
 /// Brownian motion
 #[derive(Debug, Clone)]
@@ -115,41 +110,59 @@ pub fn simulate_bm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if diffusion_coefficient <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The diffusion coefficient must be positive, got {diffusion_coefficient}"
-        ))
-        .into());
-    }
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The duration must be positive, got {duration}"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The time step must be less than or equal to the duration, got {time_step} > {duration}"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The time step must be positive, got {time_step}"
-        ))
-        .into());
-    }
-    let t = linspace(0.0, duration, time_step);
-    let num_steps = t.len() - 1;
-    let std_dev = (2.0 * diffusion_coefficient * time_step).sqrt();
-    let mut noise = normal::rands(0.0, std_dev, num_steps)?;
-    let last = match noise.last_mut() {
-        Some(last) => last,
-        None => return Err(SimulationError::Unknown.into()),
+    // if diffusion_coefficient <= 0.0 {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The diffusion coefficient must be positive, got {diffusion_coefficient}"
+    //     ))
+    //     .into());
+    // }
+    // if duration <= 0.0 {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The duration must be positive, got {duration}"
+    //     ))
+    //     .into());
+    // }
+    // if time_step > duration {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The time step must be less than or equal to the duration, got {time_step} > {duration}"
+    //     ))
+    //     .into());
+    // }
+    // if time_step <= 0.0 {
+    //     return Err(SimulationError::InvalidParameters(format!(
+    //         "The time step must be positive, got {time_step}"
+    //     ))
+    //     .into());
+    // }
+
+    let num_steps = (duration / time_step).ceil() as usize;
+    let actual_time_step = duration / num_steps as f64;
+
+    let mut t = Vec::with_capacity(num_steps + 1);
+
+    let std_dev = (2.0 * diffusion_coefficient * actual_time_step).sqrt();
+    let noise = normal::rands(0.0, std_dev, num_steps)?;
+
+    let x = unsafe {
+        let mut x = Vec::with_capacity(num_steps + 1);
+        x.push(start_position);
+        t.push(0.0);
+
+        let mut sum = start_position;
+        for i in 0..num_steps {
+            let current_t = (i + 1) as f64 * actual_time_step;
+            sum += *noise.get_unchecked(i);
+            x.push(sum);
+            t.push(current_t);
+        }
+
+        x
     };
-    let delta = t[num_steps] - t[num_steps - 1];
-    *last = normal::standard_rand::<f64>() * (2.0 * diffusion_coefficient * delta).sqrt();
-    let x = cumsum(start_position, &noise);
+
+    if let Some(last_t) = t.last_mut() {
+        *last_t = duration;
+    }
+
     Ok((t, x))
 }
 

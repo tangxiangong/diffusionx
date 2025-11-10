@@ -1,7 +1,4 @@
-use diffusionx::{
-    simulation::{continuous::LevyWalk, prelude::*},
-    visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
-};
+use diffusionx::simulation::{continuous::LevyWalk, prelude::*};
 
 fn main() {
     println!("===== Example of Levy Walk Simulation =====");
@@ -19,19 +16,22 @@ fn main() {
     let (_times, positions) = traj.simulate(time_step).unwrap();
     println!("positions: {positions:#?}");
 
-    // Visualize trajectory
-    let config = PlotConfigBuilder::default()
-        .time_step(time_step)
-        .output_path("tmp/levy_walk.svg")
-        .caption("Levy Walk Trajectory")
-        .x_label("t")
-        .y_label("X")
-        .legend("Levy Walk")
-        .size((800, 600))
-        .backend(PlotterBackend::SVG)
-        .build()
-        .unwrap();
+    #[cfg(feature = "visualize")]
+    {
+        // Visualize trajectory
+        let config = PlotConfigBuilder::default()
+            .time_step(time_step)
+            .output_path("tmp/levy_walk.svg")
+            .caption("Levy Walk Trajectory")
+            .x_label("t")
+            .y_label("X")
+            .legend("Levy Walk")
+            .size((800, 600))
+            .backend(PlotterBackend::SVG)
+            .build()
+            .unwrap();
 
-    traj.plot(&config).unwrap();
-    println!("Trajectory image saved to tmp/levy_walk.svg");
+        traj.plot(&config).unwrap();
+        println!("Trajectory image saved to tmp/levy_walk.svg");
+    }
 }

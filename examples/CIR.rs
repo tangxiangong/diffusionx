@@ -1,8 +1,10 @@
+#[cfg(feature = "io")]
+use diffusionx::utils::write_csv;
 use diffusionx::{
     XError, XResult,
     random::normal,
     simulation::prelude::*,
-    utils::{diff, linspace, write_csv},
+    utils::{diff, linspace},
 };
 
 /// CIR
@@ -72,8 +74,10 @@ fn main() -> XResult<()> {
     let particles = 10_000;
     let time_step = 0.01;
     let cir = CIR::new(1, 1, 1, 0.5)?;
-    let traj = cir.duration(duration)?;
+
+    #[allow(unused)]
     let (t, x) = cir.simulate(duration, time_step)?;
+    #[cfg(feature = "io")]
     write_csv("tmp/CIR.csv", &t, &x)?;
     // mean
     let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
@@ -97,18 +101,22 @@ fn main() -> XResult<()> {
     let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
     println!("EATAMSD: {eatamsd}");
 
-    // Visualization
-    let config = PlotConfigBuilder::default()
-        .time_step(time_step)
-        .output_path("tmp/CIR.svg")
-        .caption("CIR")
-        .show_grid(false)
-        .x_label("t")
-        .y_label("r")
-        .legend("CIR")
-        .backend(PlotterBackend::SVG)
-        .build()
-        .unwrap();
-    traj.plot(&config)?;
+    #[cfg(feature = "visualize")]
+    {
+        let traj = cir.duration(duration)?;
+        // Visualization
+        let config = PlotConfigBuilder::default()
+            .time_step(time_step)
+            .output_path("tmp/CIR.svg")
+            .caption("CIR")
+            .show_grid(false)
+            .x_label("t")
+            .y_label("r")
+            .legend("CIR")
+            .backend(PlotterBackend::SVG)
+            .build()
+            .unwrap();
+        traj.plot(&config)?;
+    }
     Ok(())
 }

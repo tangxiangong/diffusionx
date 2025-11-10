@@ -1,17 +1,12 @@
 //! Langevin equation simulation
 
-use crate::{
-    SimulationError, XResult,
-    random::normal,
-    simulation::prelude::*,
-    utils::{diff, linspace},
-};
+use crate::{XResult, random::normal, simulation::prelude::*};
 
 /// Langevin equation
 ///
-/// dx(t) = f(x(t), t) dt + g(x(t), t) dW(t), x(0) = x0
+/// $$dx(t) = f(x(t), t) dt + g(x(t), t) dW(t),\qquad x(0) = x_0$$
 ///
-/// where W(t) is the Weiner process or called Brownian motion.
+/// where $W(t)$ is the Weiner process or called Brownian motion.
 #[derive(Debug, Clone)]
 pub struct Langevin<D, G>
 where
@@ -106,6 +101,35 @@ where
             time_step,
         )
     }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> f64 {
+        let num_steps = (duration / time_step).ceil() as usize;
+        let actual_time_step = duration / num_steps as f64;
+
+        let mut prev_x = self.start_position;
+        let mut current_x;
+
+        // let mut prev_t = 0.0;
+        let mut current_t;
+
+        // let noise = normal::standard_rands::<f64>(num_steps);
+        let sigma = actual_time_step.sqrt();
+        let drift = &self.drift_func;
+        let diffusion = &self.diffusion_func;
+
+        for i in 0..num_steps {
+            current_t = (i + 1) as f64 * actual_time_step;
+            let xi: f64 = normal::standard_rand();
+
+            current_x = prev_x
+                + drift(prev_x, current_t) * actual_time_step
+                + diffusion(prev_x, current_t) * xi * sigma;
+
+            prev_x = current_x;
+        }
+
+        prev_x - self.start_position
+    }
 }
 
 /// Simulate the Langevin equation
@@ -139,48 +163,32 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{time_step}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
-    let t = linspace(0.0, duration, time_step);
+    let num_steps = (duration / time_step).ceil() as usize;
+    let actual_time_step = duration / num_steps as f64;
+    let mut x = Vec::with_capacity(num_steps + 1);
+    x.push(start_position);
 
-    let num_steps = t.len() - 1;
+    let mut t = Vec::with_capacity(num_steps + 1);
+    t.push(0.0);
     let noise = normal::standard_rands::<f64>(num_steps);
-    let delta = diff(&t);
+    let sigma = actual_time_step.sqrt();
+    unsafe {
+        for i in 0..num_steps {
+            let current_x = *x.get_unchecked(i);
+            let next_t = (i + 1) as f64 * actual_time_step;
+            let xi = *noise.get_unchecked(i);
 
-    let x = std::iter::once(start_position)
-        .chain(
-            t[0..num_steps]
-                .iter()
-                .zip(noise.into_iter().zip(delta))
-                .scan(start_position, |state, (&ti, (xi, delta_t))| {
-                    let current_x = *state;
+            let next_x = current_x
+                + drift(current_x, next_t) * actual_time_step
+                + diffusion(current_x, next_t) * xi * sigma;
 
-                    let next_x = current_x
-                        + drift(current_x, ti) * delta_t
-                        + diffusion(current_x, ti) * xi * delta_t.sqrt();
-
-                    *state = next_x;
-                    Some(next_x)
-                }),
-        )
-        .collect();
-
+            x.push(next_x);
+            t.push(next_t);
+        }
+    }
+    if let Some(last_t) = t.last_mut() {
+        *last_t = duration;
+    }
     Ok((t, x))
 }
 

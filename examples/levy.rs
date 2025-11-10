@@ -1,7 +1,4 @@
-use diffusionx::{
-    simulation::{continuous::Levy, prelude::*},
-    visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
-};
+use diffusionx::simulation::{continuous::Levy, prelude::*};
 
 fn main() {
     println!("===== Lévy process simulation example =====");
@@ -22,22 +19,25 @@ fn main() {
         println!("{:.2}\t{:.6}", times[i], positions[i]);
     }
 
-    // Create trajectory and visualize
-    let traj = levy.duration(t_max).unwrap();
+    #[cfg(feature = "visualize")]
+    {
+        // Create trajectory and visualize
+        let traj = levy.duration(t_max).unwrap();
 
-    // Visualize trajectory
-    let config = PlotConfigBuilder::default()
-        .time_step(dt)
-        .output_path("tmp/levy.svg")
-        .caption("Lévy process trajectory")
-        .x_label("t")
-        .y_label("X(t)")
-        .legend("levy")
-        .size((800, 600))
-        .backend(PlotterBackend::SVG)
-        .build()
-        .unwrap();
+        // Visualize trajectory
+        let config = PlotConfigBuilder::default()
+            .time_step(dt)
+            .output_path("tmp/levy.svg")
+            .caption("Lévy process trajectory")
+            .x_label("t")
+            .y_label("X(t)")
+            .legend("levy")
+            .size((800, 600))
+            .backend(PlotterBackend::SVG)
+            .build()
+            .unwrap();
 
-    traj.plot(&config).unwrap();
-    println!("Trajectory image saved to tmp/levy.svg");
+        traj.plot(&config).unwrap();
+        println!("Trajectory image saved to tmp/levy.svg");
+    }
 }

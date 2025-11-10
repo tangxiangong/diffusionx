@@ -55,9 +55,11 @@ pub enum XError {
     /// Error for FFT planner lock
     #[error("FFT planner lock error")]
     FFTPlannerLock,
+    #[cfg(feature = "io")]
     /// Error for CSV files
     #[error("CSV IO Error: {0}")]
     CSVError(#[from] csv::Error),
+    #[cfg(feature = "io")]
     /// Error for IO
     #[error("CSV Write Error: {0}")]
     CSVWriteError(#[from] std::io::Error),

@@ -1,7 +1,4 @@
-use diffusionx::{
-    simulation::{continuous::BrownianExcursion, prelude::*},
-    visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
-};
+use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
 
 fn main() {
     println!("===== Example of Brownian Excursion Simulation =====");
@@ -21,23 +18,26 @@ fn main() {
         println!("{:.2}\t{:.6}", times[i], positions[i]);
     }
 
-    // Create trajectory and visualize
-    let traj = be.duration(1.0).unwrap();
+    #[cfg(feature = "visualize")]
+    {
+        // Create trajectory and visualize
+        let traj = be.duration(1.0).unwrap();
 
-    // Visualize trajectory
-    let config = PlotConfigBuilder::default()
-        .show_grid(false)
-        .time_step(dt)
-        .output_path("tmp/be.svg")
-        .caption("Brownian Excursion Trajectory")
-        .x_label("t")
-        .y_label("X(t)")
-        .legend("be")
-        .size((800, 600))
-        .backend(PlotterBackend::SVG)
-        .build()
-        .unwrap();
+        // Visualize trajectory
+        let config = PlotConfigBuilder::default()
+            .show_grid(false)
+            .time_step(dt)
+            .output_path("tmp/be.svg")
+            .caption("Brownian Excursion Trajectory")
+            .x_label("t")
+            .y_label("X(t)")
+            .legend("be")
+            .size((800, 600))
+            .backend(PlotterBackend::SVG)
+            .build()
+            .unwrap();
 
-    traj.plot(&config).unwrap();
-    println!("Trajectory image saved to tmp/be.svg");
+        traj.plot(&config).unwrap();
+        println!("Trajectory image saved to tmp/be.svg");
+    }
 }

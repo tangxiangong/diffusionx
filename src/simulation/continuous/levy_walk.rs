@@ -13,9 +13,9 @@ use rayon::prelude::*;
 ///
 /// A Lévy walk is a random walk model where the walker moves with a constant velocity
 /// between turning points. At each turning point, the walker randomly chooses a new
-/// direction and a new flight time τ from a probability distribution ψ(τ) ~ τ^(-1-α)
-/// with 0 < α < 1. The flight length is proportional to the flight time: l = vτ,
-/// where v is the constant velocity.
+/// direction and a new flight time $\tau$ from a probability distribution $\psi(\tau) ∼ \tau^{-1-\alpha}$
+/// with 0 < $\alpha$ < 1. The flight length is proportional to the flight time: $l = v\tau$,
+/// where $v$ is the constant velocity.
 #[derive(Clone, Debug)]
 pub struct LevyWalk {
     /// The waiting time distribution exponent
@@ -48,7 +48,7 @@ impl LevyWalk {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::point::LevyWalk;
+    /// use diffusionx::simulation::continuous::LevyWalk;
     ///
     /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
     /// ```
@@ -155,7 +155,7 @@ impl ContinuousProcess for LevyWalk {
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::point::levy_walk::simulate_levy_walk_with_step;
+/// use diffusionx::simulation::continuous::levy_walk::simulate_levy_walk_with_step;
 ///
 /// let (t, x) = simulate_levy_walk_with_step(0.5, 1.0, 1000, 0.0).unwrap();
 /// ```
@@ -220,7 +220,7 @@ pub fn simulate_levy_walk_with_step(
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::point::levy_walk::simulate_levy_walk_with_duration;
+/// use diffusionx::simulation::continuous::levy_walk::simulate_levy_walk_with_duration;
 ///
 /// let (t, x) = simulate_levy_walk_with_duration(0.5, 1.0, 10.0, 0.0).unwrap();
 /// ```

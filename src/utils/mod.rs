@@ -10,5 +10,7 @@ pub use functions::*;
 mod circulant_embedding;
 pub use circulant_embedding::*;
 
+#[cfg(feature = "io")]
 mod csv;
+#[cfg(feature = "io")]
 pub use csv::*;

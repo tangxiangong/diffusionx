@@ -105,7 +105,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### 可视化示例
+### 可视化
+
+> [!NOTE]
+> 可视化功能需要开启 `visualize`
+> ```toml
+> # In your Cargo.toml
+> [dependencies]
+> diffusionx = { version = "0.5", features = ["visualize"] }
+> ```
+
 
 ```rust
 use diffusionx::{
@@ -304,7 +313,8 @@ FPT: 0.38
 Occupation Time: 4.719999999999995
 EATAMSD: 0.6085042089895467
 ```
-![CIR](./assets/CIR.svg)
+<img src="https://raw.githubusercontent.com/tangxiangong/diffusionx/dev/assets/CIR.svg" alt="CIR"/>
+
 
 ## 基准测试
 

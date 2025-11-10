@@ -12,10 +12,13 @@
 //! - `calculate_stats`: Calculate the mean and variance of an array.
 //! - `calculate_int_stats`: Calculate the mean and variance of an integer array.
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
+//!
+
 use crate::{XError, XResult};
 use num_traits::Num;
-use rayon::prelude::*;
+#[cfg(feature = "visualize")]
 use std::path::Path;
+
 /// Calculate the cumulative sum of a vector
 ///
 /// Returns a vector of cumulative sums
@@ -84,6 +87,7 @@ pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
     }
 }
 
+#[cfg(feature = "visualize")]
 /// Ensure the output directory exists, or create it if it doesn't exist.
 pub(crate) fn ensure_output_dir(path: &Path) -> XResult<()> {
     if let Some(parent) = path.parent() {
@@ -221,7 +225,6 @@ pub fn linspace(start: f64, end: f64, step: f64) -> Vec<f64> {
 
     let len = ((end - start) / step).ceil() as usize + 1;
     let mut result = (0..len)
-        .into_par_iter()
         .map(|i| start + i as f64 * step)
         .collect::<Vec<_>>();
 

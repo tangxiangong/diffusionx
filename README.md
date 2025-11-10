@@ -105,7 +105,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### Visualization Example
+### Visualization
+
+> [!NOTE]
+> The visualization requires the `visualize` feature to be enabled.
+> ```toml
+> # In your Cargo.toml
+> [dependencies]
+> diffusionx = { version = "0.5", features = ["visualize"] }
+> ```
 
 ```rust
 use diffusionx::{
@@ -306,10 +314,7 @@ FPT: 0.38
 Occupation Time: 4.719999999999995
 EATAMSD: 0.6085042089895467
 ```
-![CIR](./assets/CIR.svg)
-
-## Benchmark
-Performance benchmarks comparing Rust, C++, Julia, and Python implementations are available [here](https://github.com/tangxiangong/diffusionx-benches).
+<img src="https://raw.githubusercontent.com/tangxiangong/diffusionx/dev/assets/CIR.svg" alt="CIR"/>
 
 ## License
 
