@@ -1,7 +1,4 @@
-use diffusionx::{
-    simulation::{continuous::BrownianBridge, prelude::*},
-    visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
-};
+use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
 
 fn main() {
     println!("===== Example of Brownian Bridge Simulation =====");
@@ -22,23 +19,26 @@ fn main() {
         println!("{:.2}\t{:.6}", times[i], positions[i]);
     }
 
-    // Create trajectory and visualize
-    let traj = bb.duration(t_max).unwrap();
+    #[cfg(feature = "visualize")]
+    {
+        // Create trajectory and visualize
+        let traj = bb.duration(t_max).unwrap();
 
-    // Visualize trajectory
-    let config = PlotConfigBuilder::default()
-        .show_grid(false)
-        .time_step(dt)
-        .output_path("tmp/bb.svg")
-        .caption("Brownian Bridge Trajectory")
-        .x_label("t")
-        .y_label("X(t)")
-        .legend("bb")
-        .size((800, 600))
-        .backend(PlotterBackend::SVG)
-        .build()
-        .unwrap();
+        // Visualize trajectory
+        let config = PlotConfigBuilder::default()
+            .show_grid(false)
+            .time_step(dt)
+            .output_path("tmp/bb.svg")
+            .caption("Brownian Bridge Trajectory")
+            .x_label("t")
+            .y_label("X(t)")
+            .legend("bb")
+            .size((800, 600))
+            .backend(PlotterBackend::SVG)
+            .build()
+            .unwrap();
 
-    traj.plot(&config).unwrap();
-    println!("Trajectory image saved to tmp/bb.svg");
+        traj.plot(&config).unwrap();
+        println!("Trajectory image saved to tmp/bb.svg");
+    }
 }

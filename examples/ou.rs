@@ -1,7 +1,4 @@
-use diffusionx::{
-    simulation::{continuous::OrnsteinUhlenbeck, prelude::*},
-    visualize::{PlotConfigBuilder, PlotterBackend, Visualize},
-};
+use diffusionx::simulation::{continuous::OrnsteinUhlenbeck, prelude::*};
 
 fn main() {
     println!("===== Ornstein-Uhlenbeck process simulation example =====");
@@ -23,22 +20,25 @@ fn main() {
         println!("{:.2}\t{:.6}", times[i], positions[i]);
     }
 
-    // Create trajectory and visualize
-    let traj = ou.duration(t_max).unwrap();
+    #[cfg(feature = "visualize")]
+    {
+        // Create trajectory and visualize
+        let traj = ou.duration(t_max).unwrap();
 
-    // Visualize trajectory
-    let config = PlotConfigBuilder::default()
-        .time_step(dt)
-        .output_path("tmp/ou.svg")
-        .caption("Ornstein-Uhlenbeck process trajectory")
-        .x_label("t")
-        .y_label("X(t)")
-        .legend("ou")
-        .size((800, 600))
-        .backend(PlotterBackend::SVG)
-        .build()
-        .unwrap();
+        // Visualize trajectory
+        let config = PlotConfigBuilder::default()
+            .time_step(dt)
+            .output_path("tmp/ou.svg")
+            .caption("Ornstein-Uhlenbeck process trajectory")
+            .x_label("t")
+            .y_label("X(t)")
+            .legend("ou")
+            .size((800, 600))
+            .backend(PlotterBackend::SVG)
+            .build()
+            .unwrap();
 
-    traj.plot(&config).unwrap();
-    println!("Trajectory image saved to tmp/ou.svg");
+        traj.plot(&config).unwrap();
+        println!("Trajectory image saved to tmp/ou.svg");
+    }
 }

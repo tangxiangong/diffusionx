@@ -10,7 +10,6 @@ fn main() {
 
     // Time settings
     let t_max = 10.0; // Maximum time
-    let dt = 0.1; // Time step
 
     // Generate CTRW trajectory
     // Here we call the simulate method provided by the ContinuousProcess trait
@@ -25,22 +24,26 @@ fn main() {
         }
     }
 
-    let traj = ctrw.duration(t_max).unwrap();
+    #[cfg(feature = "visualize")]
+    {
+        let dt = 0.1; // Time step
+        let traj = ctrw.duration(t_max).unwrap();
 
-    // Visualize trajectory
-    let config = PlotConfigBuilder::default()
-        .show_grid(false)
-        .time_step(dt)
-        .output_path("tmp/ctrw.svg")
-        .caption("CTRW Trajectory")
-        .x_label("t")
-        .y_label("X(t)")
-        .legend("ctrw")
-        .size((800, 600))
-        .backend(PlotterBackend::SVG)
-        .build()
-        .unwrap();
+        // Visualize trajectory
+        let config = PlotConfigBuilder::default()
+            .show_grid(false)
+            .time_step(dt)
+            .output_path("tmp/ctrw.svg")
+            .caption("CTRW Trajectory")
+            .x_label("t")
+            .y_label("X(t)")
+            .legend("ctrw")
+            .size((800, 600))
+            .backend(PlotterBackend::SVG)
+            .build()
+            .unwrap();
 
-    traj.plot(&config).unwrap();
-    println!("Trajectory image saved to tmp/ctrw.svg");
+        traj.plot(&config).unwrap();
+        println!("Trajectory image saved to tmp/ctrw.svg");
+    }
 }

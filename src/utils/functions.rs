@@ -16,6 +16,7 @@
 
 use crate::{XError, XResult};
 use num_traits::Num;
+#[cfg(feature = "visualize")]
 use std::path::Path;
 
 /// Calculate the cumulative sum of a vector
@@ -86,6 +87,7 @@ pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
     }
 }
 
+#[cfg(feature = "visualize")]
 /// Ensure the output directory exists, or create it if it doesn't exist.
 pub(crate) fn ensure_output_dir(path: &Path) -> XResult<()> {
     if let Some(parent) = path.parent() {
