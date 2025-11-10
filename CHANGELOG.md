@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2025-11-10
+
+### 🚀 Features
+
+- Add Criterion benchmarks for the Langevin simulation pipeline.
+
+### 💼 Other
+
+- Ship the `langevin-bench` example for performance verification.
+
+### 🚜 Refactor
+
+- Streamline Langevin and Generalized Langevin time-step iteration and shared imports.
+- Move CUDA/Metal kernel crates into `kernels/` and relocate `docs-header.html` to the repo root.
+
+### 📚 Documentation
+
+- Add KaTeX-backed LaTeX formatting and note feature flags required for visualization examples.
+- Switch README assets to absolute GitHub and `raw.githubusercontent.com` URLs.
+
+### ⚙️ Miscellaneous Tasks
+
+- Enable KaTeX on docs.rs, make `visualize`/`io` optional, and bump to 0.5.0.
+
+## [0.4.15] - 2025-10-28
+
+### 🚀 Features
+
+- Add CUDA/Metal GPU acceleration plus Monte Carlo statistics kernels.
+
+### 🐛 Bug Fixes
+
+- Normalize plot asset paths, rename `mc`, use standard deviation for BM noise, fix FBM/Lévy direction, and parallelize MSD/moment sims with validation.
+
+### 💼 Other
+
+- Split CUDA/Metal kernels into dedicated crates and generate scaled normal noise.
+
+### 🚜 Refactor
+
+- Switch FFTs to `realfft` and enable GPU feature dependencies.
+
+### 📚 Documentation
+
+- Configure docs.rs target, enable `doc_cfg`, and disable example scraping.
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove `TODO.md`, tidy docs, update `csv` to 1.4, and record the 0.4.10–0.4.11 version toggles.
+
 ## [0.4.8] - 2025-07-05
 
 ### 💼 Other
