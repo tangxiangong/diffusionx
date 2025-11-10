@@ -304,7 +304,8 @@ FPT: 0.38
 Occupation Time: 4.719999999999995
 EATAMSD: 0.6085042089895467
 ```
-![CIR](./assets/CIR.svg)
+<img src="https://github.com/tangxiangong/diffusionx/blob/dev/assets/CIR.svg" alt="CIR" width="600"/>
+
 
 ## 基准测试
 
