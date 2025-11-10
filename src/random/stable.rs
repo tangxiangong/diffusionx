@@ -2,31 +2,31 @@
 //!
 //! For the Gaussian distribution, see [crate::random::normal].
 //!
-//! Stable laws – also called alpha-stable, stable Paretian or Lévy stable – were
+//! Stable laws – also called $\alpha$-stable, stable Paretian or Lévy stable – were
 //! introduced by Lévy (1925) during his investigations of the behavior of sums of
 //! independent random variables. A sum of two independent random variables having
-//! an alpha-stable distribution with index alpha is again alpha-stable with the
-//! same index alpha. This invariance property, however, does not hold for
-//! different alpha's.
+//! an $\alpha$-stable distribution with index $\alpha$ is again $\alpha$-stable with the
+//! same index $\alpha$. This invariance property, however, does not hold for
+//! different $\alpha$'s.
 //!
-//! The alpha-stable distribution requires four parameters for complete description:
-//! - an index of stability alpha in (0, 2],
-//! - a skewness parameter beta in [-1, 1],
-//! - a positive scale parameter sigma, and
-//! - a real location parameter mu.
+//! The $\alpha$-stable distribution requires four parameters for complete description:
+//! - an index of stability $\alpha$ in (0, 2],
+//! - a skewness parameter $\beta$ in [-1, 1],
+//! - a positive scale parameter $\sigma$, and
+//! - a real location parameter $\mu$.
 //!
-//! The tail exponent alpha determines the rate at which the tails of the distribution taper off.
-//! When alpha = 2, the Gaussian distribution results. When alpha < 2, the variance
+//! The tail exponent $\alpha$ determines the rate at which the tails of the distribution taper off.
+//! When $\alpha = 2$, the Gaussian distribution results. When $\alpha < 2$, the variance
 //! is infinite and the tails are asymptotically equivalent to a Pareto law, i.e. they
 //! decay as a power law.
 //!
-//! When the skewness parameter beta is positive, the distribution is skewed to the right,
+//! When the skewness parameter $\beta$ is positive, the distribution is skewed to the right,
 //! i.e. the right tail is thicker. When it is negative, it is skewed to the left.
-//! When beta = 0, the distribution is symmetric about mu. As alpha approaches 2,
-//! beta loses its effect and the distribution approaches the Gaussian
-//! distribution regardless of beta. The last two parameters, sigma and mu, are the usual
-//! scale and location parameters, i.e. sigma determines the width and mu the shift of
-//! the mode (the peak) of the density. For sigma = 1 and mu = 0 the distribution is called
+//! When $\beta = 0$, the distribution is symmetric about $\mu$. As $\alpha$ approaches 2,
+//! $\beta$ loses its effect and the distribution approaches the Gaussian
+//! distribution regardless of $\beta$. The last two parameters, $\sigma$ and $\mu$, are the usual
+//! scale and location parameters, i.e. $\sigma$ determines the width and $\mu$ the shift of
+//! the mode (the peak) of the density. For $\sigma = 1$ and $\mu = 0$ the distribution is called
 //! the standard alpha-stable distribution.
 //!
 //! # References

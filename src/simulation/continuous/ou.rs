@@ -4,9 +4,9 @@ use crate::{XResult, random::normal, simulation::prelude::*};
 
 /// Ornstein–Uhlenbeck process
 ///
-/// dx(t) = -theta x(t) dt + sigma dW(t), x(0) = x0
+/// $$dx(t) = -\theta x(t) dt + \sigma dW(t),\qquad x(0) = x_0$$
 ///
-/// where W(t) is the Wiener process, also called Brownian motion.
+/// where $W(t)$ is the Wiener process, also called Brownian motion.
 #[derive(Debug, Clone)]
 pub struct OrnsteinUhlenbeck {
     /// The parameter controlling the strength of mean reversion.
@@ -29,7 +29,7 @@ impl OrnsteinUhlenbeck {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::continuous::OrnsteinUhlenbeck;
+    /// use diffusionx::simulation::continuous::ou::OrnsteinUhlenbeck;
     ///
     /// let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
     /// ```
@@ -69,7 +69,7 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::{continuous::OrnsteinUhlenbeck, prelude::*};
+    /// use diffusionx::simulation::{continuous::ou::OrnsteinUhlenbeck, prelude::*};
     ///
     /// let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
     /// let (t, x) = ou.simulate(1.0, 0.01).unwrap();

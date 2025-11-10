@@ -8,9 +8,9 @@ use crate::{
 
 /// Generalized Langevin equation
 ///
-/// dx(t) = f(x(t), t) dt + g(x(t), t) dL_alpha(t), x(0) = x0
+/// $$dx(t) = f(x(t), t) dt + g(x(t), t) dL_\alpha(t),\qquad x(0) = x_0$$
 ///
-/// where L_alpha(t) is the alpha-stable process.
+/// where $L_\alpha(t)$ is the $\alpha$-stable process.
 #[derive(Debug, Clone)]
 pub struct GeneralizedLangevin<D, G>
 where
