@@ -105,7 +105,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### 可视化示例
+### 可视化
+
+> [!NOTE]
+> 可视化功能需要开启 `visualize`
+> ```toml
+> # In your Cargo.toml
+> [dependencies]
+> diffusionx = { version = "0.5", features = ["visualize"] }
+> ```
+
 
 ```rust
 use diffusionx::{
