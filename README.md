@@ -190,6 +190,16 @@ DiffusionX is designed with a trait-based system for high extensibility and perf
 
 **Example:**
 
+Run the following Cargo command in your project directory:
+```bash
+cargo add diffusionx --features io,visualize
+```
+or add the following line to your Cargo.toml:
+```toml
+[dependencies]
+diffusionx = { version = "0.5", features = ["io", "visualize"] }
+```
+
 ```rust
 use diffusionx::{
     XError, XResult,
@@ -218,7 +228,7 @@ impl CIR {
         let speed: f64 = speed.into();
         if speed <= 0.0 {
             return Err(XError::InvalidParameters(format!(
-                "speed must be greater than 0, but got {speed}",
+                "speed must be greater than 0, but got {speed}"
             )));
         }
         Ok(Self {
@@ -231,7 +241,7 @@ impl CIR {
 }
 
 impl ContinuousProcess for CIR {
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let t = linspace(0.0, duration, time_step);
         let num_steps = t.len() - 1;
         let initial_x = self.start_position.max(0.0);
@@ -265,14 +275,14 @@ fn main() -> XResult<()> {
     let particles = 10_000;
     let time_step = 0.01;
     let cir = CIR::new(1, 1, 1, 0.5)?;
-    let traj = cir.duration(duration)?;
+
     let (t, x) = cir.simulate(duration, time_step)?;
     write_csv("tmp/CIR.csv", &t, &x)?;
     // mean
-    let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
+    let mean = cir.mean(duration, particles, time_step)?; 
     println!("mean: {mean}");
     // msd
-    let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
+    let msd = cir.msd(duration, particles, time_step)?; 
     println!("MSD: {msd}");
     // FPT
     let max_duration = 1000.0;
@@ -290,6 +300,7 @@ fn main() -> XResult<()> {
     let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
     println!("EATAMSD: {eatamsd}");
 
+    let traj = cir.duration(duration)?;
     // Visualization
     let config = PlotConfigBuilder::default()
         .time_step(time_step)
@@ -306,6 +317,7 @@ fn main() -> XResult<()> {
     Ok(())
 }
 ```
+
 **Result:**
 ```
 mean: 0.9957644815350275
@@ -315,6 +327,11 @@ Occupation Time: 4.719999999999995
 EATAMSD: 0.6085042089895467
 ```
 <img src="https://raw.githubusercontent.com/tangxiangong/diffusionx/dev/assets/CIR.svg" alt="CIR"/>
+
+## Benchmark
+
+Performance benchmark tests compare the Rust, C++, Julia, and Python implementations, which can be found [here](https://github.com/tangxiangong/diffusionx-benches).
+
 
 ## License
 
