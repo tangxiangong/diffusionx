@@ -1,7 +1,6 @@
-use super::{Moment, Pair, TAMSD};
 use crate::{
     SimulationError, XResult,
-    simulation::prelude::{FirstPassageTime, OccupationTime},
+    simulation::prelude::{FirstPassageTime, Moment, OccupationTime, Pair, TAMSD},
 };
 use rayon::prelude::*;
 
@@ -13,11 +12,45 @@ pub trait ContinuousProcess: Send + Sync {
     ///
     /// * `duration` - The duration of the simulation.
     /// * `time_step` - The time step of the simulation.
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair>;
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+        if duration <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {duration}"
+            ))
+            .into());
+        }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> f64 {
-        let (_, x) = self.simulate(duration, time_step).unwrap();
-        *x.last().unwrap() - x.first().unwrap()
+        if time_step <= 0.0 {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step}`"
+            ))
+            .into());
+        }
+
+        if time_step > duration {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
+            ))
+            .into());
+        }
+
+        self.simulate_unchecked(duration, time_step)
+    }
+
+    /// Simulate the continuous process without checking the arguments
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `time_step` - The time step of the simulation.
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair>;
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let (_, x) = self.simulate_unchecked(duration, time_step)?;
+        match (x.first(), x.last()) {
+            (Some(first), Some(last)) => Ok(last - first),
+            _ => Err(SimulationError::Unknown.into()),
+        }
     }
 
     /// Get the mean of the continuous process
@@ -63,7 +96,7 @@ pub trait ContinuousProcess: Send + Sync {
         let values: f64 = (0..particles)
             .into_par_iter()
             .map(|_| -> f64 {
-                let displacement = self.displacement(duration, time_step);
+                let displacement = self.displacement(duration, time_step).unwrap();
                 displacement * displacement
             })
             .sum();

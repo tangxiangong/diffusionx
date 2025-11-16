@@ -2,7 +2,7 @@
 
 use crate::{
     SimulationError, XResult,
-    simulation::prelude::*,
+    simulation::{continuous::Bm, prelude::*},
     utils::{CirculantEmbedding, cumsum, fbm_correlation},
 };
 
@@ -56,30 +56,32 @@ impl FBm {
 }
 
 impl ContinuousProcess for FBm {
-    /// Simulate Fractional Brownian motion
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the trajectory.
-    /// * `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::Fbm, prelude::*};
-    ///
-    /// let fbm = Fbm::new(10.0, 0.5).unwrap();
-    /// let time_step = 0.1;
-    /// let duration = 1.0;
-    /// let (t, x) = fbm.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_fbm(
             self.start_position,
             self.hurst_exponent,
             duration,
             time_step,
         )
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        if self.hurst_exponent == 0.5 {
+            let bm = Bm::default();
+            return bm.displacement(duration, time_step);
+        }
+
+        // Enforce a uniform time step for H != 0.5
+        let num_steps = ((duration / time_step).round() as usize).max(1);
+        let dt = duration / num_steps as f64;
+
+        // Fractional Gaussian noise with covariance determined by dt and H
+        let circulant =
+            CirculantEmbedding::new(num_steps, fbm_correlation(self.hurst_exponent, dt));
+        let noise = circulant.generate()?;
+        let x = noise.into_iter().sum::<f64>();
+
+        Ok(x)
     }
 }
 
@@ -109,30 +111,6 @@ pub fn simulate_fbm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{time_step}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
-    if hurst_exponent <= 0.0 || hurst_exponent >= 1.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `hurst_exponent` must be in the range (0, 1), got {hurst_exponent}"
-        ))
-        .into());
-    }
     if hurst_exponent == 0.5 {
         // Delegate to standard Brownian motion with D = 0.5 so Var[B(t)] = t
         return crate::simulation::continuous::bm::simulate_bm(

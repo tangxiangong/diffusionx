@@ -119,27 +119,45 @@ impl LevyWalk {
 }
 
 impl ContinuousProcess for LevyWalk {
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got `{duration}`"
-            ))
-            .into());
-        }
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
-            ))
-            .into());
-        }
-        if time_step > duration {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-            ))
-            .into());
-        }
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let (t, x) = self.simulate_with_duration(duration)?;
         linear_interpolate(&t, &x, time_step)
+    }
+
+    fn displacement(&self, duration: f64, _time_step: f64) -> XResult<f64> {
+        let mut num_step = duration.ceil() as usize;
+        let (t, x) = loop {
+            let (t, x) = simulate_levy_walk_with_step(
+                self.alpha,
+                self.velocity,
+                num_step,
+                self.start_position,
+            )?;
+            if t.last().is_none() {
+                return Err(SimulationError::Unknown.into());
+            }
+            let end_time = *t.last().unwrap();
+            if end_time >= duration {
+                break (t, x);
+            }
+            num_step *= 2;
+        };
+        let index = t.iter().position(|&time| time >= duration).unwrap();
+        let index_x = unsafe { *x.get_unchecked(index) };
+        let index_t = unsafe { *t.get_unchecked(index) };
+        let index_x_pre = unsafe { *x.get_unchecked(index - 1) };
+        let index_t_pre = unsafe { *t.get_unchecked(index - 1) };
+        let last_x = if index_t > duration {
+            let direction = if index_x >= index_x_pre {
+                self.velocity
+            } else {
+                -self.velocity
+            };
+            index_x_pre + (duration - index_t_pre) * direction
+        } else {
+            index_x
+        };
+        Ok(last_x - self.start_position)
     }
 }
 
@@ -165,24 +183,6 @@ pub fn simulate_levy_walk_with_step(
     num_step: usize,
     start_position: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if num_step == 0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `num_step` must be positive, got `{num_step}`"
-        ))
-        .into());
-    }
-    if alpha <= 0.0 || alpha > 1.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `alpha` must be between 0 and 1, got {alpha}"
-        ))
-        .into());
-    }
-    if velocity <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `velocity` must be positive, got {velocity}"
-        ))
-        .into());
-    }
     let waiting_times = if alpha == 1.0 {
         exponential::rands(1.0, num_step)?
     } else {

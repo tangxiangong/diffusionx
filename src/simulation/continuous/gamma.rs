@@ -1,6 +1,6 @@
 //! Gamma process simulation
 
-use crate::{SimulationError, XResult, random::gamma, simulation::prelude::*};
+use crate::{SimulationError, XResult, random::gamma, simulation::prelude::*, utils::linspace};
 
 /// Gamma process
 ///
@@ -60,25 +60,20 @@ impl Gamma {
 }
 
 impl ContinuousProcess for Gamma {
-    /// Simulate Gamma process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the trajectory.
-    /// * `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::Gamma;
-    ///
-    /// let gamma = Gamma::new(0.5, 1.0).unwrap();
-    /// let time_step = 0.1;
-    /// let duration = 1.0;
-    /// let (t, x) = gamma.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_gamma(self.shape, self.rate, duration, time_step)
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let scale = 1.0 / self.rate;
+        let mut noise = gamma::rands(self.shape * time_step, scale, num_steps)?;
+        let last_step = duration - ((num_steps - 1) as f64 * time_step);
+        let noise_last = gamma::rand(self.shape * last_step, scale)?;
+        *noise.last_mut().unwrap() = noise_last;
+
+        Ok(noise.into_iter().sum())
     }
 }
 
@@ -108,63 +103,23 @@ pub fn simulate_gamma(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    // if duration <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `duration` must be positive, got `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if time_step <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be positive, got `{time_step}`"
-    //     ))
-    //     .into());
-    // }
-    // if time_step > duration {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if shape <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `shape` must be positive, got `{shape}`"
-    //     ))
-    //     .into());
-    // }
-    // if rate <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `rate` must be positive, got `{rate}`"
-    //     ))
-    //     .into());
-    // }
-
-    let num_steps = (duration / time_step).ceil() as usize;
-    let actual_time_step = duration / num_steps as f64;
-
-    let mut t = Vec::with_capacity(num_steps + 1);
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
 
     let scale = 1.0 / rate;
-    let noise = gamma::rands(shape * actual_time_step, scale, num_steps)?;
+    let mut noise = gamma::rands(shape * time_step, scale, num_steps)?;
+    let last_step = duration - ((num_steps - 1) as f64 * time_step);
+    let noise_last = gamma::rand(shape * last_step, scale)?;
+    *noise.last_mut().unwrap() = noise_last;
 
-    let x = unsafe {
-        let mut x = Vec::with_capacity(num_steps + 1);
-        x.push(0.0);
-        t.push(0.0);
+    let mut x = Vec::with_capacity(num_steps + 1);
 
-        let mut sum = 0.0;
-        for i in 0..num_steps {
-            let current_t = (i + 1) as f64 * actual_time_step;
-            sum += *noise.get_unchecked(i);
-            x.push(sum);
-            t.push(current_t);
-        }
+    x.push(0.0);
 
-        x
-    };
-
-    if let Some(last_t) = t.last_mut() {
-        *last_t = duration;
+    let mut sum = 0.0;
+    for i in 0..num_steps {
+        sum += unsafe { *noise.get_unchecked(i) };
+        x.push(sum);
     }
 
     Ok((t, x))

@@ -213,14 +213,11 @@ pub fn calculate_bool_mean(samples: &[bool]) -> f64 {
 /// assert_eq!(result, vec![0.0, 0.25, 0.5, 0.75, 1.0]);
 /// ```
 pub fn linspace(start: f64, end: f64, step: f64) -> Vec<f64> {
-    assert!(step > 0.0, "step must be positive, got {step}");
-    assert!(
-        start <= end,
-        "start must be <= end, got start={start}, end={end}"
-    );
-
-    if approx_eq(start, end, f64::EPSILON) {
-        return vec![start];
+    if step <= 0.0 {
+        panic!("step must be positive, got {step}");
+    }
+    if start > end {
+        panic!("start must be <= end, got start={start}, end={end}");
     }
 
     let len = ((end - start) / step).ceil() as usize + 1;

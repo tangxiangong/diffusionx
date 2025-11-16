@@ -1,6 +1,6 @@
 //! Brownian motion simulation
 
-use crate::{SimulationError, XResult, random::normal, simulation::prelude::*};
+use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::linspace};
 
 /// Brownian motion
 #[derive(Debug, Clone)]
@@ -57,30 +57,25 @@ impl Bm {
 }
 
 impl ContinuousProcess for Bm {
-    /// Simulate Brownian motion
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the trajectory.
-    /// * `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::Bm, prelude::*};
-    ///
-    /// let bm = Bm::default();
-    /// let time_step = 0.1;
-    /// let duration = 1.0;
-    /// let (t, x) = bm.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_bm(
             self.start_position,
             self.diffusion_coefficient,
             duration,
             time_step,
         )
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let std_dev = (2.0 * self.diffusion_coefficient * time_step).sqrt();
+        let mut noise = normal::rands(0.0, std_dev, num_steps)?;
+        let last_step = duration - (num_steps - 1) as f64 * time_step;
+        *noise.last_mut().unwrap() =
+            2.0 * self.diffusion_coefficient * last_step * normal::standard_rand::<f64>();
+
+        Ok(noise.iter().sum())
     }
 }
 
@@ -110,57 +105,22 @@ pub fn simulate_bm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    // if diffusion_coefficient <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The diffusion coefficient must be positive, got {diffusion_coefficient}"
-    //     ))
-    //     .into());
-    // }
-    // if duration <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The duration must be positive, got {duration}"
-    //     ))
-    //     .into());
-    // }
-    // if time_step > duration {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The time step must be less than or equal to the duration, got {time_step} > {duration}"
-    //     ))
-    //     .into());
-    // }
-    // if time_step <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The time step must be positive, got {time_step}"
-    //     ))
-    //     .into());
-    // }
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
 
-    let num_steps = (duration / time_step).ceil() as usize;
-    let actual_time_step = duration / num_steps as f64;
+    let std_dev = (2.0 * diffusion_coefficient * time_step).sqrt();
+    let mut noise = normal::rands(0.0, std_dev, num_steps)?;
+    let last_step = duration - (num_steps - 1) as f64 * time_step;
+    *noise.last_mut().unwrap() =
+        2.0 * diffusion_coefficient * last_step * normal::standard_rand::<f64>();
 
-    let mut t = Vec::with_capacity(num_steps + 1);
+    let mut x = Vec::with_capacity(num_steps + 1);
+    x.push(start_position);
 
-    let std_dev = (2.0 * diffusion_coefficient * actual_time_step).sqrt();
-    let noise = normal::rands(0.0, std_dev, num_steps)?;
-
-    let x = unsafe {
-        let mut x = Vec::with_capacity(num_steps + 1);
-        x.push(start_position);
-        t.push(0.0);
-
-        let mut sum = start_position;
-        for i in 0..num_steps {
-            let current_t = (i + 1) as f64 * actual_time_step;
-            sum += *noise.get_unchecked(i);
-            x.push(sum);
-            t.push(current_t);
-        }
-
-        x
-    };
-
-    if let Some(last_t) = t.last_mut() {
-        *last_t = duration;
+    let mut sum = start_position;
+    for i in 0..num_steps {
+        sum += unsafe { *noise.get_unchecked(i) };
+        x.push(sum);
     }
 
     Ok((t, x))

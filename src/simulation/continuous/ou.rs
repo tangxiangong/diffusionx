@@ -1,6 +1,12 @@
 //! Ornstein-Uhlenbeck process simulation
 
-use crate::{XResult, random::normal, simulation::prelude::*};
+use crate::{
+    XResult,
+    simulation::{
+        continuous::{Langevin, simulate_langevin},
+        prelude::*,
+    },
+};
 
 /// Ornstein–Uhlenbeck process
 ///
@@ -59,22 +65,7 @@ impl OrnsteinUhlenbeck {
 }
 
 impl ContinuousProcess for OrnsteinUhlenbeck {
-    /// Simulate the Ornstein-Uhlenbeck process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration.
-    /// * `time_step` - The time step.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::ou::OrnsteinUhlenbeck, prelude::*};
-    ///
-    /// let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
-    /// let (t, x) = ou.simulate(1.0, 0.01).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_ou(
             self.theta,
             self.sigma,
@@ -82,6 +73,13 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
             duration,
             time_step,
         )
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let drift = |x: f64, _: f64| -self.theta * x;
+        let diffusion = |_: f64, _: f64| self.sigma;
+        let eq = Langevin::new(drift, diffusion, self.start_position)?;
+        eq.displacement(duration, time_step)
     }
 }
 
@@ -115,54 +113,9 @@ pub fn simulate_ou(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
-    // if duration <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `duration` must be positive, got `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if time_step <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be positive, got `{time_step}`"
-    //     ))
-    //     .into());
-    // }
-    // if time_step > duration {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-    //     ))
-    //     .into());
-    // }
-
-    let num_steps = (duration / time_step).ceil() as usize;
-    let actual_time_step = duration / num_steps as f64;
-
-    let mut t = Vec::with_capacity(num_steps + 1);
-    let mut x = Vec::with_capacity(num_steps + 1);
-    t.push(0.0);
-    x.push(start_position);
-
-    let noise = normal::standard_rands::<f64>(num_steps);
-    let sqrt_dt = actual_time_step.sqrt();
-
-    unsafe {
-        let mut current_x = start_position;
-        for i in 0..num_steps {
-            let current_t = (i + 1) as f64 * actual_time_step;
-            let xi = *noise.get_unchecked(i);
-
-            current_x = current_x - theta * current_x * actual_time_step + sigma * xi * sqrt_dt;
-
-            x.push(current_x);
-            t.push(current_t);
-        }
-    }
-
-    if let Some(last_t) = t.last_mut() {
-        *last_t = duration;
-    }
-
-    Ok((t, x))
+    let drift = |x: f64, _: f64| -theta * x;
+    let diffusion = |_: f64, _: f64| sigma;
+    simulate_langevin(&drift, &diffusion, start_position, duration, time_step)
 }
 
 #[cfg(test)]

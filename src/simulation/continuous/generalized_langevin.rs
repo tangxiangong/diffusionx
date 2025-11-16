@@ -4,6 +4,7 @@ use crate::{
     SimulationError, XResult,
     random::{normal, stable},
     simulation::{continuous::Subordinator, prelude::*},
+    utils::linspace,
 };
 
 /// Generalized Langevin equation
@@ -101,24 +102,7 @@ where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
     G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
 {
-    /// Simulate the Generalized Langevin equation
-    ///
-    /// # Arguments
-    ///
-    /// - `duration`: the duration of the simulation
-    /// - `time_step`: the time step of the simulation
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::GeneralizedLangevin, prelude::*};
-    ///
-    /// let langevin = GeneralizedLangevin::new(|x, _t| x, |_x, _t| 1.0, 0.0, 1.7).unwrap();
-    /// let duration = 1.0;
-    /// let time_step = 0.01;
-    /// let (t, x) = langevin.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_generalized_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -127,6 +111,32 @@ where
             duration,
             time_step,
         )
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let noise = stable::sym_standard_rands(self.alpha, num_steps)?;
+        let sigma = time_step.powf(1.0 / self.alpha);
+
+        let mut current_x = self.start_position;
+        for i in 0..num_steps - 1 {
+            let current_t = i as f64 * time_step;
+            let next_t = (i + 1) as f64 * time_step;
+            let xi = unsafe { *noise.get_unchecked(i) };
+
+            current_x = current_x
+                + self.get_drift_func()(current_x, current_t) * (next_t - current_t)
+                + self.get_diffusion_func()(current_x, current_t) * xi * sigma;
+        }
+        let current_t = (num_steps - 1) as f64 * time_step;
+        let last_step = duration - current_t;
+        let last_sigma = last_step.powf(1.0 / self.alpha);
+        let xi = unsafe { *noise.get_unchecked(num_steps - 1) };
+        let last_x = current_x
+            + self.get_drift_func()(current_x, current_t) * last_step
+            + self.get_diffusion_func()(current_x, current_t) * xi * last_sigma;
+        Ok(last_x - self.start_position)
     }
 }
 
@@ -174,63 +184,35 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    // if duration <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `duration` must be positive, got `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if time_step <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be positive, got `{time_step}`"
-    //     ))
-    //     .into());
-    // }
-    // if time_step > duration {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if alpha <= 0.0 || alpha > 2.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `alpha` must be in the range (0, 2], got {alpha}"
-    //     ))
-    //     .into());
-    // }
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
 
-    let num_steps = (duration / time_step).ceil() as usize;
-    let actual_time_step = duration / num_steps as f64;
-
-    let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
-    t.push(0.0);
     x.push(start_position);
 
     let noise = stable::sym_standard_rands(alpha, num_steps)?;
-    let power = 1.0 / alpha;
-    let dt_power = actual_time_step.powf(power);
+    let sigma = time_step.powf(1.0 / alpha);
 
-    unsafe {
-        let mut current_x = start_position;
-        for i in 0..num_steps {
-            let current_t = i as f64 * actual_time_step;
-            let next_t = (i + 1) as f64 * actual_time_step;
-            let xi = *noise.get_unchecked(i);
+    let mut current_x = start_position;
+    for i in 0..num_steps - 1 {
+        let current_t = unsafe { *t.get_unchecked(i) };
+        let next_t = unsafe { *t.get_unchecked(i + 1) };
+        let xi = unsafe { *noise.get_unchecked(i) };
 
-            current_x = current_x
-                + drift(current_x, current_t) * actual_time_step
-                + diffusion(current_x, current_t) * xi * dt_power;
+        current_x = current_x
+            + drift(current_x, current_t) * (next_t - current_t)
+            + diffusion(current_x, current_t) * xi * sigma;
 
-            x.push(current_x);
-            t.push(next_t);
-        }
+        x.push(current_x);
     }
-
-    if let Some(last_t) = t.last_mut() {
-        *last_t = duration;
-    }
-
+    let current_t = (num_steps - 1) as f64 * time_step;
+    let last_step = duration - current_t;
+    let last_sigma = last_step.powf(1.0 / alpha);
+    let xi = unsafe { *noise.get_unchecked(num_steps - 1) };
+    let last_x = current_x
+        + drift(current_x, current_t) * last_step
+        + diffusion(current_x, current_t) * xi * last_sigma;
+    x.push(last_x);
     Ok((t, x))
 }
 
@@ -328,27 +310,7 @@ where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
     G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
 {
-    /// Simulate the subordinated Langevin equation
-    ///
-    /// # Arguments
-    ///
-    /// - `duration` - The duration of the simulation.
-    /// - `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::SubordinatedLangevin, prelude::*};
-    ///
-    /// let drift = |x: f64, _t: f64| x;
-    /// let diffusion = |_x: f64, _t: f64| 1.0;
-    /// let start_position = 0.0;
-    /// let alpha = 0.5;
-    /// let duration = 1.0;
-    /// let time_step = 0.01;
-    /// let (t, x) = langevin.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_subordinated_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -357,6 +319,27 @@ where
             duration,
             time_step,
         )
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let (t, s) = Subordinator::new(self.alpha)?.simulate(duration, time_step)?;
+        let num_steps = t.len() - 1;
+        let noise = normal::standard_rands::<f64>(num_steps);
+
+        let mut current_x = self.start_position;
+        for i in 0..num_steps {
+            let ti = unsafe { *t.get_unchecked(i) };
+            let xi = unsafe { *noise.get_unchecked(i) };
+            let si = unsafe { *s.get_unchecked(i) };
+            let si_next = unsafe { *s.get_unchecked(i + 1) };
+            let delta_s = si_next - si;
+
+            current_x = current_x
+                + self.get_drift_func()(current_x, ti) * delta_s
+                + self.get_diffusion_func()(current_x, ti) * xi * delta_s.sqrt();
+        }
+
+        Ok(current_x - self.start_position)
     }
 }
 
@@ -404,36 +387,6 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    // if duration <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `duration` must be positive, got `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if time_step <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be positive, got `{time_step}`"
-    //     ))
-    //     .into());
-    // }
-    // if time_step > duration {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if duration <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `duration` must be positive, got `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if alpha <= 0.0 || alpha >= 1.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `alpha` must be in the range (0, 1), got {alpha}"
-    //     ))
-    //     .into());
-    // }
     let (t, s) = Subordinator::new(alpha)?.simulate(duration, time_step)?;
     let num_steps = t.len() - 1;
     let noise = normal::standard_rands::<f64>(num_steps);

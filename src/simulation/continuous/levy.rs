@@ -2,8 +2,7 @@
 //!
 //! The Lévy process is a process with independent and stationary increments.
 
-use crate::{SimulationError, XResult, random::stable, simulation::prelude::*};
-use rayon::prelude::*;
+use crate::{SimulationError, XResult, random::stable, simulation::prelude::*, utils::linspace};
 
 /// Asymmetric Lévy process
 #[derive(Debug, Clone)]
@@ -76,22 +75,7 @@ impl AsymmetricLevy {
 }
 
 impl ContinuousProcess for AsymmetricLevy {
-    /// Simulate the asymmetric Lévy process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration.
-    /// * `time_step` - The time step.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::AsymmetricLevy, prelude::*};
-    ///
-    /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
-    /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_asymmetric_levy(
             self.start_position,
             self.alpha,
@@ -99,6 +83,22 @@ impl ContinuousProcess for AsymmetricLevy {
             duration,
             time_step,
         )
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let num_steps = (duration / time_step).ceil() as usize;
+        let power = 1.0 / self.alpha;
+        let sigma = time_step.powf(power);
+        let noise = stable::standard_rands(self.alpha, self.beta, num_steps)?;
+
+        let mut sum = self.start_position;
+        for i in 0..num_steps - 1 {
+            sum += unsafe { *noise.get_unchecked(i) } * sigma;
+        }
+        let last_step = duration - (num_steps - 1) as f64 * time_step;
+        let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
+        sum += last_noise * last_step;
+        Ok(sum - self.start_position)
     }
 }
 
@@ -127,68 +127,24 @@ pub fn simulate_asymmetric_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    // if time_step <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be positive, got {time_step}"
-    //     ))
-    //     .into());
-    // }
-    // if duration <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `duration` must be positive, got {duration}"
-    //     ))
-    //     .into());
-    // }
-    // if time_step > duration {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if alpha <= 0.0 || alpha > 2.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `alpha` must be in the range (0, 2], got {alpha}"
-    //     ))
-    //     .into());
-    // }
-    // if !(-1.0..=1.0).contains(&beta) {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `beta` must be in the range [-1, 1], got {beta}"
-    //     ))
-    //     .into());
-    // }
-
-    let num_steps = (duration / time_step).ceil() as usize;
-    let actual_time_step = duration / num_steps as f64;
-
-    let mut t = Vec::with_capacity(num_steps + 1);
-
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
     let power = 1.0 / alpha;
-    let dt_power = actual_time_step.powf(power);
-    let noise = stable::standard_rands(alpha, beta, num_steps)?
-        .into_par_iter()
-        .map(|x| x * dt_power)
-        .collect::<Vec<_>>();
+    let sigma = time_step.powf(power);
+    let noise = stable::standard_rands(alpha, beta, num_steps)?;
 
-    let x = unsafe {
-        let mut x = Vec::with_capacity(num_steps + 1);
-        x.push(start_position);
-        t.push(0.0);
+    let mut x = Vec::with_capacity(num_steps + 1);
+    x.push(start_position);
 
-        let mut sum = start_position;
-        for i in 0..num_steps {
-            let current_t = (i + 1) as f64 * actual_time_step;
-            sum += *noise.get_unchecked(i);
-            x.push(sum);
-            t.push(current_t);
-        }
-
-        x
-    };
-
-    if let Some(last_t) = t.last_mut() {
-        *last_t = duration;
+    let mut sum = start_position;
+    for i in 0..num_steps - 1 {
+        sum += unsafe { *noise.get_unchecked(i) } * sigma;
+        x.push(sum);
     }
+    let last_step = duration - (num_steps - 1) as f64 * time_step;
+    let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
+    sum += last_noise * last_step;
+    x.push(sum);
 
     Ok((t, x))
 }
@@ -244,23 +200,24 @@ impl Levy {
 }
 
 impl ContinuousProcess for Levy {
-    /// Simulate the Lévy process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration.
-    /// * `time_step` - The time step.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::Levy, prelude::*};
-    ///
-    /// let levy = Levy::new(0.0, 1.5).unwrap();
-    /// let (t, x) = levy.simulate(1.0, 0.1).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_levy(self.start_position, self.alpha, duration, time_step)
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let num_steps = (duration / time_step).ceil() as usize;
+        let power = 1.0 / self.alpha;
+        let sigma = time_step.powf(power);
+        let noise = stable::sym_standard_rands(self.alpha, num_steps)?;
+
+        let mut sum = self.start_position;
+        for i in 0..num_steps - 1 {
+            sum += unsafe { *noise.get_unchecked(i) } * sigma;
+        }
+        let last_step = duration - (num_steps - 1) as f64 * time_step;
+        let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
+        sum += last_noise * last_step;
+        Ok(sum - self.start_position)
     }
 }
 
@@ -286,62 +243,24 @@ pub fn simulate_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    // if time_step <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be positive, got {time_step}"
-    //     ))
-    //     .into());
-    // }
-    // if duration <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `duration` must be positive, got {duration}"
-    //     ))
-    //     .into());
-    // }
-    // if time_step > duration {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if alpha <= 0.0 || alpha > 2.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `alpha` must be in the range (0, 2], got {alpha}"
-    //     ))
-    //     .into());
-    // }
-
-    let num_steps = (duration / time_step).ceil() as usize;
-    let actual_time_step = duration / num_steps as f64;
-
-    let mut t = Vec::with_capacity(num_steps + 1);
-
+    let t = linspace(0.0, duration, time_step);
+    let num_steps = t.len() - 1;
     let power = 1.0 / alpha;
-    let dt_power = actual_time_step.powf(power);
-    let noise = stable::standard_rands(alpha, 0.0, num_steps)?
-        .into_par_iter()
-        .map(|x| x * dt_power)
-        .collect::<Vec<_>>();
+    let sigma = time_step.powf(power);
+    let noise = stable::sym_standard_rands(alpha, num_steps)?;
 
-    let x = unsafe {
-        let mut x = Vec::with_capacity(num_steps + 1);
-        x.push(start_position);
-        t.push(0.0);
+    let mut x = Vec::with_capacity(num_steps + 1);
+    x.push(start_position);
 
-        let mut sum = start_position;
-        for i in 0..num_steps {
-            let current_t = (i + 1) as f64 * actual_time_step;
-            sum += *noise.get_unchecked(i);
-            x.push(sum);
-            t.push(current_t);
-        }
-
-        x
-    };
-
-    if let Some(last_t) = t.last_mut() {
-        *last_t = duration;
+    let mut sum = start_position;
+    for i in 0..num_steps - 1 {
+        sum += unsafe { *noise.get_unchecked(i) } * sigma;
+        x.push(sum);
     }
+    let last_step = duration - (num_steps - 1) as f64 * time_step;
+    let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
+    sum += last_noise * last_step;
+    x.push(sum);
 
     Ok((t, x))
 }

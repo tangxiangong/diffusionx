@@ -2,9 +2,13 @@
 //!
 //! The Cauchy process is a Lévy process with alpha = 1.
 
-use crate::{SimulationError, XResult, simulation::prelude::*};
-
-use super::{simulate_asymmetric_levy, simulate_levy};
+use crate::{
+    SimulationError, XResult,
+    simulation::{
+        continuous::{AsymmetricLevy, Levy, simulate_asymmetric_levy, simulate_levy},
+        prelude::*,
+    },
+};
 
 /// Asymmetric Cauchy process
 #[derive(Debug, Clone)]
@@ -57,25 +61,13 @@ impl AsymmetricCauchy {
 }
 
 impl ContinuousProcess for AsymmetricCauchy {
-    /// Simulate asymmetric Cauchy process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the trajectory.
-    /// * `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::AsymmetricCauchy, prelude::*};
-    ///
-    /// let cauchy = AsymmetricCauchy::new(0.0, 0.4).unwrap();
-    /// let time_step = 0.1;
-    /// let duration = 1.0;
-    /// let (t, x) = cauchy.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_asymmetric_cauchy(self.start_position, self.beta, duration, time_step)
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let sp = AsymmetricLevy::new(self.start_position, 1.0, self.beta)?;
+        sp.displacement(duration, time_step)
     }
 }
 
@@ -147,25 +139,13 @@ impl Cauchy {
 }
 
 impl ContinuousProcess for Cauchy {
-    /// Simulate Cauchy process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the trajectory.
-    /// * `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::Cauchy, prelude::*};
-    ///
-    /// let cauchy = Cauchy::default();
-    /// let time_step = 0.1;
-    /// let duration = 1.0;
-    /// let (t, x) = cauchy.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_cauchy(self.start_position, duration, time_step)
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let sp = Levy::new(self.start_position, 1.0)?;
+        sp.displacement(duration, time_step)
     }
 }
 

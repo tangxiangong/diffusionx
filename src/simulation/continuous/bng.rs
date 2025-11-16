@@ -1,8 +1,10 @@
 //! Brownian yet non-Gaussian process simulation
 
-use crate::{SimulationError, XResult, random::normal, simulation::prelude::*};
-
-use super::simulate_ou;
+use crate::{
+    XResult,
+    random::normal,
+    simulation::{continuous::simulate_ou, prelude::*},
+};
 
 /// Brownian yet non-Gaussian process
 ///
@@ -57,28 +59,24 @@ impl BnG {
 }
 
 impl ContinuousProcess for BnG {
-    /// Simulate the Brownian yet non-Gaussian process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration.
-    /// * `time_step` - The time step.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::BnG, prelude::*};
-    ///
-    /// let bng = BnG::new(0.0, 1.0).unwrap();
-    /// let (t, x) = bng.simulate(1.0, 0.01).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_bng(
             self.start_position,
             self.ou_start_position,
             duration,
             time_step,
         )
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let (_, y) = simulate_ou(1.0, 1.0, self.ou_start_position, duration, time_step)?;
+        let noise = normal::standard_rands::<f64>(y.len() - 1);
+        Ok(y.into_iter()
+            .skip(1)
+            .zip(noise)
+            .fold(0.0, |state, (yi, xi)| {
+                state + yi.abs() * (2.0 * time_step).sqrt() * xi
+            }))
     }
 }
 
@@ -114,24 +112,6 @@ pub fn simulate_bng(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{time_step}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
     let (t, y) = simulate_ou(1.0, 1.0, ou_start_position, duration, time_step)?;
     let noise = normal::standard_rands::<f64>(t.len() - 1);
     let x = std::iter::once(start_position)
