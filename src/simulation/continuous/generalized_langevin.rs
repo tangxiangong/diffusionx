@@ -115,27 +115,23 @@ where
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
         let num_steps = (duration / time_step).ceil() as usize;
 
-        let noise = stable::sym_standard_rands(self.alpha, num_steps)?;
+        let noise = stable::sym_standard_rands(self.alpha, num_steps - 1)?;
         let sigma = time_step.powf(1.0 / self.alpha);
 
+        let mut current_t = 0.0;
         let mut current_x = self.start_position;
-        for i in 0..num_steps - 1 {
-            let current_t = i as f64 * time_step;
-            let next_t = (i + 1) as f64 * time_step;
-            let xi = unsafe { *noise.get_unchecked(i) };
-
-            current_x = current_x
-                + self.get_drift_func()(current_x, current_t) * (next_t - current_t)
+        for xi in noise {
+            current_x += self.get_drift_func()(current_x, current_t) * time_step
                 + self.get_diffusion_func()(current_x, current_t) * xi * sigma;
+            current_t += time_step;
         }
         let current_t = (num_steps - 1) as f64 * time_step;
         let last_step = duration - current_t;
         let last_sigma = last_step.powf(1.0 / self.alpha);
-        let xi = unsafe { *noise.get_unchecked(num_steps - 1) };
-        let last_x = current_x
-            + self.get_drift_func()(current_x, current_t) * last_step
+        let xi = stable::sym_standard_rand(self.alpha)?;
+        current_x += self.get_drift_func()(current_x, current_t) * last_step
             + self.get_diffusion_func()(current_x, current_t) * xi * last_sigma;
-        Ok(last_x - self.start_position)
+        Ok(current_x - self.start_position)
     }
 }
 
@@ -332,8 +328,7 @@ where
             let si_next = unsafe { *s.get_unchecked(i + 1) };
             let delta_s = si_next - si;
 
-            current_x = current_x
-                + self.get_drift_func()(current_x, ti) * delta_s
+            current_x += self.get_drift_func()(current_x, ti) * delta_s
                 + self.get_diffusion_func()(current_x, ti) * xi * delta_s.sqrt();
         }
 
@@ -401,9 +396,8 @@ where
             let si_next = *s.get_unchecked(i + 1);
             let delta_s = si_next - si;
 
-            current_x = current_x
-                + drift(current_x, ti) * delta_s
-                + diffusion(current_x, ti) * xi * delta_s.sqrt();
+            current_x +=
+                drift(current_x, ti) * delta_s + diffusion(current_x, ti) * xi * delta_s.sqrt();
 
             x.push(current_x);
         }

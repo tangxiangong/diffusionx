@@ -94,8 +94,7 @@ where
             let current_t = i as f64 * time_step;
             let xi = unsafe { *noise.get_unchecked(i) };
 
-            current_x = current_x
-                + self.get_drift_func()(current_x, current_t) * time_step
+            current_x += self.get_drift_func()(current_x, current_t) * time_step
                 + self.get_diffusion_func()(current_x, current_t) * xi * sigma;
         }
 
@@ -103,8 +102,7 @@ where
         let last_step = duration - current_t;
 
         let xi = unsafe { *noise.get_unchecked(num_steps - 1) };
-        current_x = current_x
-            + self.get_drift_func()(current_x, current_t) * last_step
+        current_x += self.get_drift_func()(current_x, current_t) * last_step
             + self.get_diffusion_func()(current_x, current_t) * xi * sigma;
 
         Ok(current_x - self.start_position)
