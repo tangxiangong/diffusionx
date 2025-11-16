@@ -15,8 +15,6 @@ exclude = ["kernels", "src/gpu"]
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "./docs-header.html"]
-default-target = "x86_64-unknown-linux-gnu"
-targets = []
 
 [lib]
 name = "diffusionx"
