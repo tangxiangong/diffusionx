@@ -4,7 +4,6 @@ use crate::{
     SimulationError, XResult,
     random::{normal, stable},
     simulation::{continuous::Subordinator, prelude::*},
-    utils::linspace,
 };
 
 /// Generalized Langevin equation
@@ -184,35 +183,34 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
-    let t = linspace(0.0, duration, time_step);
-    let num_steps = t.len() - 1;
+    let num_steps = (duration / time_step).ceil() as usize;
 
+    let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
+
+    t.push(0.0);
     x.push(start_position);
 
-    let noise = stable::sym_standard_rands(alpha, num_steps)?;
+    let noise = stable::sym_standard_rands(alpha, num_steps - 1)?;
     let sigma = time_step.powf(1.0 / alpha);
 
     let mut current_x = start_position;
-    for i in 0..num_steps - 1 {
-        let current_t = unsafe { *t.get_unchecked(i) };
-        let next_t = unsafe { *t.get_unchecked(i + 1) };
-        let xi = unsafe { *noise.get_unchecked(i) };
-
-        current_x = current_x
-            + drift(current_x, current_t) * (next_t - current_t)
-            + diffusion(current_x, current_t) * xi * sigma;
-
+    let mut current_t = 0.0;
+    for xi in noise {
+        current_x +=
+            drift(current_x, current_t) * time_step + diffusion(current_x, current_t) * xi * sigma;
         x.push(current_x);
+        current_t += time_step;
+        t.push(current_t);
     }
-    let current_t = (num_steps - 1) as f64 * time_step;
+
     let last_step = duration - current_t;
-    let last_sigma = last_step.powf(1.0 / alpha);
-    let xi = unsafe { *noise.get_unchecked(num_steps - 1) };
-    let last_x = current_x
-        + drift(current_x, current_t) * last_step
-        + diffusion(current_x, current_t) * xi * last_sigma;
-    x.push(last_x);
+    let sigma = last_step.powf(1.0 / alpha);
+    let xi = stable::sym_standard_rand(alpha)?;
+    current_x +=
+        drift(current_x, current_t) * last_step + diffusion(current_x, current_t) * xi * sigma;
+    t.push(duration);
+    x.push(current_x);
     Ok((t, x))
 }
 

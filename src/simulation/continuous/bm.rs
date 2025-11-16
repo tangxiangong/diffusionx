@@ -1,6 +1,6 @@
 //! Brownian motion simulation
 
-use crate::{SimulationError, XResult, random::normal, simulation::prelude::*, utils::linspace};
+use crate::{SimulationError, XResult, random::normal, simulation::prelude::*};
 
 /// Brownian motion
 #[derive(Debug, Clone)]
@@ -105,23 +105,32 @@ pub fn simulate_bm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let t = linspace(0.0, duration, time_step);
-    let num_steps = t.len() - 1;
+    let num_steps = (duration / time_step).ceil() as usize;
 
     let std_dev = (2.0 * diffusion_coefficient * time_step).sqrt();
-    let mut noise = normal::rands(0.0, std_dev, num_steps)?;
-    let last_step = duration - (num_steps - 1) as f64 * time_step;
-    *noise.last_mut().unwrap() =
-        2.0 * diffusion_coefficient * last_step * normal::standard_rand::<f64>();
+    let noise = normal::rands(0.0, std_dev, num_steps - 1)?;
+
+    let mut t = Vec::with_capacity(num_steps + 1);
+    t.push(0.0);
 
     let mut x = Vec::with_capacity(num_steps + 1);
     x.push(start_position);
 
-    let mut sum = start_position;
-    for i in 0..num_steps {
-        sum += unsafe { *noise.get_unchecked(i) };
-        x.push(sum);
+    let mut current_x = start_position;
+    let mut current_t = 0.0;
+    for xi in noise {
+        current_t += time_step;
+        t.push(current_t);
+        current_x += xi;
+        x.push(current_x);
     }
+
+    let last_step = duration - current_t;
+    let sigma = (2.0 * diffusion_coefficient * last_step).sqrt();
+    let xi = normal::rand::<f64>(0.0, sigma)?;
+    current_x += xi;
+    x.push(current_x);
+    t.push(duration);
 
     Ok((t, x))
 }
