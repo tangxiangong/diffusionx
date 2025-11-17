@@ -73,6 +73,10 @@ impl GeometricBm {
 }
 
 impl ContinuousProcess for GeometricBm {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_gbm(
             self.start_position,

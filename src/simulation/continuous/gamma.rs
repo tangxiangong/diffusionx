@@ -60,6 +60,10 @@ impl Gamma {
 }
 
 impl ContinuousProcess for Gamma {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_gamma(self.shape, self.rate, duration, time_step)
     }

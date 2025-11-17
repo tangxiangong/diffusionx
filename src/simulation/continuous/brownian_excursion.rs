@@ -39,6 +39,10 @@ impl BrownianExcursion {
 }
 
 impl ContinuousProcess for BrownianExcursion {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_brownian_excursion(duration, time_step)
     }

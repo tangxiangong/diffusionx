@@ -45,12 +45,25 @@ pub trait ContinuousProcess: Send + Sync {
     /// * `time_step` - The time step of the simulation.
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair>;
 
+    /// Get the displacement of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `time_step` - The time step of the simulation.
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
         let (_, x) = self.simulate_unchecked(duration, time_step)?;
         match (x.first(), x.last()) {
             (Some(first), Some(last)) => Ok(last - first),
             _ => Err(SimulationError::Unknown.into()),
         }
+    }
+
+    fn start(&self) -> f64;
+
+    fn end(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let delta_x = self.displacement(duration, time_step)?;
+        Ok(self.start() + delta_x)
     }
 
     /// Get the mean of the continuous process

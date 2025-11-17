@@ -8,13 +8,13 @@ use crate::{
 
 /// Brownian yet non-Gaussian process
 ///
-/// dr(t) = sqrt(2 * D(t)) dW_1(t), r(0) = r0,
+/// $$dr(t) = \sqrt{2 * D(t)} dW_1(t), \quad r(0) = r0,$$
 ///
-/// D(t) = Y(t)^2
+/// $$D(t) = Y(t)^2,$$
 ///
-/// dY(t) = -Y(t) dt + dW_2(t), Y(0) = Y0
+/// $$dY(t) = -Y(t) dt + dW_2(t), \quad Y(0) = Y0,$$
 ///
-/// where W_1(t) and W_2(t) are two independent Wiener processes.
+/// where $W_1(t)$ and $W_2(t)$ are two independent Wiener processes.
 #[derive(Debug, Clone)]
 pub struct BnG {
     /// The starting position.
@@ -59,6 +59,10 @@ impl BnG {
 }
 
 impl ContinuousProcess for BnG {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_bng(
             self.start_position,
@@ -84,13 +88,13 @@ impl ContinuousProcess for BnG {
 ///
 /// # Mathematical Formulation
 ///
-/// dr(t) = sqrt(2 * D(t)) dW_1(t), r(0) = r0,
+/// $$dr(t) = \sqrt{2 * D(t)} dW_1(t), \quad r(0) = r0,$$
 ///
-/// D(t) = Y(t)^2
+/// $$D(t) = Y(t)^2,$$
 ///
-/// dY(t) = -Y(t) dt + dW_2(t), Y(0) = Y0
+/// $$dY(t) = -Y(t) dt + dW_2(t), \quad Y(0) = Y0,$$
 ///
-/// where W_1(t) and W_2(t) are two independent Wiener processes.
+/// where $W_1(t)$ and $W_2(t)$ are two independent Wiener processes.
 ///
 /// # Arguments
 ///

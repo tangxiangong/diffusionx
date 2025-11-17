@@ -74,6 +74,10 @@ where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
     G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
 {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_langevin(
             &self.drift_func,

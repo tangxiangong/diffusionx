@@ -40,6 +40,10 @@ impl CIR {
 }
 
 impl ContinuousProcess for CIR {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let t = linspace(0.0, duration, time_step);
         let num_steps = t.len() - 1;

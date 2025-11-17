@@ -75,6 +75,10 @@ impl AsymmetricLevy {
 }
 
 impl ContinuousProcess for AsymmetricLevy {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_asymmetric_levy(
             self.start_position,
@@ -207,6 +211,10 @@ impl Levy {
 }
 
 impl ContinuousProcess for Levy {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_levy(self.start_position, self.alpha, duration, time_step)
     }

@@ -44,6 +44,10 @@ impl Subordinator {
 }
 
 impl ContinuousProcess for Subordinator {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_subordinator(self.alpha, duration, time_step)
     }
@@ -152,6 +156,10 @@ impl InvSubordinator {
 }
 
 impl ContinuousProcess for InvSubordinator {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_invsubordinator(self.alpha, duration, time_step)
     }

@@ -119,6 +119,10 @@ impl LevyWalk {
 }
 
 impl ContinuousProcess for LevyWalk {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let (t, x) = self.simulate_with_duration(duration)?;
         linear_interpolate(&t, &x, time_step)
