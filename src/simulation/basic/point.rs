@@ -8,6 +8,29 @@ use std::sync::Arc;
 
 /// Point process trait
 pub trait PointProcess: Send + Sync {
+    fn displacement(&self, duration: f64) -> XResult<f64> {
+        let mut num_step = duration.ceil() as usize;
+        let (t, x) = loop {
+            let (t, x) = self.simulate_with_step(num_step)?;
+            if t.last().is_none() {
+                return Err(SimulationError::Unknown.into());
+            }
+            let end_time = *t.last().unwrap();
+            if end_time >= duration {
+                break (t, x);
+            }
+            num_step *= 2;
+        };
+        let index = t.iter().position(|&time| time >= duration).unwrap();
+
+        let delta_x = if t[index] > duration {
+            x[index - 1] - x[0]
+        } else {
+            x[index] - x[0]
+        };
+
+        Ok(delta_x)
+    }
     /// Simulate the point process with given duration
     ///
     /// # Arguments
@@ -15,14 +38,8 @@ pub trait PointProcess: Send + Sync {
     /// * `duration` - The duration of the simulation.
     fn simulate_with_duration(&self, duration: f64) -> XResult<Pair>
     where
-        Self: Sized, // simulate_with_step is called, which is dyn-dispatchable
+        Self: Sized,
     {
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {duration}"
-            ))
-            .into());
-        }
         let mut num_step = duration.ceil() as usize;
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;
