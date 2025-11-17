@@ -77,22 +77,18 @@ pub trait DiscreteProcess: Send + Sync {
             .into());
         }
 
-        let values: Vec<f64> = (0..particles)
+        let values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.simulate(num_step)?;
-                let first_position = x.first();
-                let end_position = x.last();
-                match (first_position, end_position) {
-                    (Some(initial), Some(position)) => {
-                        Ok((position - initial) * (position - initial))
-                    }
-                    _ => Err(SimulationError::Unknown.into()),
-                }
+            .map(|_| {
+                let displacement = match self.displacement(num_step) {
+                    Ok(displacement) => displacement,
+                    Err(e) => panic!("{}", e),
+                };
+                displacement * displacement
             })
-            .collect::<XResult<Vec<_>>>()?;
+            .sum::<f64>();
 
-        let result = values.iter().sum::<f64>() / particles as f64;
+        let result = values / (particles as f64);
         Ok(result)
     }
 

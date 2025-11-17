@@ -59,8 +59,10 @@ pub trait ContinuousProcess: Send + Sync {
         }
     }
 
+    /// Get the starting position
     fn start(&self) -> f64;
 
+    /// Get the ending position
     fn end(&self, duration: f64, time_step: f64) -> XResult<f64> {
         let delta_x = self.displacement(duration, time_step)?;
         Ok(self.start() + delta_x)
@@ -108,8 +110,11 @@ pub trait ContinuousProcess: Send + Sync {
 
         let values: f64 = (0..particles)
             .into_par_iter()
-            .map(|_| -> f64 {
-                let displacement = self.displacement(duration, time_step).unwrap();
+            .map(|_| {
+                let displacement = match self.displacement(duration, time_step) {
+                    Ok(displacement) => displacement,
+                    Err(e) => panic!("{}", e),
+                };
                 displacement * displacement
             })
             .sum();
