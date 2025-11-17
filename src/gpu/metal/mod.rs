@@ -218,7 +218,7 @@ impl MetalBackend {
 
         // 设置线程组大小
         let threads_per_group = 256;
-        let num_groups = (n + threads_per_group - 1) / threads_per_group;
+        let num_groups = n.div_ceil(threads_per_group);
 
         encoder.dispatch_thread_groups(
             MTLSize {
