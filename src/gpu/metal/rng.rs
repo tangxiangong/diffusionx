@@ -150,7 +150,7 @@ impl MetalRng {
 
         // Calculate thread configuration
         let thread_group_size = MTLSize::new(256, 1, 1);
-        let thread_groups = MTLSize::new(((n + 255) / 256) as u64, 1, 1);
+        let thread_groups = MTLSize::new(n.div_ceil(256) as u64, 1, 1);
 
         encoder.dispatch_thread_groups(thread_groups, thread_group_size);
         encoder.end_encoding();

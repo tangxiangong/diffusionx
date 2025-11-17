@@ -10,7 +10,6 @@ readme = "README.md"
 categories = ["science", "mathematics"]
 keywords = ["stochastic-process", "simulation", "Monte-Carlo"]
 rust-version = "1.87"
-exclude = ["kernels", "src/gpu"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -21,7 +20,7 @@ name = "diffusionx"
 doctest = false
 
 [features]
-default = []
+default = ["metal"]
 visualize = [
     "dep:plotters",
     "dep:derive_builder",
@@ -29,16 +28,25 @@ visualize = [
     "dep:either",
 ]
 io = ["dep:csv"]
-# cuda = ["dep:cudarc", "dep:bytemuck", "dep:cuda-kernel"]
-# metal = ["dep:metal", "dep:objc", "dep:metal-kernel"]
+cuda = ["dep:cudarc", "dep:bytemuck", "dep:cuda-kernel"]
+metal = ["dep:metal", "dep:objc", "dep:metal-kernel"]
 
 [dependencies]
+bytemuck = { version = "1.14", optional = true }
 csv = { version = "1.4", optional = true }
+cuda-kernel = { path = "./kernels/cuda-kernel", optional = true }
+cudarc = { version = "0.18", optional = true, features = [
+    "std",
+    "cuda-version-from-build-system",
+] }
 derive_builder = { version = "0.20", optional = true }
 either = { version = "1", optional = true }
 gauss-quad = "0.2.4"
+metal = { version = "0.32", optional = true }
+metal-kernel = { path = "./kernels/metal-kernel", optional = true }
 num-complex = "0.4"
 num-traits = "0.2"
+objc = { version = "0.2", optional = true }
 plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }
 rand = "0.9"
@@ -46,15 +54,6 @@ rand_distr = "0.5"
 rayon = "1.11"
 realfft = "3.5"
 thiserror = "2"
-
-# # GPU acceleration dependencies
-# cudarc = { version = "0.17", optional = true, features = ["std", "cuda-version-from-build-system"] }
-# bytemuck = { version = "1.14", optional = true }
-# metal = { version = "0.32", optional = true }
-# objc = { version = "0.2", optional = true }
-# cuda-kernel = { path = "./cuda-kernel", optional = true }
-# metal-kernel = { path = "./metal-kernel", optional = true }
-
 
 [dev-dependencies]
 criterion = "0.7"

@@ -38,3 +38,8 @@ mod traits;
 pub use traits::*;
 
 pub mod mc;
+
+mod gpu_moment;
+pub use gpu_moment::*;
+
+pub mod random;

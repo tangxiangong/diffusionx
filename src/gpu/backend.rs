@@ -16,6 +16,9 @@ pub struct GpuConfig {
     /// Threads per block (CUDA) or threadgroup (Metal)
     pub threads_per_block: usize,
 
+    /// Whether to use pinned memory for faster transfers
+    pub use_pinned_memory: bool,
+
     /// Whether to enable profiling
     pub enable_profiling: bool,
 }
@@ -26,6 +29,7 @@ impl Default for GpuConfig {
             num_particles: 1000,
             num_steps: 1000,
             threads_per_block: 256,
+            use_pinned_memory: false,
             enable_profiling: false,
         }
     }
@@ -55,7 +59,7 @@ impl GpuConfig {
 
     /// Calculate the number of blocks needed
     pub fn num_blocks(&self) -> usize {
-        (self.num_particles + self.threads_per_block - 1) / self.threads_per_block
+        self.num_particles.div_ceil(self.threads_per_block)
     }
 
     /// Validate the configuration

@@ -14,7 +14,7 @@ pub use rng::*;
 pub fn is_available() -> bool {
     #[cfg(feature = "metal")]
     {
-        Device::all().len() > 0
+        !Device::all().is_empty()
     }
     #[cfg(not(feature = "metal"))]
     {
@@ -87,56 +87,10 @@ impl MetalBackend {
         })
     }
 
-    /// Compile Metal shader library from .metal files
+    /// Compile Metal shader library from embedded source code
     fn compile_library(device: &Device) -> XResult<Library> {
-        // Try to load from compiled metallib first, then fall back to source compilation
-        let metallib_path = "kernels/metal/libkernels.metallib";
-
-        if std::path::Path::new(metallib_path).exists() {
-            // Load pre-compiled library
-            device
-                .new_library_with_file(metallib_path)
-                .map_err(|e| XError::GpuError(format!("Failed to load Metal library: {}", e)))
-        } else {
-            // Fall back to compiling from source files
-            Self::compile_from_source(device)
-        }
-    }
-
-    /// Compile Metal shaders from individual .metal source files
-    fn compile_from_source(device: &Device) -> XResult<Library> {
-        // List of all metal shader files
-        let shader_files = vec![
-            "kernels/metal/bm.metal",
-            "kernels/metal/ou_process.metal",
-            "kernels/metal/geometric_bm.metal",
-            "kernels/metal/fbm.metal",
-            "kernels/metal/cauchy.metal",
-            "kernels/metal/gamma.metal",
-            "kernels/metal/langevin.metal",
-            "kernels/metal/levy.metal",
-            "kernels/metal/levy_walk.metal",
-            "kernels/metal/brownian_bridge.metal",
-            "kernels/metal/brownian_excursion.metal",
-            "kernels/metal/brownian_meander.metal",
-            "kernels/metal/bng.metal",
-        ];
-
-        // Combine all shader sources
-        let mut combined_source = String::new();
-        for file_path in shader_files {
-            if let Ok(source) = std::fs::read_to_string(file_path) {
-                combined_source.push_str(&source);
-                combined_source.push('\n');
-            }
-        }
-
-        // If no files found, return error
-        if combined_source.is_empty() {
-            return Err(XError::GpuError(
-                "No Metal shader files found in kernels/metal/ directory".to_string(),
-            ));
-        }
+        // Get all Metal shader sources from the metal-kernel crate
+        let combined_source = metal_kernel::all_shaders();
 
         let compile_options = CompileOptions::new();
         device
@@ -216,6 +170,75 @@ impl MetalBackend {
         command_buffer.wait_until_completed();
 
         Ok(())
+    }
+
+    /// Generate Stable distributed random numbers on Metal GPU
+    pub fn generate_stable(&self, n: usize, alpha: f32, beta: f32, seed: u32) -> XResult<Vec<f32>> {
+        // 获取内核函数
+        let kernel = self
+            .library
+            .get_function("generate_stable", None)
+            .map_err(|e| XError::GpuError(format!("Failed to get kernel: {}", e)))?;
+
+        let pipeline_state = self
+            .device
+            .new_compute_pipeline_state_with_function(&kernel)
+            .map_err(|e| XError::GpuError(format!("Failed to create pipeline: {}", e)))?;
+
+        // 创建输出缓冲区
+        let output_size = (n * std::mem::size_of::<f32>()) as u64;
+        let output_buffer = self.create_empty_buffer(output_size)?;
+
+        // 创建命令缓冲区和编码器
+        let command_buffer = self.create_command_buffer();
+        let encoder = command_buffer.new_compute_command_encoder();
+
+        encoder.set_compute_pipeline_state(&pipeline_state);
+        encoder.set_buffer(0, Some(&output_buffer), 0);
+        encoder.set_bytes(
+            1,
+            std::mem::size_of::<f32>() as u64,
+            &alpha as *const f32 as *const _,
+        );
+        encoder.set_bytes(
+            2,
+            std::mem::size_of::<f32>() as u64,
+            &beta as *const f32 as *const _,
+        );
+        encoder.set_bytes(
+            3,
+            std::mem::size_of::<u32>() as u64,
+            &seed as *const u32 as *const _,
+        );
+        encoder.set_bytes(
+            4,
+            std::mem::size_of::<u32>() as u64,
+            &(n as u32) as *const u32 as *const _,
+        );
+
+        // 设置线程组大小
+        let threads_per_group = 256;
+        let num_groups = (n + threads_per_group - 1) / threads_per_group;
+
+        encoder.dispatch_thread_groups(
+            MTLSize {
+                width: num_groups as u64,
+                height: 1,
+                depth: 1,
+            },
+            MTLSize {
+                width: threads_per_group as u64,
+                height: 1,
+                depth: 1,
+            },
+        );
+
+        encoder.end_encoding();
+        command_buffer.commit();
+        command_buffer.wait_until_completed();
+
+        // 读取结果
+        self.read_buffer(&output_buffer, n)
     }
 }
 

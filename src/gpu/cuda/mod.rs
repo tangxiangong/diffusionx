@@ -12,6 +12,16 @@ use std::sync::Arc;
 mod rng;
 pub use rng::*;
 
+#[cfg(feature = "cuda")]
+mod kernels;
+#[cfg(feature = "cuda")]
+pub use kernels::*;
+
+#[cfg(feature = "cuda")]
+mod all_processes;
+#[cfg(feature = "cuda")]
+pub use all_processes::*;
+
 /// Check if CUDA is available on the system
 pub fn is_available() -> bool {
     #[cfg(feature = "cuda")]

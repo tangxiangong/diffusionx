@@ -4,13 +4,19 @@
 //! of stochastic processes. It abstracts away backend-specific details and
 //! provides a unified API for both CUDA and Metal.
 
-use super::{GpuBackend, backend::GpuConfig, mc::MonteCarloStats};
+use super::{GpuBackend, backend::GpuConfig};
 use crate::{
     XResult,
-    simulation::continuous::{Bm, GeometricBm, OrnsteinUhlenbeck},
     simulation::prelude::{ContinuousProcess, Pair},
     utils::linspace,
 };
+
+#[cfg(feature = "cuda")]
+use super::mc::MonteCarloStats;
+#[cfg(feature = "metal")]
+use crate::simulation::continuous::Bm;
+#[cfg(feature = "cuda")]
+use crate::simulation::continuous::{Bm, GeometricBm, OrnsteinUhlenbeck};
 
 /// GPU-accelerated simulator for stochastic processes
 pub struct GpuSimulator {
@@ -87,18 +93,19 @@ impl GpuSimulator {
         Ok(())
     }
 
-    /// Simulate a stochastic process on GPU with multiple particles
+    /// 通用的 GPU 模拟方法 - 与 CPU API 完全一致
+    ///
+    /// 接受任何实现了 ContinuousProcess 的类型，在 GPU 上模拟
     ///
     /// # Arguments
     ///
-    /// * `process` - The stochastic process to simulate
-    /// * `duration` - The duration of the simulation
-    /// * `time_step` - The time step for the simulation
-    /// * `num_particles` - The number of particles to simulate in parallel
+    /// * `process` - 要模拟的随机过程（与 CPU 版本相同的类型）
+    /// * `duration` - 模拟时长
+    /// * `time_step` - 时间步长
     ///
     /// # Returns
     ///
-    /// A vector of trajectories, one for each particle
+    /// 返回 (time, position) 对，与 CPU 的 `process.simulate()` 完全相同
     ///
     /// # Example
     ///
@@ -106,27 +113,52 @@ impl GpuSimulator {
     /// use diffusionx::gpu::{GpuSimulator, GpuBackend};
     /// use diffusionx::simulation::continuous::Bm;
     ///
-    /// let simulator = GpuSimulator::new(GpuBackend::Auto)?;
     /// let bm = Bm::default();
+    /// let simulator = GpuSimulator::new(GpuBackend::Auto)?;
     ///
-    /// // Simulate 1000 particles in parallel on GPU
-    /// let trajectories = simulator.simulate_parallel(&bm, 1.0, 0.01, 1000)?;
+    /// // CPU 版本
+    /// let (t1, x1) = bm.simulate(1.0, 0.01)?;
+    ///
+    /// // GPU 版本 - API 完全相同！
+    /// let (t2, x2) = simulator.simulate(&bm, 1.0, 0.01)?;
     /// ```
-    pub fn simulate_parallel<P: ContinuousProcess>(
+    pub fn simulate<P: ContinuousProcess>(
+        &self,
+        process: &P,
+        duration: f64,
+        time_step: f64,
+    ) -> XResult<Pair> {
+        // 模拟单个轨迹，返回第一个
+        let trajectories = self.simulate_batch(process, duration, time_step, 1)?;
+        Ok(trajectories.into_iter().next().unwrap())
+    }
+
+    /// 批量模拟 - 在 GPU 上并行模拟多个轨迹
+    ///
+    /// # Arguments
+    ///
+    /// * `process` - 要模拟的随机过程
+    /// * `duration` - 模拟时长
+    /// * `time_step` - 时间步长
+    /// * `num_particles` - 并行模拟的粒子数量
+    ///
+    /// # Returns
+    ///
+    /// 返回多条轨迹的 Vec
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // 在 GPU 上并行模拟 1000 条轨迹
+    /// let trajectories = simulator.simulate_batch(&bm, 1.0, 0.01, 1000)?;
+    /// ```
+    pub fn simulate_batch<P: ContinuousProcess>(
         &self,
         _process: &P,
         _duration: f64,
         _time_step: f64,
         _num_particles: usize,
     ) -> XResult<Vec<Pair>> {
-        // This is a placeholder for the actual GPU implementation
-        // The actual implementation would:
-        // 1. Allocate GPU memory for random numbers and results
-        // 2. Generate random numbers on GPU or transfer from CPU
-        // 3. Launch appropriate kernel based on process type
-        // 4. Copy results back to CPU
-        // 5. Return trajectories
-
         #[cfg(feature = "cuda")]
         {
             if matches!(self.backend, GpuBackend::Cuda) {
@@ -454,6 +486,450 @@ impl GpuSimulator {
         Ok(all_trajectories)
     }
 
+    /// Simulate FBM on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_fbm_cuda(
+        &self,
+        start_position: f64,
+        hurst: f64,
+        diffusion_coefficient: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_fbm_f32(
+            &params,
+            start_position as f32,
+            hurst as f32,
+            diffusion_coefficient as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
+    /// Simulate Levy process on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_levy_cuda(
+        &self,
+        start_position: f64,
+        alpha: f64,
+        beta: f64,
+        scale: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_levy_f32(
+            &params,
+            start_position as f32,
+            alpha as f32,
+            beta as f32,
+            scale as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
+    /// Simulate Levy Walk on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_levy_walk_cuda(
+        &self,
+        start_position: f64,
+        alpha: f64,
+        velocity: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_levy_walk_f32(
+            &params,
+            start_position as f32,
+            alpha as f32,
+            velocity as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
+    /// Simulate Langevin on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_langevin_cuda(
+        &self,
+        start_position: f64,
+        friction: f64,
+        temperature: f64,
+        mass: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_langevin_f32(
+            &params,
+            start_position as f32,
+            friction as f32,
+            temperature as f32,
+            mass as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
+    /// Simulate Cauchy on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_cauchy_cuda(
+        &self,
+        start_position: f64,
+        scale: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_cauchy_f32(
+            &params,
+            start_position as f32,
+            scale as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
+    /// Simulate Gamma Process on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_gamma_process_cuda(
+        &self,
+        start_position: f64,
+        shape: f64,
+        rate: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_gamma_process_f32(
+            &params,
+            start_position as f32,
+            shape as f32,
+            rate as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
+    /// Simulate Brownian Bridge on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_brownian_bridge_cuda(
+        &self,
+        start_position: f64,
+        end_position: f64,
+        diffusion_coefficient: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_brownian_bridge_f32(
+            &params,
+            start_position as f32,
+            end_position as f32,
+            diffusion_coefficient as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
+    /// Simulate Brownian Excursion on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_brownian_excursion_cuda(
+        &self,
+        diffusion_coefficient: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_brownian_excursion_f32(
+            &params,
+            diffusion_coefficient as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
+    /// Simulate Brownian Meander on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_brownian_meander_cuda(
+        &self,
+        diffusion_coefficient: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_brownian_meander_f32(
+            &params,
+            diffusion_coefficient as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
+    /// Simulate BNG on CUDA
+    #[cfg(feature = "cuda")]
+    pub fn simulate_bng_cuda(
+        &self,
+        start_position: f64,
+        diffusion_coefficient: f64,
+        noise_intensity: f64,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<Vec<Pair>> {
+        use crate::gpu::cuda::{CudaBackend, KernelLaunchParams, KernelManager};
+
+        let cuda = CudaBackend::new(0)?;
+        let device = cuda.device();
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut kernel_manager = KernelManager::new(device.clone());
+        let params = KernelLaunchParams::new(num_particles, num_steps)
+            .with_threads(self.config.threads_per_block);
+
+        let positions = kernel_manager.simulate_bng_f32(
+            &params,
+            start_position as f32,
+            diffusion_coefficient as f32,
+            noise_intensity as f32,
+            time_step as f32,
+            12345u64,
+        )?;
+
+        let time_points = linspace(0.0, duration, time_step);
+        let mut all_trajectories = Vec::with_capacity(num_particles);
+
+        for particle_idx in 0..num_particles {
+            let offset = particle_idx * (num_steps + 1);
+            let particle_positions: Vec<f64> = positions[offset..offset + num_steps + 1]
+                .iter()
+                .map(|&x| x as f64)
+                .collect();
+            all_trajectories.push((time_points.clone(), particle_positions));
+        }
+
+        Ok(all_trajectories)
+    }
+
     /// Simulate using Metal backend
     #[cfg(feature = "metal")]
     fn simulate_metal<P: ContinuousProcess>(
@@ -490,9 +966,15 @@ impl GpuSimulator {
         let library = metal.library();
         let num_steps = (duration / time_step).ceil() as usize;
 
-        let kernel = library
+        let kernel_function = library
             .get_function("simulate_bm", None)
             .map_err(|e| crate::XError::GpuError(format!("Failed to get kernel: {}", e)))?;
+
+        let pipeline_state = device
+            .new_compute_pipeline_state_with_function(&kernel_function)
+            .map_err(|e| {
+                crate::XError::GpuError(format!("Failed to create pipeline state: {}", e))
+            })?;
 
         let rng = MetalRng::new(device.clone());
         let randoms_buffer = rng.standard_normals_f32(num_particles * num_steps)?;
@@ -505,7 +987,7 @@ impl GpuSimulator {
         let command_buffer = command_queue.new_command_buffer();
         let compute_encoder = command_buffer.new_compute_command_encoder();
 
-        compute_encoder.set_compute_pipeline_state(&kernel);
+        compute_encoder.set_compute_pipeline_state(&pipeline_state);
         compute_encoder.set_buffer(0, Some(&randoms_buffer), 0);
         compute_encoder.set_buffer(1, Some(&positions_buffer), 0);
 
@@ -539,7 +1021,7 @@ impl GpuSimulator {
         );
 
         let threads_per_group = 256;
-        let num_groups = (num_particles + threads_per_group - 1) / threads_per_group;
+        let num_groups = num_particles.div_ceil(threads_per_group);
 
         compute_encoder.dispatch_thread_groups(
             MTLSize {
@@ -562,7 +1044,7 @@ impl GpuSimulator {
         let positions: Vec<f32> =
             unsafe { std::slice::from_raw_parts(positions_ptr, output_size).to_vec() };
 
-        let time_points = linspace(0.0, duration, num_steps + 1);
+        let time_points = linspace(0.0, duration, time_step);
         let mut all_trajectories = Vec::with_capacity(num_particles);
 
         for particle_idx in 0..num_particles {
@@ -581,21 +1063,365 @@ impl GpuSimulator {
     pub fn info(&self) -> String {
         format!("GPU Simulator with backend: {:?}", self.backend)
     }
+
+    /// 在 GPU 上计算原始矩 - 与 CPU Moment trait 签名完全一致
+    ///
+    /// # Arguments
+    ///
+    /// * `process` - 任意随机过程
+    /// * `order` - 矩的阶数
+    /// * `particles` - 粒子数量
+    /// * `time_step` - 时间步长
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // CPU 版本
+    /// let traj = ContinuousTrajectory { sp: bm, duration: 1.0 };
+    /// let mean = traj.raw_moment(1, 10000, 0.01)?;
+    ///
+    /// // GPU 版本 - 完全相同的签名！
+    /// let simulator = GpuSimulator::new(GpuBackend::Auto)?;
+    /// let mean = simulator.raw_moment(&bm, 1, 10000, 0.01)?;
+    /// ```
+    pub fn raw_moment<P: ContinuousProcess>(
+        &self,
+        process: &P,
+        order: i32,
+        particles: usize,
+        duration: f64,
+        time_step: f64,
+    ) -> XResult<f64> {
+        if order == 0 {
+            return Ok(1.0);
+        }
+
+        // 在 GPU 上模拟所有轨迹
+        let trajectories = self.simulate_batch(process, duration, time_step, particles)?;
+
+        // 提取终点位置
+        let end_positions: Vec<f64> = trajectories
+            .iter()
+            .map(|(_, positions)| *positions.last().unwrap())
+            .collect();
+
+        // 计算矩
+        let moment = if order == 1 {
+            end_positions.iter().sum::<f64>() / particles as f64
+        } else {
+            end_positions.iter().map(|&x| x.powi(order)).sum::<f64>() / particles as f64
+        };
+
+        Ok(moment)
+    }
+
+    /// 在 GPU 上计算中心矩 - 与 CPU Moment trait 签名完全一致
+    ///
+    /// # Arguments
+    ///
+    /// * `process` - 任意随机过程
+    /// * `order` - 矩的阶数
+    /// * `particles` - 粒子数量
+    /// * `time_step` - 时间步长
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // CPU 版本
+    /// let variance = traj.central_moment(2, 10000, 0.01)?;
+    ///
+    /// // GPU 版本 - 完全相同！
+    /// let variance = simulator.central_moment(&bm, 2, 10000, 0.01)?;
+    /// ```
+    pub fn central_moment<P: ContinuousProcess>(
+        &self,
+        process: &P,
+        order: i32,
+        particles: usize,
+        duration: f64,
+        time_step: f64,
+    ) -> XResult<f64> {
+        if order == 0 {
+            return Ok(1.0);
+        }
+
+        // 先计算均值
+        let mean = self.raw_moment(process, 1, particles, duration, time_step)?;
+
+        // 在 GPU 上模拟所有轨迹
+        let trajectories = self.simulate_batch(process, duration, time_step, particles)?;
+
+        // 提取终点位置并计算中心矩
+        let end_positions: Vec<f64> = trajectories
+            .iter()
+            .map(|(_, positions)| *positions.last().unwrap())
+            .collect();
+
+        let moment = if order == 1 {
+            0.0 // 一阶中心矩总是 0
+        } else {
+            end_positions
+                .iter()
+                .map(|&x| (x - mean).powi(order))
+                .sum::<f64>()
+                / particles as f64
+        };
+
+        Ok(moment)
+    }
+
+    /// 在 GPU 上计算多阶矩（批量计算）
+    ///
+    /// 一次性计算多个阶数的矩，更高效
+    ///
+    /// # Arguments
+    ///
+    /// * `process` - 任意随机过程
+    /// * `max_order` - 最大阶数
+    /// * `duration` - 模拟时长
+    /// * `time_step` - 时间步长
+    /// * `num_particles` - 粒子数量
+    ///
+    /// # Returns
+    ///
+    /// 返回 (原始矩, 中心矩) 的 Vec，索引 i 对应 i+1 阶矩
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let (raw_moments, central_moments) =
+    ///     simulator.moments_batch_gpu(&bm, 4, 1.0, 0.01, 10000)?;
+    ///
+    /// let mean = raw_moments[0];      // 1阶
+    /// let variance = central_moments[1]; // 2阶中心矩
+    /// let skewness_related = central_moments[2]; // 3阶
+    /// let kurtosis_related = central_moments[3];  // 4阶
+    /// ```
+    pub fn moments_batch_gpu<P: ContinuousProcess>(
+        &self,
+        process: &P,
+        max_order: i32,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<(Vec<f64>, Vec<f64>)> {
+        // 在 GPU 上模拟所有轨迹（只需一次）
+        let trajectories = self.simulate_batch(process, duration, time_step, num_particles)?;
+
+        // 提取终点位置
+        let end_positions: Vec<f64> = trajectories
+            .iter()
+            .map(|(_, positions)| *positions.last().unwrap())
+            .collect();
+
+        // 计算均值
+        let mean = end_positions.iter().sum::<f64>() / num_particles as f64;
+
+        // 计算所有阶的原始矩
+        let mut raw_moments = Vec::with_capacity(max_order as usize);
+        for order in 1..=max_order {
+            let moment = if order == 1 {
+                mean
+            } else {
+                end_positions.iter().map(|&x| x.powi(order)).sum::<f64>() / num_particles as f64
+            };
+            raw_moments.push(moment);
+        }
+
+        // 计算所有阶的中心矩
+        let mut central_moments = Vec::with_capacity(max_order as usize);
+        for order in 1..=max_order {
+            let moment = if order == 1 {
+                0.0
+            } else {
+                end_positions
+                    .iter()
+                    .map(|&x| (x - mean).powi(order))
+                    .sum::<f64>()
+                    / num_particles as f64
+            };
+            central_moments.push(moment);
+        }
+
+        Ok((raw_moments, central_moments))
+    }
+
+    /// 计算标准化的高阶统计量
+    ///
+    /// # Returns
+    ///
+    /// 返回 (偏度, 峰度)
+    ///
+    /// 偏度 = 三阶中心矩 / 标准差^3
+    /// 峰度 = 四阶中心矩 / 方差^2 - 3
+    pub fn skewness_kurtosis_gpu<P: ContinuousProcess>(
+        &self,
+        process: &P,
+        duration: f64,
+        time_step: f64,
+        num_particles: usize,
+    ) -> XResult<(f64, f64)> {
+        let (_, central_moments) =
+            self.moments_batch_gpu(process, 4, duration, time_step, num_particles)?;
+
+        let variance = central_moments[1]; // 2阶
+        let m3 = central_moments[2]; // 3阶
+        let m4 = central_moments[3]; // 4阶
+
+        let std_dev = variance.sqrt();
+        let skewness = if std_dev > 0.0 {
+            m3 / (std_dev * std_dev * std_dev)
+        } else {
+            0.0
+        };
+
+        let kurtosis = if variance > 0.0 {
+            m4 / (variance * variance) - 3.0
+        } else {
+            0.0
+        };
+
+        Ok((skewness, kurtosis))
+    }
+
+    // --- 离散过程 ---
+    pub fn raw_moment_discrete<P: crate::simulation::prelude::DiscreteProcess>(
+        &self,
+        process: &P,
+        order: i32,
+        particles: usize,
+        num_step: usize,
+    ) -> XResult<f64> {
+        use rayon::prelude::*;
+
+        if order == 0 {
+            return Ok(1.0);
+        }
+
+        // 在 CPU 上并行生成所有终点位置
+        let end_positions: Vec<f64> = (0..particles)
+            .into_par_iter()
+            .map(|_| process.end(num_step).unwrap_or(0.0))
+            .collect();
+
+        // 计算矩
+        let moment = if order == 1 {
+            end_positions.iter().sum::<f64>() / particles as f64
+        } else {
+            end_positions.iter().map(|&x| x.powi(order)).sum::<f64>() / particles as f64
+        };
+
+        Ok(moment)
+    }
+
+    pub fn central_moment_discrete<P: crate::simulation::prelude::DiscreteProcess>(
+        &self,
+        process: &P,
+        order: i32,
+        particles: usize,
+        num_step: usize,
+    ) -> XResult<f64> {
+        use rayon::prelude::*;
+
+        if order == 0 {
+            return Ok(1.0);
+        }
+
+        // 先计算均值
+        let mean = self.raw_moment_discrete(process, 1, particles, num_step)?;
+
+        // 在 CPU 上并行生成所有终点位置
+        let end_positions: Vec<f64> = (0..particles)
+            .into_par_iter()
+            .map(|_| process.end(num_step).unwrap_or(0.0))
+            .collect();
+
+        // 计算中心矩
+        let moment = if order == 1 {
+            0.0
+        } else {
+            end_positions
+                .iter()
+                .map(|&x| (x - mean).powi(order))
+                .sum::<f64>()
+                / particles as f64
+        };
+
+        Ok(moment)
+    }
+
+    // --- 点过程 ---
+    pub fn raw_moment_point<P: crate::simulation::prelude::PointProcess>(
+        &self,
+        process: &P,
+        order: i32,
+        particles: usize,
+        duration: f64,
+    ) -> XResult<f64> {
+        use rayon::prelude::*;
+
+        if order == 0 {
+            return Ok(1.0);
+        }
+
+        // 在 CPU 上并行生成所有终点位置
+        let end_positions: Vec<f64> = (0..particles)
+            .into_par_iter()
+            .map(|_| process.end(duration).unwrap_or(0.0))
+            .collect();
+
+        // 计算矩
+        let moment = if order == 1 {
+            end_positions.iter().sum::<f64>() / particles as f64
+        } else {
+            end_positions.iter().map(|&x| x.powi(order)).sum::<f64>() / particles as f64
+        };
+
+        Ok(moment)
+    }
+
+    pub fn central_moment_point<P: crate::simulation::prelude::PointProcess>(
+        &self,
+        process: &P,
+        order: i32,
+        particles: usize,
+        duration: f64,
+    ) -> XResult<f64> {
+        use rayon::prelude::*;
+
+        if order == 0 {
+            return Ok(1.0);
+        }
+
+        // 先计算均值
+        let mean = self.raw_moment_point(process, 1, particles, duration)?;
+
+        // 在 CPU 上并行生成所有终点位置
+        let end_positions: Vec<f64> = (0..particles)
+            .into_par_iter()
+            .map(|_| process.end(duration).unwrap_or(0.0))
+            .collect();
+
+        // 计算中心矩
+        let moment = if order == 1 {
+            0.0
+        } else {
+            end_positions
+                .iter()
+                .map(|&x| (x - mean).powi(order))
+                .sum::<f64>()
+                / particles as f64
+        };
+
+        Ok(moment)
+    }
 }
 
 /// Builder pattern for GPU simulator configuration
+#[derive(Default)]
 pub struct GpuSimulatorBuilder {
     backend: Option<GpuBackend>,
     config: GpuConfig,
-}
-
-impl Default for GpuSimulatorBuilder {
-    fn default() -> Self {
-        Self {
-            backend: None,
-            config: GpuConfig::default(),
-        }
-    }
 }
 
 impl GpuSimulatorBuilder {
