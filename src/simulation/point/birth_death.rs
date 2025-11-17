@@ -66,6 +66,10 @@ impl BirthDeath {
 }
 
 impl PointProcess for BirthDeath {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
     /// Simulate the Birth-death process with a given number of steps
     ///
     /// # Arguments

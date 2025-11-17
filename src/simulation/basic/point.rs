@@ -8,6 +8,19 @@ use std::sync::Arc;
 
 /// Point process trait
 pub trait PointProcess: Send + Sync {
+    /// Get the starting position
+    fn start(&self) -> f64;
+
+    /// Get the ending position
+    fn end(&self, duration: f64) -> XResult<f64> {
+        Ok(self.start() + self.displacement(duration)?)
+    }
+
+    /// Get the displacement of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
     fn displacement(&self, duration: f64) -> XResult<f64> {
         let mut num_step = duration.ceil() as usize;
         let (t, x) = loop {

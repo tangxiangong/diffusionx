@@ -4,6 +4,14 @@ use rayon::prelude::*;
 
 /// Discrete process trait
 pub trait DiscreteProcess: Send + Sync {
+    /// Get the starting position
+    fn start(&self) -> f64;
+
+    /// Get the ending position
+    fn end(&self, num_step: usize) -> XResult<f64> {
+        Ok(self.start() + self.displacement(num_step)?)
+    }
+
     /// Get the displacement of the discrete process
     ///
     /// # Arguments

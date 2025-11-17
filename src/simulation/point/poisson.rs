@@ -41,6 +41,10 @@ impl Poisson {
 }
 
 impl PointProcess for Poisson {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
     /// Simulate the Poisson process with a given number of steps
     ///
     /// # Arguments

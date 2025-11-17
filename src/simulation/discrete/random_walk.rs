@@ -103,6 +103,10 @@ impl LatticeRandomWalk {
 }
 
 impl DiscreteProcess for LatticeRandomWalk {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, num_step: usize) -> XResult<DiscretePair> {
         simulate_lattice_random_walk(
             self.step_size,
@@ -247,6 +251,10 @@ impl RandomWalk {
 }
 
 impl DiscreteProcess for RandomWalk {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, num_step: usize) -> XResult<DiscretePair> {
         simulate_random_walk(self.probability, self.alpha, self.start_position, num_step)
     }
