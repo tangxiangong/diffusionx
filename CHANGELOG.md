@@ -2,55 +2,117 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2025-11-17
+
+### 🚜 Refactor
+
+- Add input validation and optimize displacement calculation for continuous processes
+- Optimize time series generation in continuous process simulations
+- Optimize displacement calculation in generalized Langevin equation
+- Remove unused docs.rs metadata configuration from `Cargo.toml`
+- Add input validation and optimize displacement calculation for discrete and point processes
+- Add `start()` and `end()` methods to `ContinuousProcess` trait and implement inverse process calculations
+- Add `start()` and `end()` methods to `DiscreteProcess` and `PointProcess` traits
+- Simplify parallel moment calculations and improve error handling across all process types
+
+### 📚 Documentation
+
+- Add changelog entries for versions 0.5.0 and 0.4.15
+- Update README examples with installation instructions and code improvements
+- Update README examples to include required `start()` method in `ContinuousProcess` trait implementations
+
+### ⚙️ Miscellaneous Tasks
+
+- Reorganize `Cargo.toml` structure and exclude GPU-related directories from package
+- Bump version from 0.5.0 to 0.6.0
+
 ## [0.5.0] - 2025-11-10
 
 ### 🚀 Features
 
-- Add Criterion benchmarks for the Langevin simulation pipeline.
+- Add benchmarking for Langevin simulation using Criterion
 
 ### 💼 Other
 
-- Ship the `langevin-bench` example for performance verification.
+- Add langevin-bench example for performance measurement
 
 ### 🚜 Refactor
 
-- Streamline Langevin and Generalized Langevin time-step iteration and shared imports.
-- Move CUDA/Metal kernel crates into `kernels/` and relocate `docs-header.html` to the repo root.
+- Simplify iteration over time steps in Langevin and Generalized Langevin simulations
+- Streamline imports and improve simulation functions across multiple processes
+- Move `docs-header.html` to project root
+- Move CUDA and Metal kernel crates into `kernels/` subdirectory
 
 ### 📚 Documentation
 
-- Add KaTeX-backed LaTeX formatting and note feature flags required for visualization examples.
-- Switch README assets to absolute GitHub and `raw.githubusercontent.com` URLs.
+- Add LaTeX math formatting to stable distribution and stochastic process documentation
+- Use absolute GitHub URLs for images in README files
+- Use `raw.githubusercontent.com` URLs for SVG images in README files
+- Add feature flag requirement note for visualization examples in README files
 
 ### ⚙️ Miscellaneous Tasks
 
-- Enable KaTeX on docs.rs, make `visualize`/`io` optional, and bump to 0.5.0.
+- Enable KaTeX rendering in docs and docs.rs config
+- Make `visualize` and `io` features optional, bump version to 0.4.16
+- Bump version to 0.5.0
 
 ## [0.4.15] - 2025-10-28
 
 ### 🚀 Features
 
-- Add CUDA/Metal GPU acceleration plus Monte Carlo statistics kernels.
+- *(AI Generated)* Add GPU acceleration with CUDA and Metal backends
+- *(AI)* Add GPU Monte Carlo stats kernels CUDA/Metal
 
 ### 🐛 Bug Fixes
 
-- Normalize plot asset paths, rename `mc`, use standard deviation for BM noise, fix FBM/Lévy direction, and parallelize MSD/moment sims with validation.
+- Normalize SVG/PNG output paths for plot backends
+- Use `mc` instead of `montecarlo`
+- Use standard deviation for BM noise sampling
+- Fix FBM simulation and Levy direction
+- Parallelize MSD/moment sims and validate inputs
 
 ### 💼 Other
 
-- Split CUDA/Metal kernels into dedicated crates and generate scaled normal noise.
+- Refactor the CUDA and Metal kernels into separate crates.
+- Generate scaled normal noise directly
 
 ### 🚜 Refactor
 
-- Switch FFTs to `realfft` and enable GPU feature dependencies.
+- Use realfft instead of rustfft for FFTs
+- Enable GPU features and dependencies
 
 ### 📚 Documentation
 
-- Configure docs.rs target, enable `doc_cfg`, and disable example scraping.
+- Set docs.rs target and enable doc cfg attributes
+- Disable rustdoc example scraping on docs.rs
+- Disable doc.scrape-examples for docs.rs
 
 ### ⚙️ Miscellaneous Tasks
 
-- Remove `TODO.md`, tidy docs, update `csv` to 1.4, and record the 0.4.10–0.4.11 version toggles.
+- Delete `TODO.md`
+- Add rust-version, remove deny.toml, tidy docs
+- Update csv dependency to 1.4
+- Bump version to 0.4.10 and disable GPU features
+- Bump version to 0.4.11 and disable GPU features
+
+## [0.4.9] - 2025-10-10
+
+### 🚜 Refactor
+
+- Use `is_multiple_of` for even check
+- Remove unused dead_code allow attribute
+
+### 📚 Documentation
+
+- Update README files to include links for badges
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.4.8
+- Update dependencies and clean up Cargo.toml
+- Bump gauss-quad dependency to 0.2.4
+- Update pre-commit-hooks to v6.0.0 in config
+- Bump version to 0.4.9
 
 ## [0.4.8] - 2025-07-05
 
