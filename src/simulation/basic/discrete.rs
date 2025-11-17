@@ -4,12 +4,47 @@ use rayon::prelude::*;
 
 /// Discrete process trait
 pub trait DiscreteProcess: Send + Sync {
+    /// Get the starting position
+    fn start(&self) -> f64;
+
+    /// Get the ending position
+    fn end(&self, num_step: usize) -> XResult<f64> {
+        Ok(self.start() + self.displacement(num_step)?)
+    }
+
+    /// Get the displacement of the discrete process
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps of the simulation.
+    fn displacement(&self, num_step: usize) -> XResult<f64> {
+        let (_, x) = self.simulate(num_step)?;
+        let first_position = x.first();
+        let end_position = x.last();
+        match (first_position, end_position) {
+            (Some(initial), Some(position)) => Ok(position - initial),
+            _ => Err(SimulationError::Unknown.into()),
+        }
+    }
+
+    /// Simulate the discrete process without checking the arguments
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps of the simulation.
+    fn simulate_unchecked(&self, num_step: usize) -> XResult<DiscretePair>;
+
     /// Simulate the discrete process
     ///
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the simulation.
-    fn simulate(&self, num_step: usize) -> XResult<DiscretePair>;
+    fn simulate(&self, num_step: usize) -> XResult<DiscretePair> {
+        if num_step == 0 {
+            return Ok((vec![], vec![]));
+        }
+        self.simulate_unchecked(num_step)
+    }
 
     /// Get the mean of the discrete process
     ///
@@ -42,22 +77,18 @@ pub trait DiscreteProcess: Send + Sync {
             .into());
         }
 
-        let values: Vec<f64> = (0..particles)
+        let values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.simulate(num_step)?;
-                let first_position = x.first();
-                let end_position = x.last();
-                match (first_position, end_position) {
-                    (Some(initial), Some(position)) => {
-                        Ok((position - initial) * (position - initial))
-                    }
-                    _ => Err(SimulationError::Unknown.into()),
-                }
+            .map(|_| {
+                let displacement = match self.displacement(num_step) {
+                    Ok(displacement) => displacement,
+                    Err(e) => panic!("{}", e),
+                };
+                displacement * displacement
             })
-            .collect::<XResult<Vec<_>>>()?;
+            .sum::<f64>();
 
-        let result = values.iter().sum::<f64>() / particles as f64;
+        let result = values / (particles as f64);
         Ok(result)
     }
 

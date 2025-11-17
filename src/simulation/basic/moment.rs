@@ -49,17 +49,16 @@ impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
 
         let values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.sp.simulate(duration, time_step)?;
-                let end_position = x.last();
-                match end_position {
-                    Some(position) => Ok(position.powi(order)),
-                    None => Err(SimulationError::Unknown.into()),
-                }
+            .map(|_| {
+                let end = match self.sp.end(duration, time_step) {
+                    Ok(end) => end,
+                    Err(e) => panic!("{}", e),
+                };
+                if order == 1 { end } else { end.powi(order) }
             })
-            .collect::<XResult<Vec<_>>>()?;
+            .sum::<f64>();
 
-        let result = values.into_par_iter().sum::<f64>() / particles as f64;
+        let result = values / (particles as f64);
         Ok(result)
     }
 
@@ -81,19 +80,22 @@ impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
         }
         let mean = self.raw_moment(1, particles, time_step)?;
         let duration = self.duration;
-        let values: Vec<f64> = (0..particles)
+        let values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.sp.simulate(duration, time_step)?;
-                let end_position = x.last();
-                match end_position {
-                    Some(position) => Ok((position - mean).powi(order)),
-                    None => Err(SimulationError::Unknown.into()),
+            .map(|_| {
+                let end_position = match self.sp.end(duration, time_step) {
+                    Ok(end_position) => end_position,
+                    Err(e) => panic!("{}", e),
+                };
+                if order == 1 {
+                    end_position - mean
+                } else {
+                    (end_position - mean).powi(order)
                 }
             })
-            .collect::<XResult<Vec<_>>>()?;
+            .sum::<f64>();
 
-        let result = values.into_par_iter().sum::<f64>() / particles as f64;
+        let result = values / (particles as f64);
         Ok(result)
     }
 }
@@ -113,19 +115,22 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
 
         let num_step = self.num_step;
 
-        let values: Vec<f64> = (0..particles)
+        let values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.sp.simulate(num_step)?;
-                let end_position = x.last();
-                match end_position {
-                    Some(position) => Ok(position.powi(order)),
-                    None => Err(SimulationError::Unknown.into()),
+            .map(|_| {
+                let end_position = match self.sp.end(num_step) {
+                    Ok(end_position) => end_position,
+                    Err(e) => panic!("{}", e),
+                };
+                if order == 1 {
+                    end_position
+                } else {
+                    end_position.powi(order)
                 }
             })
-            .collect::<XResult<Vec<_>>>()?;
+            .sum::<f64>();
 
-        let result = values.into_par_iter().sum::<f64>() / particles as f64;
+        let result = values / (particles as f64);
         Ok(result)
     }
 
@@ -143,19 +148,22 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
 
         let mean = self.raw_moment(1, particles, 0.01)?;
         let num_step = self.num_step;
-        let values: Vec<f64> = (0..particles)
+        let values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.sp.simulate(num_step)?;
-                let end_position = x.last();
-                match end_position {
-                    Some(position) => Ok((position - mean).powi(order)),
-                    None => Err(SimulationError::Unknown.into()),
+            .map(|_| {
+                let end_position = match self.sp.end(num_step) {
+                    Ok(end_position) => end_position,
+                    Err(e) => panic!("{}", e),
+                };
+                if order == 1 {
+                    end_position - mean
+                } else {
+                    (end_position - mean).powi(order)
                 }
             })
-            .collect::<XResult<Vec<_>>>()?;
+            .sum::<f64>();
 
-        let result = values.iter().sum::<f64>() / particles as f64;
+        let result = values / (particles as f64);
         Ok(result)
     }
 }
@@ -181,19 +189,22 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
         }
         let duration = self.duration.unwrap();
 
-        let values: Vec<f64> = (0..particles)
+        let values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.sp.simulate_with_duration(duration)?;
-                let end_position = x.last();
-                match end_position {
-                    Some(position) => Ok(position.powi(order)),
-                    None => Err(SimulationError::Unknown.into()),
+            .map(|_| {
+                let end_position = match self.sp.end(duration) {
+                    Ok(end_position) => end_position,
+                    Err(e) => panic!("{}", e),
+                };
+                if order == 1 {
+                    end_position
+                } else {
+                    end_position.powi(order)
                 }
             })
-            .collect::<XResult<Vec<_>>>()?;
+            .sum::<f64>();
 
-        let result = values.into_par_iter().sum::<f64>() / particles as f64;
+        let result = values / (particles as f64);
         Ok(result)
     }
 
@@ -211,19 +222,22 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
 
         let mean = self.raw_moment(1, particles, _time_step)?;
         let duration = self.duration.unwrap();
-        let values: Vec<f64> = (0..particles)
+        let values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.sp.simulate_with_duration(duration)?;
-                let end_position = x.last();
-                match end_position {
-                    Some(position) => Ok((position - mean).powi(order)),
-                    None => Err(SimulationError::Unknown.into()),
+            .map(|_| {
+                let end_position = match self.sp.end(duration) {
+                    Ok(end_position) => end_position,
+                    Err(e) => panic!("{}", e),
+                };
+                if order == 1 {
+                    end_position - mean
+                } else {
+                    (end_position - mean).powi(order)
                 }
             })
-            .collect::<XResult<Vec<_>>>()?;
+            .sum::<f64>();
 
-        let result = values.into_par_iter().sum::<f64>() / particles as f64;
+        let result = values / (particles as f64);
         Ok(result)
     }
 }

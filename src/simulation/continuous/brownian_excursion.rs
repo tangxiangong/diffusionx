@@ -1,9 +1,11 @@
 //! Brownian excursion simulation
 
-use crate::{SimulationError, XResult, simulation::prelude::*, utils::minmax};
+use crate::{
+    SimulationError, XResult,
+    simulation::{continuous::BrownianBridge, prelude::*},
+    utils::minmax,
+};
 use rayon::prelude::*;
-
-use super::BrownianBridge;
 
 /// Brownian excursion
 #[derive(Debug, Clone)]
@@ -26,22 +28,8 @@ impl BrownianExcursion {
     /// let fpt = be.fpt((-1.0, 1.0), 0.1).unwrap();
     /// ```
     pub fn fpt(&self, domain: (f64, f64), time_step: f64) -> XResult<Option<f64>> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {time_step}"
-            ))
-            .into());
-        }
-
         let (a, b) = domain;
-        if a >= b {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `domain` must be in (a, b), got `{a}` >= `{b}`"
-            ))
-            .into());
-        }
-
-        let (t, x) = self.simulate(1.0, time_step)?;
+        let (t, x) = self.simulate_unchecked(1.0, time_step)?;
         if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
             Ok(Some(t[index]))
         } else {
@@ -51,25 +39,16 @@ impl BrownianExcursion {
 }
 
 impl ContinuousProcess for BrownianExcursion {
-    /// Simulate Brownian excursion
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the trajectory.
-    /// * `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::BrownianExcursion, prelude::*};
-    ///
-    /// let be = BrownianExcursion;
-    /// let time_step = 0.1;
-    /// let duration = 1.0;
-    /// let (t, x) = be.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_brownian_excursion(duration, time_step)
+    }
+
+    fn displacement(&self, _: f64, _: f64) -> XResult<f64> {
+        Ok(0.0)
     }
 }
 
@@ -90,21 +69,9 @@ impl ContinuousProcess for BrownianExcursion {
 /// let (t, x) = simulate_brownian_excursion(duration, time_step).unwrap();
 /// ```
 pub fn simulate_brownian_excursion(duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if duration <= 0.0 || duration > 1.0 {
+    if duration > 1.0 {
         return Err(SimulationError::InvalidParameters(format!(
             "The `duration` must be in (0.0, 1.0], got {duration}"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got {time_step}"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
         ))
         .into());
     }

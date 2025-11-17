@@ -1,9 +1,11 @@
 //! Brownian meander simulation
 
-use crate::{SimulationError, XResult, simulation::prelude::*, utils::float_eq};
+use crate::{
+    SimulationError, XResult,
+    simulation::{continuous::Bm, prelude::*},
+    utils::float_eq,
+};
 use rayon::prelude::*;
-
-use super::Bm;
 
 /// Brownian meander
 #[derive(Debug, Clone)]
@@ -26,12 +28,6 @@ impl BrownianMeander {
     /// let fpt = bm.fpt((-1.0, 1.0), 0.1).unwrap();
     /// ```
     pub fn fpt(&self, domain: (f64, f64), time_step: f64) -> XResult<Option<f64>> {
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got {time_step}"
-            ))
-            .into());
-        }
         if domain.0 >= domain.1 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `domain` must be in (a, b), got `{}` >= `{}`",
@@ -51,25 +47,57 @@ impl BrownianMeander {
 }
 
 impl ContinuousProcess for BrownianMeander {
-    /// Simulate Brownian meander
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the trajectory.
-    /// * `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::BrownianMeander, prelude::*};
-    ///
-    /// let bm = BrownianMeander;
-    /// let time_step = 0.1;
-    /// let duration = 1.0;
-    /// let (t, x) = bm.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_brownian_meander(duration, time_step)
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        if duration > 1.0 {
+            // Duration must be positive and not exceed 1.0
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be in (0.0, 1.0], got {duration}"
+            ))
+            .into());
+        }
+
+        let bm = Bm::default();
+        let (bm_t, bm_traj) = bm.simulate_unchecked(1.0, time_step)?;
+
+        let hint_indexes = bm_traj
+            .iter()
+            .enumerate()
+            .filter(|(_, x)| float_eq(**x, 0.0))
+            .map(|(i, _)| i)
+            .collect::<Vec<_>>();
+        let last_hint_index = *hint_indexes.last().unwrap_or(&0);
+        let tau = if last_hint_index == bm_t.len() - 1 {
+            1.0 - time_step
+        } else {
+            bm_t[last_hint_index]
+        };
+        let coe = 1.0 / (1.0 - tau).sqrt();
+        Ok(bm_t
+            .par_iter()
+            .map(|&t_i| {
+                let time = t_i * (1.0 - tau) + tau;
+                let right_index = bm_t
+                    .iter()
+                    .position(|&t| t > time)
+                    .unwrap_or(bm_t.len() - 1);
+                let left_index = right_index - 1;
+                let left_time = bm_t[left_index];
+                let right_time = bm_t[right_index];
+                let left_value = bm_traj[left_index];
+                let right_value = bm_traj[right_index];
+                let k = (left_value - right_value) / (left_time - right_time);
+                let value = k * (time - left_time) + left_value;
+                value.abs() * coe
+            })
+            .sum())
     }
 }
 
@@ -90,34 +118,16 @@ impl ContinuousProcess for BrownianMeander {
 /// let (t, x) = simulate_brownian_meander(duration, time_step).unwrap();
 /// ```
 pub fn simulate_brownian_meander(duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got {time_step}"
-        ))
-        .into());
-    }
-    if duration <= 0.0 || duration > 1.0 {
+    if duration > 1.0 {
         // Duration must be positive and not exceed 1.0
         return Err(SimulationError::InvalidParameters(format!(
             "The `duration` must be in (0.0, 1.0], got {duration}"
         ))
         .into());
     }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got {time_step}"
-        ))
-        .into());
-    }
 
     let bm = Bm::default();
-    let (bm_t, bm_traj) = bm.simulate(1.0, time_step)?;
+    let (bm_t, bm_traj) = bm.simulate_unchecked(1.0, time_step)?;
 
     let hint_indexes = bm_traj
         .iter()

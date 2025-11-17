@@ -1,18 +1,20 @@
 //! Brownian yet non-Gaussian process simulation
 
-use crate::{SimulationError, XResult, random::normal, simulation::prelude::*};
-
-use super::simulate_ou;
+use crate::{
+    XResult,
+    random::normal,
+    simulation::{continuous::simulate_ou, prelude::*},
+};
 
 /// Brownian yet non-Gaussian process
 ///
-/// dr(t) = sqrt(2 * D(t)) dW_1(t), r(0) = r0,
+/// $$dr(t) = \sqrt{2 * D(t)} dW_1(t), \quad r(0) = r0,$$
 ///
-/// D(t) = Y(t)^2
+/// $$D(t) = Y(t)^2,$$
 ///
-/// dY(t) = -Y(t) dt + dW_2(t), Y(0) = Y0
+/// $$dY(t) = -Y(t) dt + dW_2(t), \quad Y(0) = Y0,$$
 ///
-/// where W_1(t) and W_2(t) are two independent Wiener processes.
+/// where $W_1(t)$ and $W_2(t)$ are two independent Wiener processes.
 #[derive(Debug, Clone)]
 pub struct BnG {
     /// The starting position.
@@ -57,22 +59,11 @@ impl BnG {
 }
 
 impl ContinuousProcess for BnG {
-    /// Simulate the Brownian yet non-Gaussian process
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration.
-    /// * `time_step` - The time step.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::BnG, prelude::*};
-    ///
-    /// let bng = BnG::new(0.0, 1.0).unwrap();
-    /// let (t, x) = bng.simulate(1.0, 0.01).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_bng(
             self.start_position,
             self.ou_start_position,
@@ -80,19 +71,30 @@ impl ContinuousProcess for BnG {
             time_step,
         )
     }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let (_, y) = simulate_ou(1.0, 1.0, self.ou_start_position, duration, time_step)?;
+        let noise = normal::standard_rands::<f64>(y.len() - 1);
+        Ok(y.into_iter()
+            .skip(1)
+            .zip(noise)
+            .fold(0.0, |state, (yi, xi)| {
+                state + yi.abs() * (2.0 * time_step).sqrt() * xi
+            }))
+    }
 }
 
 /// Simulate the Brownian yet non-Gaussian process
 ///
 /// # Mathematical Formulation
 ///
-/// dr(t) = sqrt(2 * D(t)) dW_1(t), r(0) = r0,
+/// $$dr(t) = \sqrt{2 * D(t)} dW_1(t), \quad r(0) = r0,$$
 ///
-/// D(t) = Y(t)^2
+/// $$D(t) = Y(t)^2,$$
 ///
-/// dY(t) = -Y(t) dt + dW_2(t), Y(0) = Y0
+/// $$dY(t) = -Y(t) dt + dW_2(t), \quad Y(0) = Y0,$$
 ///
-/// where W_1(t) and W_2(t) are two independent Wiener processes.
+/// where $W_1(t)$ and $W_2(t)$ are two independent Wiener processes.
 ///
 /// # Arguments
 ///
@@ -114,24 +116,6 @@ pub fn simulate_bng(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{time_step}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
     let (t, y) = simulate_ou(1.0, 1.0, ou_start_position, duration, time_step)?;
     let noise = normal::standard_rands::<f64>(t.len() - 1);
     let x = std::iter::once(start_position)

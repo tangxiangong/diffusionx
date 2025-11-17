@@ -112,7 +112,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 > ```toml
 > # In your Cargo.toml
 > [dependencies]
-> diffusionx = { version = "0.5", features = ["visualize"] }
+> diffusionx = { version = "0.6", features = ["visualize"] }
 > ```
 
 
@@ -166,7 +166,11 @@ DiffusionX 采用基于 trait 的系统设计，具有高度的可扩展性和�
    }
 
    impl ContinuousProcess for MyProcess {
-       fn simulate(
+       fn start(&self) -> f64 {
+           0.0  // 或者您希望的起始位置
+       }
+
+       fn simulate_unchecked(
             &self,
             duration: f64,
             time_step: f64
@@ -187,6 +191,16 @@ DiffusionX 采用基于 trait 的系统设计，具有高度的可扩展性和�
     - 可视化 `plot`
 
 **示例：**
+
+在您的项目目录中运行以下 Cargo 命令：
+```bash
+cargo add diffusionx --features io,visualize
+```
+或者在您的 Cargo.toml 中添加以下依赖：
+```toml
+[dependencies]
+diffusionx = { version = "0.5", features = ["io", "visualize"] }
+```
 
 ```rust
 use diffusionx::{
@@ -216,8 +230,7 @@ impl CIR {
         let speed: f64 = speed.into();
         if speed <= 0.0 {
             return Err(XError::InvalidParameters(format!(
-                "speed must be greater than 0, but got {}",
-                speed
+                "speed must be greater than 0, but got {speed}"
             )));
         }
         Ok(Self {
@@ -230,7 +243,11 @@ impl CIR {
 }
 
 impl ContinuousProcess for CIR {
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let t = linspace(0.0, duration, time_step);
         let num_steps = t.len() - 1;
         let initial_x = self.start_position.max(0.0);
@@ -264,14 +281,14 @@ fn main() -> XResult<()> {
     let particles = 10_000;
     let time_step = 0.01;
     let cir = CIR::new(1, 1, 1, 0.5)?;
-    let traj = cir.duration(duration)?;
+
     let (t, x) = cir.simulate(duration, time_step)?;
     write_csv("tmp/CIR.csv", &t, &x)?;
     // mean
-    let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
+    let mean = cir.mean(duration, particles, time_step)?; 
     println!("mean: {mean}");
     // msd
-    let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
+    let msd = cir.msd(duration, particles, time_step)?; 
     println!("MSD: {msd}");
     // FPT
     let max_duration = 1000.0;
@@ -289,6 +306,7 @@ fn main() -> XResult<()> {
     let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
     println!("EATAMSD: {eatamsd}");
 
+    let traj = cir.duration(duration)?;
     // Visualization
     let config = PlotConfigBuilder::default()
         .time_step(time_step)
@@ -305,6 +323,7 @@ fn main() -> XResult<()> {
     Ok(())
 }
 ```
+
 **结果：**
 ```
 mean: 0.9957644815350275

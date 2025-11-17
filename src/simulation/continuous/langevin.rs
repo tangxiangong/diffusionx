@@ -74,25 +74,11 @@ where
     D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
     G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
 {
-    /// Simulate the Langevin equation
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration.
-    /// * `time_step` - The time step.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::continuous::Langevin;
-    ///
-    /// let drift = |x: f64, _t: f64| x;
-    /// let diffusion = |_x: f64, _t: f64| 1.0;
-    /// let start_position = 0.0;
-    /// let langevin = Langevin::new(drift, diffusion, start_position).unwrap();
-    /// let (t, x) = langevin.simulate(1.0, 0.01).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -102,33 +88,28 @@ where
         )
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> f64 {
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
         let num_steps = (duration / time_step).ceil() as usize;
-        let actual_time_step = duration / num_steps as f64;
+        let noise = normal::standard_rands::<f64>(num_steps);
+        let sigma = time_step.sqrt();
+        let mut current_x = self.start_position;
 
-        let mut prev_x = self.start_position;
-        let mut current_x;
+        for i in 0..num_steps - 1 {
+            let current_t = i as f64 * time_step;
+            let xi = unsafe { *noise.get_unchecked(i) };
 
-        // let mut prev_t = 0.0;
-        let mut current_t;
-
-        // let noise = normal::standard_rands::<f64>(num_steps);
-        let sigma = actual_time_step.sqrt();
-        let drift = &self.drift_func;
-        let diffusion = &self.diffusion_func;
-
-        for i in 0..num_steps {
-            current_t = (i + 1) as f64 * actual_time_step;
-            let xi: f64 = normal::standard_rand();
-
-            current_x = prev_x
-                + drift(prev_x, current_t) * actual_time_step
-                + diffusion(prev_x, current_t) * xi * sigma;
-
-            prev_x = current_x;
+            current_x += self.get_drift_func()(current_x, current_t) * time_step
+                + self.get_diffusion_func()(current_x, current_t) * xi * sigma;
         }
 
-        prev_x - self.start_position
+        let current_t = (num_steps - 1) as f64 * time_step;
+        let last_step = duration - current_t;
+
+        let xi = unsafe { *noise.get_unchecked(num_steps - 1) };
+        current_x += self.get_drift_func()(current_x, current_t) * last_step
+            + self.get_diffusion_func()(current_x, current_t) * xi * sigma;
+
+        Ok(current_x - self.start_position)
     }
 }
 
@@ -164,31 +145,34 @@ where
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
     let num_steps = (duration / time_step).ceil() as usize;
-    let actual_time_step = duration / num_steps as f64;
-    let mut x = Vec::with_capacity(num_steps + 1);
-    x.push(start_position);
 
     let mut t = Vec::with_capacity(num_steps + 1);
+    let mut x = Vec::with_capacity(num_steps + 1);
+
     t.push(0.0);
-    let noise = normal::standard_rands::<f64>(num_steps);
-    let sigma = actual_time_step.sqrt();
-    unsafe {
-        for i in 0..num_steps {
-            let current_x = *x.get_unchecked(i);
-            let next_t = (i + 1) as f64 * actual_time_step;
-            let xi = *noise.get_unchecked(i);
+    x.push(start_position);
 
-            let next_x = current_x
-                + drift(current_x, next_t) * actual_time_step
-                + diffusion(current_x, next_t) * xi * sigma;
+    let noise = normal::standard_rands::<f64>(num_steps - 1);
+    let sigma = time_step.sqrt();
 
-            x.push(next_x);
-            t.push(next_t);
-        }
+    let mut current_t = 0.0;
+    let mut current_x = start_position;
+    for xi in noise {
+        current_x +=
+            drift(current_x, current_t) * time_step + diffusion(current_x, current_t) * xi * sigma;
+        x.push(current_x);
+        current_t += time_step;
+        t.push(current_t);
     }
-    if let Some(last_t) = t.last_mut() {
-        *last_t = duration;
-    }
+
+    let last_step = duration - current_t;
+    let sigma = last_step.sqrt();
+    let xi = normal::standard_rand::<f64>();
+    current_x +=
+        drift(current_x, current_t) * last_step + diffusion(current_x, current_t) * xi * sigma;
+    x.push(current_x);
+    t.push(duration);
+
     Ok((t, x))
 }
 

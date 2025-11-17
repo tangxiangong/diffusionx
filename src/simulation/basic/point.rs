@@ -8,6 +8,42 @@ use std::sync::Arc;
 
 /// Point process trait
 pub trait PointProcess: Send + Sync {
+    /// Get the starting position
+    fn start(&self) -> f64;
+
+    /// Get the ending position
+    fn end(&self, duration: f64) -> XResult<f64> {
+        Ok(self.start() + self.displacement(duration)?)
+    }
+
+    /// Get the displacement of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    fn displacement(&self, duration: f64) -> XResult<f64> {
+        let mut num_step = duration.ceil() as usize;
+        let (t, x) = loop {
+            let (t, x) = self.simulate_with_step(num_step)?;
+            if t.last().is_none() {
+                return Err(SimulationError::Unknown.into());
+            }
+            let end_time = *t.last().unwrap();
+            if end_time >= duration {
+                break (t, x);
+            }
+            num_step *= 2;
+        };
+        let index = t.iter().position(|&time| time >= duration).unwrap();
+
+        let delta_x = if t[index] > duration {
+            x[index - 1] - x[0]
+        } else {
+            x[index] - x[0]
+        };
+
+        Ok(delta_x)
+    }
     /// Simulate the point process with given duration
     ///
     /// # Arguments
@@ -15,14 +51,8 @@ pub trait PointProcess: Send + Sync {
     /// * `duration` - The duration of the simulation.
     fn simulate_with_duration(&self, duration: f64) -> XResult<Pair>
     where
-        Self: Sized, // simulate_with_step is called, which is dyn-dispatchable
+        Self: Sized,
     {
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {duration}"
-            ))
-            .into());
-        }
         let mut num_step = duration.ceil() as usize;
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;
@@ -82,22 +112,18 @@ pub trait PointProcess: Send + Sync {
             .into());
         }
 
-        let values: Vec<f64> = (0..particles)
+        let values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let (_, x) = self.simulate_with_duration(duration)?;
-                let first_position = x.first();
-                let end_position = x.last();
-                match (first_position, end_position) {
-                    (Some(initial), Some(position)) => {
-                        Ok((position - initial) * (position - initial))
-                    }
-                    _ => Err(SimulationError::Unknown.into()),
-                }
+            .map(|_| {
+                let displacement = match self.displacement(duration) {
+                    Ok(displacement) => displacement,
+                    Err(e) => panic!("{}", e),
+                };
+                displacement * displacement
             })
-            .collect::<XResult<Vec<_>>>()?;
+            .sum::<f64>();
 
-        let result = values.into_par_iter().sum::<f64>() / particles as f64;
+        let result = values / (particles as f64);
         Ok(result)
     }
 

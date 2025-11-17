@@ -107,6 +107,10 @@ impl CTRW {
 }
 
 impl PointProcess for CTRW {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     /// Simulate the continuous time random walk
     ///
     /// # Arguments

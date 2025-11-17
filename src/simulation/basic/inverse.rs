@@ -1,8 +1,15 @@
-use crate::{SimulationError, XResult};
-
-use super::{ContinuousProcess, Pair};
+use crate::{
+    SimulationError, XResult,
+    simulation::prelude::{ContinuousProcess, Pair},
+};
 
 /// Inverse process of a continuous process
+///
+/// The inverse process for a continuous monotonic process $X(t)$ is defined as the process that
+///
+/// $$ Y(t) = \inf \{ s\geqslant 0\ |\ X(s)\geqslant t \} $$
+///
+///
 #[derive(Debug, Clone)]
 pub struct InverseProcess<'a, T: ContinuousProcess> {
     /// The process
@@ -26,25 +33,85 @@ impl<'a, T: ContinuousProcess> InverseProcess<'a, T> {
 }
 
 impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        if duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got `{duration}`"
-            ))
-            .into());
-        }
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
-            ))
-            .into());
-        }
-        if time_step > duration {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-            ))
-            .into());
-        }
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let mut mut_duration = duration;
+        let (t, s) = loop {
+            let (t, s) = self.process.simulate(mut_duration, time_step)?;
+            let last = match s.last() {
+                Some(x) => *x,
+                None => return Err(SimulationError::Unknown.into()),
+            };
+            if last >= duration {
+                break (t, s);
+            }
+            mut_duration *= 2.0;
+        };
+
+        let target_time = duration;
+        let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {
+            Ok(idx) => idx,
+            Err(idx) => {
+                if idx >= s.len() {
+                    s.len() - 1
+                } else {
+                    idx
+                }
+            }
+        };
+        let end = t[pos];
+
+        let target_time = 0.0;
+        let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {
+            Ok(idx) => idx,
+            Err(idx) => {
+                if idx >= s.len() {
+                    s.len() - 1
+                } else {
+                    idx
+                }
+            }
+        };
+
+        let start = t[pos];
+
+        Ok(end - start)
+    }
+
+    fn start(&self) -> f64 {
+        panic!("Not implemented")
+    }
+
+    fn end(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let mut mut_duration = duration;
+        let (t, s) = loop {
+            let (t, s) = self.process.simulate(mut_duration, time_step)?;
+            let last = match s.last() {
+                Some(x) => *x,
+                None => return Err(SimulationError::Unknown.into()),
+            };
+            if last >= duration {
+                break (t, s);
+            }
+            mut_duration *= 2.0;
+        };
+
+        let target_time = duration;
+        let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {
+            Ok(idx) => idx,
+            Err(idx) => {
+                if idx >= s.len() {
+                    s.len() - 1
+                } else {
+                    idx
+                }
+            }
+        };
+        let end = t[pos];
+
+        Ok(end)
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let mut mut_duration = duration;
         let (t, s) = loop {
             let (t, s) = self.process.simulate(mut_duration, time_step)?;

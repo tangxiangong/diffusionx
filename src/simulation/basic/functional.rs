@@ -67,24 +67,6 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     /// ```
     pub fn simulate(&self, max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>> {
         let max_duration = max_duration.into();
-        if max_duration <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{max_duration}`"
-            ))
-            .into());
-        }
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
-            ))
-            .into());
-        }
-        if time_step > max_duration {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be less than or equal to the `max_duration`, got `{time_step}` > `{max_duration}`"
-            ))
-            .into());
-        }
         let (a, b) = self.domain;
         let find = |x: &[f64]| x.iter().position(|&pos| pos <= a || pos >= b);
         let mut duration = (max_duration / 10.0).min(10.0);
@@ -158,15 +140,11 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
         // Collect all valid FPT values
         let valid_values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<Option<f64>> {
-                let fpt = self.simulate(max_duration, time_step)?;
-                match fpt {
-                    Some(t) => Ok(Some(t.powi(order))),
-                    None => Ok(None),
-                }
+            .map(|_| {
+                self.simulate(max_duration, time_step)
+                    .unwrap()
+                    .map(|t| t.powi(order))
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
             .filter_map(|x| x)
             .collect::<Vec<_>>();
 
@@ -209,12 +187,6 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             ))
             .into());
         }
-        if time_step <= 0.0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
-            ))
-            .into());
-        }
         let mean = self.raw_moment(order, particles, max_duration, time_step)?;
         if mean.is_none() {
             return Ok(None);
@@ -222,15 +194,11 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
         let mean = mean.unwrap();
         let valid_values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<Option<f64>> {
-                let fpt = self.simulate(max_duration, time_step)?;
-                match fpt {
-                    Some(t) => Ok(Some((t - mean).powi(order))),
-                    None => Ok(None),
-                }
+            .map(|_| {
+                self.simulate(max_duration, time_step)
+                    .unwrap()
+                    .map(|t| (t - mean).powi(order))
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
             .filter_map(|x| x)
             .collect::<Vec<_>>();
 
@@ -363,12 +331,10 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
 
         let result = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let occupation_time = self.simulate(time_step)?;
-                Ok(occupation_time.powi(order))
+            .map(|_| {
+                let occupation_time = self.simulate(time_step).unwrap();
+                occupation_time.powi(order)
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
             .sum::<f64>()
             / particles as f64;
         Ok(result)
@@ -411,12 +377,10 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
         let mean = self.raw_moment(order, particles, time_step)?;
         let result = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let occupation_time = self.simulate(time_step)?;
-                Ok((occupation_time - mean).powi(order))
+            .map(|_| {
+                let occupation_time = self.simulate(time_step).unwrap();
+                (occupation_time - mean).powi(order)
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
             .sum::<f64>()
             / particles as f64;
         Ok(result)
@@ -491,15 +455,11 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
         // 使用元组来同时跟踪总和和有效样本数
         let valid_values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<Option<f64>> {
-                let fpt = self.simulate_p(max_duration)?;
-                match fpt {
-                    Some(t) => Ok(Some(t.powi(order))),
-                    None => Ok(None),
-                }
+            .map(|_| {
+                self.simulate_p(max_duration)
+                    .unwrap()
+                    .map(|t| t.powi(order))
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
             .filter_map(|x| x)
             .collect::<Vec<_>>();
         Ok(average(&valid_values))
@@ -541,15 +501,11 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
         let mean = mean.unwrap();
         let valid_values = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<Option<f64>> {
-                let fpt = self.simulate_p(max_duration)?;
-                match fpt {
-                    Some(t) => Ok(Some((t - mean).powi(order))),
-                    None => Ok(None),
-                }
+            .map(|_| {
+                self.simulate_p(max_duration)
+                    .unwrap()
+                    .map(|t| (t - mean).powi(order))
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
             .filter_map(|x| x)
             .collect::<Vec<_>>();
 
@@ -586,12 +542,10 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
 
         let result = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let occupation_time = self.simulate_p()?;
-                Ok(occupation_time.powi(order))
+            .map(|_| {
+                let occupation_time = self.simulate_p().unwrap();
+                occupation_time.powi(order)
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
             .sum::<f64>()
             / particles as f64;
         Ok(result)
@@ -616,12 +570,10 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
         let mean = self.raw_moment_p(order, particles)?;
         let result = (0..particles)
             .into_par_iter()
-            .map(|_| -> XResult<f64> {
-                let occupation_time = self.simulate_p()?;
-                Ok((occupation_time - mean).powi(order))
+            .map(|_| {
+                let occupation_time = self.simulate_p().unwrap();
+                (occupation_time - mean).powi(order)
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
             .sum::<f64>()
             / particles as f64;
         Ok(result)

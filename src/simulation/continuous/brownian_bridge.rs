@@ -1,34 +1,26 @@
 //! Brownian bridge simulation
 
-use crate::{SimulationError, XResult, simulation::prelude::*};
+use crate::{
+    SimulationError, XResult,
+    simulation::{continuous::Bm, prelude::*},
+};
 use rayon::prelude::*;
-
-use super::Bm;
 
 /// Brownian bridge
 #[derive(Debug, Clone)]
 pub struct BrownianBridge;
 
 impl ContinuousProcess for BrownianBridge {
-    /// Simulate Brownian bridge
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the trajectory.
-    /// * `time_step` - The time step of the simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::BrownianBridge, prelude::*};
-    ///
-    /// let bb = BrownianBridge;
-    /// let time_step = 0.1;
-    /// let duration = 1.0;
-    /// let (t, x) = bb.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_brownian_bridge(duration, time_step)
+    }
+
+    fn displacement(&self, _: f64, _: f64) -> XResult<f64> {
+        Ok(0.0)
     }
 }
 
@@ -49,26 +41,8 @@ impl ContinuousProcess for BrownianBridge {
 /// let (t, x) = simulate_brownian_bridge(duration, time_step).unwrap();
 /// ```
 pub fn simulate_brownian_bridge(duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{time_step}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
     let bm = Bm::default();
-    let (t, traj) = bm.simulate(duration, time_step)?;
+    let (t, traj) = bm.simulate_unchecked(duration, time_step)?;
     let end_position = match traj.last() {
         Some(x) => *x,
         None => return Err(SimulationError::Unknown.into()),

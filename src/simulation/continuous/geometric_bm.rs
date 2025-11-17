@@ -1,9 +1,10 @@
 //! Geometric Brownian motion simulation
 
-use crate::{SimulationError, XResult, simulation::prelude::*};
+use crate::{
+    SimulationError, XResult,
+    simulation::{continuous::Bm, prelude::*},
+};
 use rayon::prelude::*;
-
-use super::Bm;
 
 /// Geometric Brownian motion
 #[derive(Debug, Clone)]
@@ -72,24 +73,11 @@ impl GeometricBm {
 }
 
 impl ContinuousProcess for GeometricBm {
-    /// Simulate geometric Brownian motion
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration.
-    /// * `time_step` - The time step.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::GeometricBm, prelude::*};
-    ///
-    /// let gbm = GeometricBm::default();
-    /// let time_step = 0.1;
-    /// let duration = 1.0;
-    /// let (t, x) = gbm.simulate(duration, time_step).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_gbm(
             self.start_position,
             self.mu,
@@ -97,6 +85,18 @@ impl ContinuousProcess for GeometricBm {
             duration,
             time_step,
         )
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let bm = Bm::default();
+        let (t, b) = bm.simulate(duration, time_step)?;
+        let tmp = self.mu - self.sigma * self.sigma / 2.0;
+        let x = t
+            .into_par_iter()
+            .zip(b)
+            .map(|(t_i, b_i)| self.start_position * (tmp * t_i + self.sigma * b_i).exp())
+            .sum::<f64>();
+        Ok(x)
     }
 }
 
@@ -129,30 +129,6 @@ pub fn simulate_gbm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if sigma <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The percentage volatility `sigma` must be positive, got {sigma}"
-        ))
-        .into());
-    }
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{time_step}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
     let bm = Bm::default();
     let (t, b) = bm.simulate(duration, time_step)?;
     let tmp = mu - sigma * sigma / 2.0;

@@ -1,7 +1,6 @@
 //! Subordinator simulation
 
 use crate::{SimulationError, XResult, random::stable, simulation::prelude::*};
-use rayon::prelude::*;
 
 /// alpha-stable subordinator
 ///
@@ -45,23 +44,28 @@ impl Subordinator {
 }
 
 impl ContinuousProcess for Subordinator {
-    /// Simulate subordinator
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration of the subordinator simulation.
-    /// * `time_step` - The time step of the subordinator simulation.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::Subordinator, prelude::*};
-    ///
-    /// let subordinator = Subordinator::new(0.5).unwrap();
-    /// let (t, x) = subordinator.simulate(1.0, 0.1).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_subordinator(self.alpha, duration, time_step)
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let num_steps = (duration / time_step).ceil() as usize;
+        let power = 1.0 / self.alpha;
+        let sigma = time_step.powf(power);
+        let noise = stable::skew_rands(self.alpha, num_steps)?;
+
+        let mut sum = 0.0;
+        for i in 0..num_steps - 1 {
+            sum += unsafe { *noise.get_unchecked(i) } * sigma;
+        }
+        let last_step = duration - (num_steps - 1) as f64 * time_step;
+        let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
+        sum += last_noise * last_step;
+        Ok(sum)
     }
 }
 
@@ -85,62 +89,31 @@ pub fn simulate_subordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    // if alpha <= 0.0 || alpha > 1.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `alpha` must be in the range (0, 1], got {alpha}"
-    //     ))
-    //     .into());
-    // }
-    // if time_step <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be positive, got {time_step}"
-    //     ))
-    //     .into());
-    // }
-    // if duration <= 0.0 {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `duration` must be positive, got `{duration}`"
-    //     ))
-    //     .into());
-    // }
-    // if time_step > duration {
-    //     return Err(SimulationError::InvalidParameters(format!(
-    //         "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-    //     ))
-    //     .into());
-    // }
-
     let num_steps = (duration / time_step).ceil() as usize;
-    let actual_time_step = duration / num_steps as f64;
+    let power = 1.0 / alpha;
+    let sigma = time_step.powf(power);
+    let noise = stable::skew_rands(alpha, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
+    let mut x = Vec::with_capacity(num_steps + 1);
 
-    let power = 1.0 / alpha;
-    let dt_power = actual_time_step.powf(power);
-    let noise = stable::skew_rands(alpha, num_steps)?
-        .into_par_iter()
-        .map(|x| x * dt_power)
-        .collect::<Vec<_>>();
+    t.push(0.0);
+    x.push(0.0);
 
-    let x = unsafe {
-        let mut x = Vec::with_capacity(num_steps + 1);
-        x.push(0.0);
-        t.push(0.0);
-
-        let mut sum = 0.0;
-        for i in 0..num_steps {
-            let current_t = (i + 1) as f64 * actual_time_step;
-            sum += *noise.get_unchecked(i);
-            x.push(sum);
-            t.push(current_t);
-        }
-
-        x
-    };
-
-    if let Some(last_t) = t.last_mut() {
-        *last_t = duration;
+    let mut current_x = 0.0;
+    let mut current_t = 0.0;
+    for xi in noise {
+        current_x += xi * sigma;
+        x.push(current_x);
+        current_t += time_step;
+        t.push(current_t);
     }
+    let last_step = duration - current_t;
+    let xi = stable::skew_rand(alpha)?;
+    let sigma = last_step.powf(power);
+    current_x += xi * sigma;
+    x.push(current_x);
+    t.push(duration);
 
     Ok((t, x))
 }
@@ -183,23 +156,51 @@ impl InvSubordinator {
 }
 
 impl ContinuousProcess for InvSubordinator {
-    /// Simulate inverse subordinator
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The duration
-    /// * `time_step` - The time step
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use diffusionx::simulation::{continuous::InvSubordinator, prelude::*};
-    ///
-    /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
-    /// let (t, x) = inv_subordinator.simulate(1.0, 0.1).unwrap();
-    /// ```
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn start(&self) -> f64 {
+        0.0
+    }
+
+    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_invsubordinator(self.alpha, duration, time_step)
+    }
+
+    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let mut mut_duration = duration;
+        let (t, s) = loop {
+            let (t, s) = simulate_subordinator(self.alpha, mut_duration, time_step)?;
+            let last = match s.last() {
+                Some(x) => *x,
+                None => return Err(SimulationError::Unknown.into()),
+            };
+            if last >= duration {
+                break (t, s);
+            }
+            mut_duration *= 2.0;
+        };
+
+        let num_inv_steps = (duration / time_step).ceil() as usize;
+
+        let mut inv_times = Vec::with_capacity(num_inv_steps + 1);
+
+        for i in 0..=num_inv_steps - 1 {
+            inv_times.push(i as f64 * time_step);
+        }
+        inv_times.push(duration);
+
+        let target_time = duration;
+
+        let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {
+            Ok(idx) => idx,
+            Err(idx) => {
+                if idx >= s.len() {
+                    s.len() - 1
+                } else {
+                    idx
+                }
+            }
+        };
+
+        Ok(t[pos])
     }
 }
 
@@ -223,30 +224,6 @@ pub fn simulate_invsubordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if alpha <= 0.0 || alpha > 1.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `alpha` must be in the range (0, 1], got {alpha}"
-        ))
-        .into());
-    }
-    if time_step <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got {time_step}"
-        ))
-        .into());
-    }
-    if duration <= 0.0 {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got `{duration}`"
-        ))
-        .into());
-    }
-    if time_step > duration {
-        return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
-        ))
-        .into());
-    }
     let mut mut_duration = duration;
     let (t, s) = loop {
         let (t, s) = simulate_subordinator(alpha, mut_duration, time_step)?;
@@ -260,21 +237,15 @@ pub fn simulate_invsubordinator(
         mut_duration *= 2.0;
     };
 
-    // 计算逆过程的时间点，避免使用 linspace
     let num_inv_steps = (duration / time_step).ceil() as usize;
-    let actual_inv_time_step = duration / num_inv_steps as f64;
 
     let mut inv_times = Vec::with_capacity(num_inv_steps + 1);
     let mut inv_path = Vec::with_capacity(num_inv_steps + 1);
 
-    for i in 0..=num_inv_steps {
-        inv_times.push(i as f64 * actual_inv_time_step);
+    for i in 0..=num_inv_steps - 1 {
+        inv_times.push(i as f64 * time_step);
     }
-
-    // 确保最后一个时间点精确等于 duration
-    if let Some(last_t) = inv_times.last_mut() {
-        *last_t = duration;
-    }
+    inv_times.push(duration);
 
     for &target_time in &inv_times {
         let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {
