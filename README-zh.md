@@ -112,7 +112,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 > ```toml
 > # In your Cargo.toml
 > [dependencies]
-> diffusionx = { version = "0.5", features = ["visualize"] }
+> diffusionx = { version = "0.6", features = ["visualize"] }
 > ```
 
 
@@ -166,7 +166,11 @@ DiffusionX 采用基于 trait 的系统设计，具有高度的可扩展性和�
    }
 
    impl ContinuousProcess for MyProcess {
-       fn simulate(
+       fn start(&self) -> f64 {
+           0.0  // 或者您希望的起始位置
+       }
+
+       fn simulate_unchecked(
             &self,
             duration: f64,
             time_step: f64
@@ -239,6 +243,10 @@ impl CIR {
 }
 
 impl ContinuousProcess for CIR {
+    fn start(&self) -> f64 {
+        self.start_position
+    }
+
     fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let t = linspace(0.0, duration, time_step);
         let num_steps = t.len() - 1;
