@@ -2,7 +2,7 @@
 name = "diffusionx"
 authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.6.0"
+version = "0.6.1"
 description = "A multi-threaded crate for random number generation and stochastic process simulation."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
@@ -10,7 +10,6 @@ readme = "README.md"
 categories = ["science", "mathematics"]
 keywords = ["stochastic-process", "simulation", "Monte-Carlo"]
 rust-version = "1.87"
-exclude = ["kernels", "src/gpu"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -21,7 +20,6 @@ name = "diffusionx"
 doctest = false
 
 [features]
-default = []
 visualize = [
     "dep:plotters",
     "dep:derive_builder",
@@ -29,8 +27,6 @@ visualize = [
     "dep:either",
 ]
 io = ["dep:csv"]
-# cuda = ["dep:cudarc", "dep:bytemuck", "dep:cuda-kernel"]
-# metal = ["dep:metal", "dep:objc", "dep:metal-kernel"]
 
 [dependencies]
 csv = { version = "1.4", optional = true }
@@ -46,15 +42,6 @@ rand_distr = "0.5"
 rayon = "1.11"
 realfft = "3.5"
 thiserror = "2"
-
-# # GPU acceleration dependencies
-# cudarc = { version = "0.17", optional = true, features = ["std", "cuda-version-from-build-system"] }
-# bytemuck = { version = "1.14", optional = true }
-# metal = { version = "0.32", optional = true }
-# objc = { version = "0.2", optional = true }
-# cuda-kernel = { path = "./cuda-kernel", optional = true }
-# metal-kernel = { path = "./metal-kernel", optional = true }
-
 
 [dev-dependencies]
 criterion = "0.7"
@@ -102,15 +89,11 @@ doc-scrape-examples = false
 name = "randoms"
 doc-scrape-examples = false
 
-[[example]]
-name = "langevin-bench"
-path = "examples/timeit/langevin.rs"
-doc-scrape-examples = false
-
 [profile.release]
 lto = true
 codegen-units = 1
 panic = "abort"
+cpu-target = "native"
 
 [[bench]]
 name = "simulation"

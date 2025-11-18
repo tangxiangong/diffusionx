@@ -89,25 +89,35 @@ where
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        let drift = self.get_drift_func();
+        let diffusion = self.get_diffusion_func();
+
         let num_steps = (duration / time_step).ceil() as usize;
-        let noise = normal::standard_rands::<f64>(num_steps);
-        let sigma = time_step.sqrt();
+
+        let mut sigma = time_step.sqrt();
         let mut current_x = self.start_position;
+        let mut current_t = 0.0;
+        let mut mu;
+        let mut diffusivity;
+        let mut xi;
 
-        for i in 0..num_steps - 1 {
-            let current_t = i as f64 * time_step;
-            let xi = unsafe { *noise.get_unchecked(i) };
-
-            current_x += self.get_drift_func()(current_x, current_t) * time_step
-                + self.get_diffusion_func()(current_x, current_t) * xi * sigma;
+        for _ in 0..num_steps - 1 {
+            xi = normal::standard_rand::<f64>();
+            mu = drift(current_x, current_t);
+            diffusivity = diffusion(current_x, current_t);
+            current_x += mu.mul_add(time_step, current_x);
+            current_x += diffusivity * xi * sigma;
+            current_t += time_step;
         }
 
-        let current_t = (num_steps - 1) as f64 * time_step;
         let last_step = duration - current_t;
+        sigma = last_step.sqrt();
+        xi = normal::standard_rand::<f64>();
+        mu = drift(current_x, current_t);
+        diffusivity = diffusion(current_x, current_t);
 
-        let xi = unsafe { *noise.get_unchecked(num_steps - 1) };
-        current_x += self.get_drift_func()(current_x, current_t) * last_step
-            + self.get_diffusion_func()(current_x, current_t) * xi * sigma;
+        current_x += mu.mul_add(last_step, current_x);
+        current_x += diffusivity * xi * sigma;
 
         Ok(current_x - self.start_position)
     }
@@ -152,24 +162,31 @@ where
     t.push(0.0);
     x.push(start_position);
 
-    let noise = normal::standard_rands::<f64>(num_steps - 1);
-    let sigma = time_step.sqrt();
+    let mut sigma = time_step.sqrt();
 
     let mut current_t = 0.0;
     let mut current_x = start_position;
-    for xi in noise {
-        current_x +=
-            drift(current_x, current_t) * time_step + diffusion(current_x, current_t) * xi * sigma;
-        x.push(current_x);
+    let mut mu;
+    let mut diffusivity;
+    let mut xi;
+    for _ in 0..num_steps - 1 {
+        xi = normal::standard_rand::<f64>();
+        mu = drift(current_x, current_t);
+        diffusivity = diffusion(current_x, current_t);
+        current_x += mu.mul_add(time_step, current_x);
+        current_x += diffusivity * xi * sigma;
         current_t += time_step;
         t.push(current_t);
+        x.push(current_x);
     }
 
     let last_step = duration - current_t;
-    let sigma = last_step.sqrt();
-    let xi = normal::standard_rand::<f64>();
-    current_x +=
-        drift(current_x, current_t) * last_step + diffusion(current_x, current_t) * xi * sigma;
+    sigma = last_step.sqrt();
+    xi = normal::standard_rand::<f64>();
+    mu = drift(current_x, current_t);
+    diffusivity = diffusion(current_x, current_t);
+    current_x += mu.mul_add(last_step, current_x);
+    current_x += diffusivity * xi * sigma;
     x.push(current_x);
     t.push(duration);
 
