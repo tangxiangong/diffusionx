@@ -1,6 +1,12 @@
 //! Subordinator simulation
 
-use crate::{SimulationError, XResult, random::stable, simulation::prelude::*};
+use crate::{
+    SimulationError, XResult,
+    random::stable::{self, sample_standard_alpha},
+    simulation::prelude::*,
+};
+use rand::rng;
+use rayon::prelude::*;
 
 /// alpha-stable subordinator
 ///
@@ -56,16 +62,15 @@ impl ContinuousProcess for Subordinator {
         let num_steps = (duration / time_step).ceil() as usize;
         let power = 1.0 / self.alpha;
         let sigma = time_step.powf(power);
-        let noise = stable::skew_rands(self.alpha, num_steps)?;
+        let generator = sample_standard_alpha;
+        let mut delta_x = (0..num_steps - 1)
+            .into_par_iter()
+            .map_init(rng, |r, _| sigma * generator(self.alpha, 1.0, r))
+            .sum();
 
-        let mut sum = 0.0;
-        for i in 0..num_steps - 1 {
-            sum += unsafe { *noise.get_unchecked(i) } * sigma;
-        }
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
-        sum += last_noise * last_step;
-        Ok(sum)
+        delta_x += generator(self.alpha, 1.0, &mut rng()) * last_step.powf(power);
+        Ok(delta_x)
     }
 }
 

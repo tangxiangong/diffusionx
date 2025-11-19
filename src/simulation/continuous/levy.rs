@@ -2,7 +2,13 @@
 //!
 //! The Lévy process is a process with independent and stationary increments.
 
-use crate::{SimulationError, XResult, random::stable, simulation::prelude::*};
+use crate::{
+    SimulationError, XResult,
+    random::stable::{self, sample_standard_alpha, sample_standard_alpha_one},
+    simulation::prelude::*,
+};
+use rand::rng;
+use rayon::prelude::*;
 
 /// Asymmetric Lévy process
 #[derive(Debug, Clone)]
@@ -93,16 +99,19 @@ impl ContinuousProcess for AsymmetricLevy {
         let num_steps = (duration / time_step).ceil() as usize;
         let power = 1.0 / self.alpha;
         let sigma = time_step.powf(power);
-        let noise = stable::standard_rands(self.alpha, self.beta, num_steps)?;
+        let generator = if self.alpha == 1.0 {
+            sample_standard_alpha_one
+        } else {
+            sample_standard_alpha
+        };
+        let mut delta_x = (0..num_steps - 1)
+            .into_par_iter()
+            .map_init(rng, |r, _| sigma * generator(self.alpha, self.beta, r))
+            .sum();
 
-        let mut sum = self.start_position;
-        for i in 0..num_steps - 1 {
-            sum += unsafe { *noise.get_unchecked(i) } * sigma;
-        }
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
-        sum += last_noise * last_step;
-        Ok(sum - self.start_position)
+        delta_x += generator(self.alpha, self.beta, &mut rng()) * last_step.powf(power);
+        Ok(delta_x)
     }
 }
 
@@ -223,16 +232,19 @@ impl ContinuousProcess for Levy {
         let num_steps = (duration / time_step).ceil() as usize;
         let power = 1.0 / self.alpha;
         let sigma = time_step.powf(power);
-        let noise = stable::sym_standard_rands(self.alpha, num_steps)?;
+        let generator = if self.alpha == 1.0 {
+            sample_standard_alpha_one
+        } else {
+            sample_standard_alpha
+        };
+        let mut delta_x = (0..num_steps - 1)
+            .into_par_iter()
+            .map_init(rng, |r, _| sigma * generator(self.alpha, 0.0, r))
+            .sum();
 
-        let mut sum = self.start_position;
-        for i in 0..num_steps - 1 {
-            sum += unsafe { *noise.get_unchecked(i) } * sigma;
-        }
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
-        sum += last_noise * last_step;
-        Ok(sum - self.start_position)
+        delta_x += generator(self.alpha, 0.0, &mut rng()) * last_step.powf(power);
+        Ok(delta_x)
     }
 }
 

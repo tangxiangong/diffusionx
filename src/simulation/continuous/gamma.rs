@@ -1,6 +1,8 @@
 //! Gamma process simulation
 
-use crate::{SimulationError, XResult, random::gamma, simulation::prelude::*};
+use crate::{SimulationError, XError, XResult, random::gamma, simulation::prelude::*};
+use rand::{Rng, rng};
+use rayon::prelude::*;
 
 /// Gamma process
 ///
@@ -70,14 +72,18 @@ impl ContinuousProcess for Gamma {
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
         let num_steps = (duration / time_step).ceil() as usize;
-
         let scale = 1.0 / self.rate;
-        let mut noise = gamma::rands(self.shape * time_step, scale, num_steps)?;
-        let last_step = duration - ((num_steps - 1) as f64 * time_step);
-        let noise_last = gamma::rand(self.shape * last_step, scale)?;
-        *noise.last_mut().unwrap() = noise_last;
+        let gamma = rand_distr::Gamma::new(self.shape, scale)
+            .map_err(|e| XError::InvalidParameters(e.to_string()))?;
+        let mut delta_x = (0..num_steps - 1)
+            .into_par_iter()
+            .map_init(rng, |r, _| r.sample(gamma))
+            .sum();
 
-        Ok(noise.into_iter().sum())
+        let last_step = duration - ((num_steps - 1) as f64 * time_step);
+        delta_x += gamma::rand(self.shape * last_step, scale)?;
+
+        Ok(delta_x)
     }
 }
 

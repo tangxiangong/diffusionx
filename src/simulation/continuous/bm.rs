@@ -1,6 +1,8 @@
 //! Brownian motion simulation
 
 use crate::{SimulationError, XResult, random::normal, simulation::prelude::*};
+use rand::{Rng, rng};
+use rayon::prelude::*;
 
 /// Brownian motion
 #[derive(Debug, Clone)]
@@ -72,14 +74,15 @@ impl ContinuousProcess for Bm {
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
         let num_steps = (duration / time_step).ceil() as usize;
-
         let std_dev = (2.0 * self.diffusion_coefficient * time_step).sqrt();
-        let mut noise = normal::rands(0.0, std_dev, num_steps)?;
+        let normal = rand_distr::Normal::new(0.0, std_dev)?;
+        let mut delta_x = (0..num_steps - 1)
+            .into_par_iter()
+            .map_init(rng, |r, _| r.sample(normal))
+            .sum();
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        *noise.last_mut().unwrap() =
-            2.0 * self.diffusion_coefficient * last_step * normal::standard_rand::<f64>();
-
-        Ok(noise.iter().sum())
+        delta_x += 2.0 * self.diffusion_coefficient * last_step * normal::standard_rand::<f64>();
+        Ok(delta_x)
     }
 }
 
