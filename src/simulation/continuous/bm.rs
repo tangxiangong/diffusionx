@@ -81,7 +81,8 @@ impl ContinuousProcess for Bm {
             .map_init(rng, |r, _| r.sample(normal))
             .sum();
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        delta_x += 2.0 * self.diffusion_coefficient * last_step * normal::standard_rand::<f64>();
+        delta_x +=
+            (2.0 * self.diffusion_coefficient * last_step).sqrt() * normal::standard_rand::<f64>();
         Ok(delta_x)
     }
 }
