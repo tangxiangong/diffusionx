@@ -93,7 +93,6 @@ doc-scrape-examples = false
 lto = true
 codegen-units = 1
 panic = "abort"
-cpu-target = "native"
 
 [[bench]]
 name = "simulation"

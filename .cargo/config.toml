@@ -1,2 +1,3 @@
 [build]
-rustdocflags = [ "--html-in-header", "./docs-header.html" ]
+rustdocflags = ["--html-in-header", "./docs-header.html"]
+rustflags = ["-C", "target-cpu=native"]
