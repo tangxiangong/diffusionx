@@ -122,7 +122,7 @@ where
         let drift = self.get_drift_func();
         let diffusion = self.get_diffusion_func();
         let num_steps = (duration / time_step).ceil() as usize;
-        let mut sigma = time_step.powf(1.0 / self.alpha);
+        let mut scale = time_step.powf(1.0 / self.alpha);
 
         let mut current_t = 0.0;
         let mut current_x = self.start_position;
@@ -134,14 +134,14 @@ where
         for xi in noises {
             mu = drift(current_x, current_t);
             diffusivity = diffusion(current_x, current_t);
-            current_x += mu * time_step + diffusivity * xi * sigma;
+            current_x += mu * time_step + diffusivity * xi * scale;
             current_t += time_step;
         }
         let last_step = duration - current_t;
-        sigma = last_step.powf(1.0 / self.alpha);
+        scale = last_step.powf(1.0 / self.alpha);
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
-        current_x += mu * last_step + diffusivity * stable::sym_standard_rand(self.alpha)? * sigma;
+        current_x += mu * last_step + diffusivity * stable::sym_standard_rand(self.alpha)? * scale;
         Ok(current_x - self.start_position)
     }
 }
@@ -200,7 +200,7 @@ where
     t.push(0.0);
     x.push(start_position);
 
-    let mut sigma = time_step.powf(1.0 / alpha);
+    let mut scale = time_step.powf(1.0 / alpha);
 
     let mut current_x = start_position;
     let mut current_t = 0.0;
@@ -212,17 +212,17 @@ where
     for xi in noises {
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
-        current_x += mu * time_step + diffusivity * xi * sigma;
+        current_x += mu * time_step + diffusivity * xi * scale;
         x.push(current_x);
         current_t += time_step;
         t.push(current_t);
     }
 
     let last_step = duration - current_t;
-    sigma = last_step.powf(1.0 / alpha);
+    scale = last_step.powf(1.0 / alpha);
     mu = drift(current_x, current_t);
     diffusivity = diffusion(current_x, current_t);
-    current_x += mu * last_step + diffusivity * stable::sym_standard_rand(alpha)? * sigma;
+    current_x += mu * last_step + diffusivity * stable::sym_standard_rand(alpha)? * scale;
     t.push(duration);
     x.push(current_x);
     Ok((t, x))

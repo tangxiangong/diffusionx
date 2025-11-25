@@ -96,7 +96,7 @@ where
 
         let num_steps = (duration / time_step).ceil() as usize;
 
-        let mut sigma = time_step.sqrt();
+        let mut scale = time_step.sqrt();
         let mut current_x = self.start_position;
         let mut current_t = 0.0;
         let mut mu;
@@ -107,16 +107,16 @@ where
         for xi in noises {
             mu = drift(current_x, current_t);
             diffusivity = diffusion(current_x, current_t);
-            current_x += mu * time_step + diffusivity * xi * sigma;
+            current_x += mu * time_step + diffusivity * xi * scale;
             current_t += time_step;
         }
 
         let last_step = duration - current_t;
-        sigma = last_step.sqrt();
+        scale = last_step.sqrt();
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
 
-        current_x += mu * last_step + diffusivity * normal::standard_rand::<f64>() * sigma;
+        current_x += mu * last_step + diffusivity * normal::standard_rand::<f64>() * scale;
 
         Ok(current_x - self.start_position)
     }
@@ -163,7 +163,7 @@ where
     t.push(0.0);
     x.push(start_position);
 
-    let mut sigma = time_step.sqrt();
+    let mut scale = time_step.sqrt();
     let noises = normal::standard_rands::<f64>(num_steps - 1);
 
     let mut current_t = 0.0;
@@ -174,17 +174,17 @@ where
     for xi in noises {
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
-        current_x += mu * time_step + diffusivity * xi * sigma;
+        current_x += mu * time_step + diffusivity * xi * scale;
         current_t += time_step;
         t.push(current_t);
         x.push(current_x);
     }
 
     let last_step = duration - current_t;
-    sigma = last_step.sqrt();
+    scale = last_step.sqrt();
     mu = drift(current_x, current_t);
     diffusivity = diffusion(current_x, current_t);
-    current_x += mu * last_step + diffusivity * normal::standard_rand::<f64>() * sigma;
+    current_x += mu * last_step + diffusivity * normal::standard_rand::<f64>() * scale;
     x.push(current_x);
     t.push(duration);
 
