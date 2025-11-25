@@ -1,6 +1,9 @@
 //! Gamma process simulation
 
-use crate::{SimulationError, XError, XResult, random::gamma, simulation::prelude::*};
+use crate::{
+    SimulationError, XError, XResult, check_duration_time_step, random::gamma,
+    simulation::prelude::*,
+};
 use rand::{Rng, rng};
 use rayon::prelude::*;
 
@@ -66,7 +69,7 @@ impl ContinuousProcess for Gamma {
         0.0
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_gamma(self.shape, self.rate, duration, time_step)
     }
 
@@ -113,6 +116,8 @@ pub fn simulate_gamma(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
 
     let scale = 1.0 / rate;

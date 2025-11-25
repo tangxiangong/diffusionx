@@ -1,6 +1,8 @@
 //! Brownian motion simulation
 
-use crate::{SimulationError, XResult, random::normal, simulation::prelude::*};
+use crate::{
+    SimulationError, XResult, check_duration_time_step, random::normal, simulation::prelude::*,
+};
 use rand::{Rng, rng};
 use rayon::prelude::*;
 
@@ -63,7 +65,7 @@ impl ContinuousProcess for Bm {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_bm(
             self.start_position,
             self.diffusion_coefficient,
@@ -113,6 +115,8 @@ pub fn simulate_bm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
 
     let std_dev = (2.0 * diffusion_coefficient * time_step).sqrt();

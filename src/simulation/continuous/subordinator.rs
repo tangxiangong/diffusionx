@@ -1,7 +1,7 @@
 //! Subordinator simulation
 
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     random::stable::{self, sample_standard_alpha},
     simulation::prelude::*,
 };
@@ -54,7 +54,7 @@ impl ContinuousProcess for Subordinator {
         0.0
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_subordinator(self.alpha, duration, time_step)
     }
 
@@ -94,6 +94,8 @@ pub fn simulate_subordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
     let power = 1.0 / alpha;
     let sigma = time_step.powf(power);
@@ -165,7 +167,7 @@ impl ContinuousProcess for InvSubordinator {
         0.0
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_invsubordinator(self.alpha, duration, time_step)
     }
 
@@ -229,6 +231,8 @@ pub fn simulate_invsubordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let mut mut_duration = duration;
     let (t, s) = loop {
         let (t, s) = simulate_subordinator(alpha, mut_duration, time_step)?;

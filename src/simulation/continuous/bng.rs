@@ -1,7 +1,7 @@
 //! Brownian yet non-Gaussian process simulation
 
 use crate::{
-    XResult,
+    XResult, check_duration_time_step,
     random::normal,
     simulation::{continuous::simulate_ou, prelude::*},
 };
@@ -63,7 +63,7 @@ impl ContinuousProcess for BnG {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_bng(
             self.start_position,
             self.ou_start_position,
@@ -116,6 +116,8 @@ pub fn simulate_bng(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
+    check_duration_time_step(duration, time_step)?;
+
     let (t, y) = simulate_ou(1.0, 1.0, ou_start_position, duration, time_step)?;
     let noise = normal::standard_rands::<f64>(t.len() - 1);
     let x = std::iter::once(start_position)

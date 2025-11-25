@@ -1,7 +1,7 @@
 //! Brownian excursion simulation
 
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     simulation::{continuous::BrownianBridge, prelude::*},
     utils::minmax,
 };
@@ -29,7 +29,7 @@ impl BrownianExcursion {
     /// ```
     pub fn fpt(&self, domain: (f64, f64), time_step: f64) -> XResult<Option<f64>> {
         let (a, b) = domain;
-        let (t, x) = self.simulate_unchecked(1.0, time_step)?;
+        let (t, x) = self.simulate(1.0, time_step)?;
         if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
             Ok(Some(t[index]))
         } else {
@@ -43,7 +43,7 @@ impl ContinuousProcess for BrownianExcursion {
         0.0
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_brownian_excursion(duration, time_step)
     }
 
@@ -75,6 +75,8 @@ pub fn simulate_brownian_excursion(duration: f64, time_step: f64) -> XResult<(Ve
         ))
         .into());
     }
+
+    check_duration_time_step(duration, time_step)?;
 
     let bridge = BrownianBridge;
     let (bridge_t, bridge_traj) = bridge.simulate(1.0, time_step)?;

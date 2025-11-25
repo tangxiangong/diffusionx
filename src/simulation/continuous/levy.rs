@@ -3,7 +3,7 @@
 //! The Lévy process is a process with independent and stationary increments.
 
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     random::stable::{self, sample_standard_alpha, sample_standard_alpha_one},
     simulation::prelude::*,
 };
@@ -85,7 +85,7 @@ impl ContinuousProcess for AsymmetricLevy {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_asymmetric_levy(
             self.start_position,
             self.alpha,
@@ -140,6 +140,8 @@ pub fn simulate_asymmetric_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
     let power = 1.0 / alpha;
     let sigma = time_step.powf(power);
@@ -224,7 +226,7 @@ impl ContinuousProcess for Levy {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_levy(self.start_position, self.alpha, duration, time_step)
     }
 
@@ -270,6 +272,8 @@ pub fn simulate_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
     let power = 1.0 / alpha;
     let sigma = time_step.powf(power);

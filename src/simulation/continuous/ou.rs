@@ -1,7 +1,7 @@
 //! Ornstein-Uhlenbeck process simulation
 
 use crate::{
-    XResult,
+    XResult, check_duration_time_step,
     simulation::{
         continuous::{Langevin, simulate_langevin},
         prelude::*,
@@ -69,7 +69,7 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_ou(
             self.theta,
             self.sigma,
@@ -117,6 +117,8 @@ pub fn simulate_ou(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
+    check_duration_time_step(duration, 0.01)?;
+
     let drift = |x: f64, _: f64| -theta * x;
     let diffusion = |_: f64, _: f64| sigma;
     simulate_langevin(&drift, &diffusion, start_position, duration, time_step)

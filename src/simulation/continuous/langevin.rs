@@ -1,6 +1,6 @@
 //! Langevin equation simulation
 
-use crate::{XResult, random::normal, simulation::prelude::*};
+use crate::{XResult, check_duration_time_step, random::normal, simulation::prelude::*};
 
 /// Langevin equation
 ///
@@ -78,7 +78,7 @@ where
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -154,6 +154,8 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
 
     let mut t = Vec::with_capacity(num_steps + 1);

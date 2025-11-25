@@ -1,7 +1,7 @@
 //! Generalized Langevin equation and subordinated Langevin equation simulation
 
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     random::{normal, stable},
     simulation::{continuous::Subordinator, prelude::*},
 };
@@ -105,7 +105,7 @@ where
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_generalized_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -190,6 +190,8 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
 
     let mut t = Vec::with_capacity(num_steps + 1);
@@ -326,7 +328,7 @@ where
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_subordinated_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -412,10 +414,12 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
+    check_duration_time_step(duration, time_step)?;
+
     let (t, s) = Subordinator::new(alpha)?.simulate(duration, time_step)?;
     let num_steps = t.len() - 1;
 
-    let mut x = Vec::with_capacity(t.len());
+    let mut x = Vec::with_capacity(num_steps + 1);
     x.push(start_position);
 
     let mut mu;

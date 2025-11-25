@@ -65,7 +65,7 @@ impl ContinuousProcess for AsymmetricCauchy {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_asymmetric_cauchy(self.start_position, self.beta, duration, time_step)
     }
 
@@ -147,7 +147,7 @@ impl ContinuousProcess for Cauchy {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_cauchy(self.start_position, duration, time_step)
     }
 
