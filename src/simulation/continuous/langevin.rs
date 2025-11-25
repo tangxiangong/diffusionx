@@ -101,25 +101,22 @@ where
         let mut current_t = 0.0;
         let mut mu;
         let mut diffusivity;
-        let mut xi;
 
-        for _ in 0..num_steps - 1 {
-            xi = normal::standard_rand::<f64>();
+        let noises = normal::standard_rands::<f64>(num_steps - 1);
+
+        for xi in noises {
             mu = drift(current_x, current_t);
             diffusivity = diffusion(current_x, current_t);
-            current_x += mu.mul_add(time_step, current_x);
-            current_x += diffusivity * xi * sigma;
+            current_x += mu * time_step + diffusivity * xi * sigma;
             current_t += time_step;
         }
 
         let last_step = duration - current_t;
         sigma = last_step.sqrt();
-        xi = normal::standard_rand::<f64>();
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
 
-        current_x += mu.mul_add(last_step, current_x);
-        current_x += diffusivity * xi * sigma;
+        current_x += mu * last_step + diffusivity * normal::standard_rand::<f64>() * sigma;
 
         Ok(current_x - self.start_position)
     }
@@ -167,18 +164,17 @@ where
     x.push(start_position);
 
     let mut sigma = time_step.sqrt();
+    let noises = normal::standard_rands::<f64>(num_steps - 1);
 
     let mut current_t = 0.0;
     let mut current_x = start_position;
     let mut mu;
     let mut diffusivity;
-    let mut xi;
-    for _ in 0..num_steps - 1 {
-        xi = normal::standard_rand::<f64>();
+
+    for xi in noises {
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
-        current_x += mu.mul_add(time_step, current_x);
-        current_x += diffusivity * xi * sigma;
+        current_x += mu * time_step + diffusivity * xi * sigma;
         current_t += time_step;
         t.push(current_t);
         x.push(current_x);
@@ -186,11 +182,9 @@ where
 
     let last_step = duration - current_t;
     sigma = last_step.sqrt();
-    xi = normal::standard_rand::<f64>();
     mu = drift(current_x, current_t);
     diffusivity = diffusion(current_x, current_t);
-    current_x += mu.mul_add(last_step, current_x);
-    current_x += diffusivity * xi * sigma;
+    current_x += mu * last_step + diffusivity * normal::standard_rand::<f64>() * sigma;
     x.push(current_x);
     t.push(duration);
 
