@@ -112,7 +112,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 > ```toml
 > # In your Cargo.toml
 > [dependencies]
-> diffusionx = { version = "0.6", features = ["visualize"] }
+> diffusionx = { version = "*", features = ["visualize"] }
 > ```
 
 
@@ -199,15 +199,17 @@ cargo add diffusionx --features io,visualize
 或者在您的 Cargo.toml 中添加以下依赖：
 ```toml
 [dependencies]
-diffusionx = { version = "0.5", features = ["io", "visualize"] }
+diffusionx = { version = "*", features = ["io", "visualize"] }
 ```
 
 ```rust
+#[cfg(feature = "io")]
+use diffusionx::utils::write_csv;
 use diffusionx::{
-    XError, XResult,
+    XError, XResult, check_duration_time_step,
     random::normal,
     simulation::prelude::*,
-    utils::{diff, linspace, write_csv},
+    utils::{diff, linspace},
 };
 
 /// CIR
@@ -247,7 +249,9 @@ impl ContinuousProcess for CIR {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+        check_duration_time_step(duration, time_step)?;
+
         let t = linspace(0.0, duration, time_step);
         let num_steps = t.len() - 1;
         let initial_x = self.start_position.max(0.0);
@@ -282,13 +286,15 @@ fn main() -> XResult<()> {
     let time_step = 0.01;
     let cir = CIR::new(1, 1, 1, 0.5)?;
 
+    #[allow(unused)]
     let (t, x) = cir.simulate(duration, time_step)?;
+    #[cfg(feature = "io")]
     write_csv("tmp/CIR.csv", &t, &x)?;
     // mean
-    let mean = cir.mean(duration, particles, time_step)?; 
+    let mean = cir.mean(duration, particles, time_step)?; // or let mean = traj.raw_moment(1, particles, time_step)?;
     println!("mean: {mean}");
     // msd
-    let msd = cir.msd(duration, particles, time_step)?; 
+    let msd = cir.msd(duration, particles, time_step)?; // or let msd = traj.central_moment(2, particles, time_step)?;
     println!("MSD: {msd}");
     // FPT
     let max_duration = 1000.0;
@@ -306,20 +312,23 @@ fn main() -> XResult<()> {
     let eatamsd = tamsd.mean(particles, time_step, quad_order)?;
     println!("EATAMSD: {eatamsd}");
 
-    let traj = cir.duration(duration)?;
-    // Visualization
-    let config = PlotConfigBuilder::default()
-        .time_step(time_step)
-        .output_path("tmp/CIR.svg")
-        .caption("CIR")
-        .show_grid(false)
-        .x_label("t")
-        .y_label("r")
-        .legend("CIR")
-        .backend(PlotterBackend::SVG)
-        .build()
-        .unwrap();
-    traj.plot(&config)?;
+    #[cfg(feature = "visualize")]
+    {
+        let traj = cir.duration(duration)?;
+        // Visualization
+        let config = PlotConfigBuilder::default()
+            .time_step(time_step)
+            .output_path("tmp/CIR.svg")
+            .caption("CIR")
+            .show_grid(false)
+            .x_label("t")
+            .y_label("r")
+            .legend("CIR")
+            .backend(PlotterBackend::SVG)
+            .build()
+            .unwrap();
+        traj.plot(&config)?;
+    }
     Ok(())
 }
 ```

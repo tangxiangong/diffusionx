@@ -1,7 +1,7 @@
 //! Generalized Langevin equation and subordinated Langevin equation simulation
 
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     random::{normal, stable},
     simulation::{continuous::Subordinator, prelude::*},
 };
@@ -105,7 +105,7 @@ where
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_generalized_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -117,31 +117,31 @@ where
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
+
         let drift = self.get_drift_func();
         let diffusion = self.get_diffusion_func();
         let num_steps = (duration / time_step).ceil() as usize;
-        let mut sigma = time_step.powf(1.0 / self.alpha);
+        let mut scale = time_step.powf(1.0 / self.alpha);
 
         let mut current_t = 0.0;
         let mut current_x = self.start_position;
         let mut mu;
         let mut diffusivity;
-        let mut xi;
-        for _ in 0..num_steps - 1 {
-            xi = stable::sym_standard_rand(self.alpha)?;
+
+        let noises = stable::sym_standard_rands(self.alpha, num_steps - 1)?;
+
+        for xi in noises {
             mu = drift(current_x, current_t);
             diffusivity = diffusion(current_x, current_t);
-            current_x += mu.mul_add(time_step, current_x);
-            current_x += diffusivity * xi * sigma;
+            current_x += mu * time_step + diffusivity * xi * scale;
             current_t += time_step;
         }
         let last_step = duration - current_t;
-        sigma = last_step.powf(1.0 / self.alpha);
-        xi = stable::sym_standard_rand(self.alpha)?;
+        scale = last_step.powf(1.0 / self.alpha);
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
-        current_x += mu.mul_add(last_step, current_x);
-        current_x += diffusivity * xi * sigma;
+        current_x += mu * last_step + diffusivity * stable::sym_standard_rand(self.alpha)? * scale;
         Ok(current_x - self.start_position)
     }
 }
@@ -190,6 +190,8 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
 
     let mut t = Vec::with_capacity(num_steps + 1);
@@ -198,31 +200,29 @@ where
     t.push(0.0);
     x.push(start_position);
 
-    let mut sigma = time_step.powf(1.0 / alpha);
+    let mut scale = time_step.powf(1.0 / alpha);
 
     let mut current_x = start_position;
     let mut current_t = 0.0;
     let mut mu;
     let mut diffusivity;
-    let mut xi;
-    for _ in 0..num_steps - 1 {
-        xi = stable::sym_standard_rand(alpha)?;
+
+    let noises = stable::sym_standard_rands(alpha, num_steps - 1)?;
+
+    for xi in noises {
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
-        current_x += mu.mul_add(time_step, current_x);
-        current_x += diffusivity * xi * sigma;
+        current_x += mu * time_step + diffusivity * xi * scale;
         x.push(current_x);
         current_t += time_step;
         t.push(current_t);
     }
 
     let last_step = duration - current_t;
-    sigma = last_step.powf(1.0 / alpha);
-    xi = stable::sym_standard_rand(alpha)?;
+    scale = last_step.powf(1.0 / alpha);
     mu = drift(current_x, current_t);
     diffusivity = diffusion(current_x, current_t);
-    current_x += mu.mul_add(last_step, current_x);
-    current_x += diffusivity * xi * sigma;
+    current_x += mu * last_step + diffusivity * stable::sym_standard_rand(alpha)? * scale;
     t.push(duration);
     x.push(current_x);
     Ok((t, x))
@@ -326,7 +326,7 @@ where
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_subordinated_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -338,6 +338,8 @@ where
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
+
         let (t, s) = Subordinator::new(self.alpha)?.simulate(duration, time_step)?;
         let num_steps = t.len() - 1;
 
@@ -347,21 +349,19 @@ where
         let mut current_x = self.start_position;
         let mut mu;
         let mut diffusivity;
-        let mut xi;
         let mut si;
         let mut si_next;
         let mut delta_s;
 
-        for (&ti, sis) in t.iter().zip(s.windows(2)).take(num_steps) {
+        let noises = normal::standard_rands::<f64>(num_steps);
+
+        for ((&ti, sis), xi) in t.iter().zip(s.windows(2)).take(num_steps).zip(noises) {
             si = unsafe { *sis.get_unchecked(0) };
             si_next = unsafe { *sis.get_unchecked(1) };
             delta_s = si_next - si;
             mu = drift(current_x, ti);
             diffusivity = diffusion(current_x, ti);
-            xi = normal::standard_rand::<f64>();
-
-            current_x += mu.mul_add(delta_s, current_x);
-            current_x += diffusivity * xi * delta_s.sqrt();
+            current_x += mu * delta_s + diffusivity * xi * delta_s.sqrt();
         }
 
         Ok(current_x - self.start_position)
@@ -412,30 +412,31 @@ where
     D: Fn(f64, f64) -> f64 + Send + Sync,
     G: Fn(f64, f64) -> f64 + Send + Sync,
 {
+    check_duration_time_step(duration, time_step)?;
+
     let (t, s) = Subordinator::new(alpha)?.simulate(duration, time_step)?;
     let num_steps = t.len() - 1;
 
-    let mut x = Vec::with_capacity(t.len());
+    let mut x = Vec::with_capacity(num_steps + 1);
     x.push(start_position);
 
     let mut mu;
     let mut diffusivity;
-    let mut xi;
     let mut si;
     let mut si_next;
     let mut delta_s;
     let mut current_x = start_position;
 
-    for (&ti, sis) in t.iter().zip(s.windows(2)).take(num_steps) {
-        xi = normal::standard_rand::<f64>();
+    let noises = normal::standard_rands::<f64>(num_steps);
+
+    for ((&ti, sis), xi) in t.iter().zip(s.windows(2)).take(num_steps).zip(noises) {
         si = unsafe { *sis.get_unchecked(0) };
         si_next = unsafe { *sis.get_unchecked(1) };
         delta_s = si_next - si;
         mu = drift(current_x, ti);
         diffusivity = diffusion(current_x, ti);
 
-        current_x += mu.mul_add(delta_s, current_x);
-        current_x += diffusivity * xi * delta_s.sqrt();
+        current_x += mu * delta_s + diffusivity * xi * delta_s.sqrt();
 
         x.push(current_x);
     }

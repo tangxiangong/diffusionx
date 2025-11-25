@@ -1,7 +1,7 @@
 //! Brownian meander simulation
 
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     simulation::{continuous::Bm, prelude::*},
     utils::float_eq,
 };
@@ -51,7 +51,7 @@ impl ContinuousProcess for BrownianMeander {
         0.0
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_brownian_meander(duration, time_step)
     }
 
@@ -65,7 +65,7 @@ impl ContinuousProcess for BrownianMeander {
         }
 
         let bm = Bm::default();
-        let (bm_t, bm_traj) = bm.simulate_unchecked(1.0, time_step)?;
+        let (bm_t, bm_traj) = bm.simulate(1.0, time_step)?;
 
         let hint_indexes = bm_traj
             .iter()
@@ -126,8 +126,10 @@ pub fn simulate_brownian_meander(duration: f64, time_step: f64) -> XResult<(Vec<
         .into());
     }
 
+    check_duration_time_step(duration, time_step)?;
+
     let bm = Bm::default();
-    let (bm_t, bm_traj) = bm.simulate_unchecked(1.0, time_step)?;
+    let (bm_t, bm_traj) = bm.simulate(1.0, time_step)?;
 
     let hint_indexes = bm_traj
         .iter()

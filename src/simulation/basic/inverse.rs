@@ -1,5 +1,5 @@
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     simulation::prelude::{ContinuousProcess, Pair},
 };
 
@@ -111,7 +111,9 @@ impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
         Ok(end)
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+        check_duration_time_step(duration, time_step)?;
+
         let mut mut_duration = duration;
         let (t, s) = loop {
             let (t, s) = self.process.simulate(mut_duration, time_step)?;

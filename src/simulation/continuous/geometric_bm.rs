@@ -1,7 +1,7 @@
 //! Geometric Brownian motion simulation
 
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     simulation::{continuous::Bm, prelude::*},
 };
 use rayon::prelude::*;
@@ -77,7 +77,7 @@ impl ContinuousProcess for GeometricBm {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_gbm(
             self.start_position,
             self.mu,
@@ -129,6 +129,8 @@ pub fn simulate_gbm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let bm = Bm::default();
     let (t, b) = bm.simulate(duration, time_step)?;
     let tmp = mu - sigma * sigma / 2.0;

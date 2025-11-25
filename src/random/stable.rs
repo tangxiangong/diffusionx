@@ -113,7 +113,7 @@ impl StandardStable {
 }
 
 /// Sample standard stable random number when alpha is not 1
-fn sample_standard_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, rng: &mut R) -> f64 {
+pub(crate) fn sample_standard_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, rng: &mut R) -> f64 {
     let half_pi = PI / 2.0;
     let tmp = beta * (alpha * half_pi).tan();
     let v = rng.random_range(-half_pi..half_pi);
@@ -158,7 +158,11 @@ fn sample_alpha_one<R: Rng + ?Sized>(
 }
 
 /// Sample standard stable random number when alpha is 1
-fn sample_standard_alpha_one<R: Rng + ?Sized>(_alpha: f64, beta: f64, rng: &mut R) -> f64 {
+pub(crate) fn sample_standard_alpha_one<R: Rng + ?Sized>(
+    _alpha: f64,
+    beta: f64,
+    rng: &mut R,
+) -> f64 {
     let half_pi = PI / 2.0;
     let v = rng.random_range(-half_pi..half_pi);
     let w = rng.sample::<f64, _>(Exp1);
