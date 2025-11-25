@@ -118,21 +118,39 @@ pub fn simulate_bng(
 ) -> XResult<Pair> {
     check_duration_time_step(duration, time_step)?;
 
-    let (t, y) = simulate_ou(1.0, 1.0, ou_start_position, duration, time_step)?;
-    let noise = normal::standard_rands::<f64>(t.len() - 1);
-    let x = std::iter::once(start_position)
-        .chain(
-            y.into_iter()
-                .skip(1)
-                .zip(noise)
-                .scan(start_position, |state, (yi, xi)| {
-                    let current_x = *state;
-                    let next_x = current_x + yi.abs() * (2.0 * time_step).sqrt() * xi;
-                    *state = next_x;
-                    Some(next_x)
-                }),
-        )
-        .collect();
+    let num_steps = (duration / time_step).ceil() as usize;
+
+    let mut t = Vec::with_capacity(num_steps + 1);
+    let mut x = Vec::with_capacity(num_steps + 1);
+
+    t.push(0.0);
+    x.push(start_position);
+
+    let mut scale_ou = time_step.sqrt();
+    let mut scale_bng = (2.0 * time_step).sqrt();
+
+    let mut current_t = 0.0;
+    let mut current_x = start_position;
+    let mut current_y = ou_start_position;
+
+    let noises_ou = normal::standard_rands::<f64>(num_steps - 1);
+    let noises_bng = normal::standard_rands::<f64>(num_steps - 1);
+
+    for (xi_ou, xi_bng) in noises_ou.into_iter().zip(noises_bng) {
+        current_y += -current_x * time_step + xi_ou * scale_ou;
+        current_t += time_step;
+        current_x += current_y.abs() * scale_bng * xi_bng;
+        t.push(current_t);
+        x.push(current_x);
+    }
+
+    let last_step = duration - current_t;
+    scale_ou = last_step.sqrt();
+    scale_bng = (2.0 * last_step).sqrt();
+    current_y += -current_x * last_step + normal::standard_rand::<f64>() * scale_ou;
+    current_x += current_y.abs() * scale_bng * normal::standard_rand::<f64>();
+    x.push(current_x);
+    t.push(duration);
 
     Ok((t, x))
 }
