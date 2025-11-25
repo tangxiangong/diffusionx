@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2025-11-25
+
+### 🚜 Refactor
+
+- Move native CPU optimization to build config
+- Centralize parameter validation in `simulate` and `displacement` methods
+- Optimize Langevin and OU process simulations with direct implementation and batch RNG
+- Rename `sigma` to `scale` in continuous processes
+
+### 📚 Documentation
+
+- Update README examples for API changes and feature gates
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.7.0
+
+## [0.6.3] - 2025-11-19
+
+### 🐛 Bug Fixes
+
+- Fix final step displacement in Brownian motion
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.6.3
+
+## [0.6.2] - 2025-11-19
+
+### 🚜 Refactor
+
+- Optimize Langevin simulations with on-demand RNG and FMA
+- Remove GPU infrastructure
+- Parallelize displacement calculations for multiple processes
+
+### 📚 Documentation
+
+- Fix subordinated Langevin macro docs
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.6.2
+
 ## [0.6.0] - 2025-11-17
 
 ### 🚜 Refactor
