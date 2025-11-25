@@ -89,6 +89,8 @@ where
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
+
         let drift = self.get_drift_func();
         let diffusion = self.get_diffusion_func();
 

@@ -117,6 +117,8 @@ where
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
+
         let drift = self.get_drift_func();
         let diffusion = self.get_diffusion_func();
         let num_steps = (duration / time_step).ceil() as usize;
@@ -340,6 +342,8 @@ where
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
+
         let (t, s) = Subordinator::new(self.alpha)?.simulate(duration, time_step)?;
         let num_steps = t.len() - 1;
 

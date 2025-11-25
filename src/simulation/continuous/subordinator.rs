@@ -59,6 +59,8 @@ impl ContinuousProcess for Subordinator {
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
+
         let num_steps = (duration / time_step).ceil() as usize;
         let power = 1.0 / self.alpha;
         let sigma = time_step.powf(power);

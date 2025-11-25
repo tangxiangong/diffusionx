@@ -75,6 +75,7 @@ impl ContinuousProcess for Bm {
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
         let num_steps = (duration / time_step).ceil() as usize;
         let std_dev = (2.0 * self.diffusion_coefficient * time_step).sqrt();
         let normal = rand_distr::Normal::new(0.0, std_dev)?;

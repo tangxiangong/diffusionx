@@ -129,6 +129,8 @@ impl ContinuousProcess for LevyWalk {
     }
 
     fn displacement(&self, duration: f64, _time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, _time_step)?;
+
         let mut num_step = duration.ceil() as usize;
         let (t, x) = loop {
             let (t, x) = simulate_levy_walk_with_step(
