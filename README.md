@@ -170,7 +170,7 @@ DiffusionX is designed with a trait-based system for high extensibility and perf
        fn start(&self) -> f64 {
            0.0  // or any default value
        }
-       fn simulate_unchecked(
+       fn simulate(
             &self,
             duration: f64,
             time_step: f64
