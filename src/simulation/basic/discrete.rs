@@ -27,24 +27,12 @@ pub trait DiscreteProcess: Send + Sync {
         }
     }
 
-    /// Simulate the discrete process without checking the arguments
-    ///
-    /// # Arguments
-    ///
-    /// * `num_step` - The number of steps of the simulation.
-    fn simulate_unchecked(&self, num_step: usize) -> XResult<DiscretePair>;
-
     /// Simulate the discrete process
     ///
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the simulation.
-    fn simulate(&self, num_step: usize) -> XResult<DiscretePair> {
-        if num_step == 0 {
-            return Ok((vec![], vec![]));
-        }
-        self.simulate_unchecked(num_step)
-    }
+    fn simulate(&self, num_step: usize) -> XResult<DiscretePair>;
 
     /// Get the mean of the discrete process
     ///
