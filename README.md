@@ -26,6 +26,9 @@ English | <a href="README-zh.md">简体中文</a>
 - [x] Poisson distribution
 - [x] $\alpha$-stable distribution
 
+> [!NOTE]
+> DiffusionX uses the high-quality [Xoshiro256++](https://prng.di.unimi.it/) random number generator as the common entropy source across all distributions.
+
 ### Stochastic Processes Simulation
 
 - [x] Brownian motion

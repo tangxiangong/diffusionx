@@ -26,6 +26,9 @@ DiffusionX
 - [x] 泊松分布
 - [x] $\alpha$-稳定分布
 
+> [!NOTE]
+> DiffusionX 在随机数生成模块中统一采用高质量的 [Xoshiro256++](https://prng.di.unimi.it/) 随机数发生器。
+
 ### 随机过程模拟
 
 - [x] 布朗运动
