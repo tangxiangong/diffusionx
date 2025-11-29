@@ -3,7 +3,8 @@
 use crate::{
     SimulationError, XResult, check_duration_time_step, random::normal, simulation::prelude::*,
 };
-use rand::{Rng, rng};
+use rand::prelude::*;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Brownian motion
@@ -81,7 +82,10 @@ impl ContinuousProcess for Bm {
         let normal = rand_distr::Normal::new(0.0, std_dev)?;
         let mut delta_x = (0..num_steps - 1)
             .into_par_iter()
-            .map_init(rng, |r, _| r.sample(normal))
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(normal),
+            )
             .sum();
         let last_step = duration - (num_steps - 1) as f64 * time_step;
         delta_x +=

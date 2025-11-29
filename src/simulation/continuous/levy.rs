@@ -7,7 +7,8 @@ use crate::{
     random::stable::{self, sample_standard_alpha, sample_standard_alpha_one},
     simulation::prelude::*,
 };
-use rand::rng;
+use rand::prelude::*;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Asymmetric Lévy process
@@ -108,11 +109,18 @@ impl ContinuousProcess for AsymmetricLevy {
         };
         let mut delta_x = (0..num_steps - 1)
             .into_par_iter()
-            .map_init(rng, |r, _| scale * generator(self.alpha, self.beta, r))
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| scale * generator(self.alpha, self.beta, r),
+            )
             .sum();
 
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        delta_x += generator(self.alpha, self.beta, &mut rng()) * last_step.powf(power);
+        delta_x += generator(
+            self.alpha,
+            self.beta,
+            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+        ) * last_step.powf(power);
         Ok(delta_x)
     }
 }
@@ -245,12 +253,19 @@ impl ContinuousProcess for Levy {
         };
         let mut delta_x = (0..num_steps - 1)
             .into_par_iter()
-            .map_init(rng, |r, _| scale * generator(self.alpha, 0.0, r))
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| scale * generator(self.alpha, 0.0, r),
+            )
             .sum();
 
         let last_step = duration - (num_steps - 1) as f64 * time_step;
         scale = last_step.powf(power);
-        delta_x += generator(self.alpha, 0.0, &mut rng()) * scale;
+        delta_x += generator(
+            self.alpha,
+            0.0,
+            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+        ) * scale;
         Ok(delta_x)
     }
 }

@@ -3,8 +3,9 @@
 
 use crate::{XError, XResult};
 use num_traits::float::Float;
-use rand::{prelude::*, rng};
+use rand::prelude::*;
 use rand_distr::StandardNormal;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 use std::ops::{Add, Mul, Neg, Sub};
 
@@ -195,7 +196,8 @@ pub fn standard_rand<T: Float + Send + Sync>() -> T
 where
     StandardNormal: Distribution<T>,
 {
-    rng().sample(rand_distr::StandardNormal)
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    rng.sample(rand_distr::StandardNormal)
 }
 
 /// Generate a vector of standard normal random numbers
@@ -214,7 +216,10 @@ where
     let dist = rand_distr::StandardNormal;
     (0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(dist))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(dist),
+        )
         .collect()
 }
 
@@ -237,7 +242,8 @@ where
     StandardNormal: Distribution<T>,
 {
     let normal = rand_distr::Normal::new(mean, std_dev)?;
-    Ok(rng().sample(normal))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(normal))
 }
 
 /// Generate a vector of normal random numbers
@@ -262,7 +268,10 @@ where
     let normal = rand_distr::Normal::new(mean, std_dev)?;
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(normal))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(normal),
+        )
         .collect())
 }
 

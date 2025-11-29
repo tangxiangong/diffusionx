@@ -5,7 +5,8 @@ use crate::{
     random::stable::{self, sample_standard_alpha},
     simulation::prelude::*,
 };
-use rand::rng;
+use rand::prelude::*;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// alpha-stable subordinator
@@ -67,12 +68,19 @@ impl ContinuousProcess for Subordinator {
         let generator = sample_standard_alpha;
         let mut delta_x = (0..num_steps - 1)
             .into_par_iter()
-            .map_init(rng, |r, _| scale * generator(self.alpha, 1.0, r))
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| scale * generator(self.alpha, 1.0, r),
+            )
             .sum();
 
         let last_step = duration - (num_steps - 1) as f64 * time_step;
         scale = last_step.powf(power);
-        delta_x += generator(self.alpha, 1.0, &mut rng()) * scale;
+        delta_x += generator(
+            self.alpha,
+            1.0,
+            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+        ) * scale;
         Ok(delta_x)
     }
 }
