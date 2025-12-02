@@ -20,7 +20,7 @@ name = "diffusionx"
 doctest = false
 
 [features]
-default = []
+default = ["cuda"]
 visualize = [
     "dep:plotters",
     "dep:derive_builder",
@@ -109,5 +109,5 @@ codegen-units = 1
 panic = "abort"
 
 [[bench]]
-name = "simulation"
+name = "moment"
 harness = false
