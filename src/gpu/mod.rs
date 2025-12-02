@@ -1,45 +1,42 @@
-//! GPU acceleration module for stochastic process simulation
-//!
-//! This module provides GPU-accelerated implementations of stochastic processes
-//! using CUDA (NVIDIA GPUs) and Metal (Apple GPUs).
-//!
-//! # Features
-//!
-//! - `cuda`: Enable CUDA support for NVIDIA GPUs
-//! - `metal`: Enable Metal support for Apple GPUs
-//!
-//! # Example
-//!
-//! ```rust,ignore
-//! use diffusionx::gpu::{GpuBackend, GpuSimulator};
-//! use diffusionx::simulation::continuous::Bm;
-//!
-//! // Create GPU simulator
-//! let simulator = GpuSimulator::new(GpuBackend::Cuda)?;
-//!
-//! // Simulate Brownian motion on GPU
-//! let bm = Bm::default();
-//! let trajectories = simulator.simulate_bm_cuda(&bm, 1.0, 0.01, 1000)?;
-//! ```
+use crate::XResult;
+use cudarc::driver::CudaContext;
+use std::sync::{Arc, LazyLock};
 
-#[cfg(feature = "cuda")]
-pub mod cuda;
+static CUDA_CTX: LazyLock<XResult<Arc<CudaContext>>> = LazyLock::new(|| Ok(CudaContext::new(0)?));
 
-#[cfg(feature = "metal")]
-pub mod metal;
+pub trait GPUMoment {
+    /// Get the raw moment of the simulation (GPU version)
+    ///
+    /// # Arguments
+    ///
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the simulation.
+    fn raw_moment_gpu(
+        &self,
+        duration: f32,
+        order: i32,
+        particles: usize,
+        time_step: f32,
+    ) -> XResult<f32>;
 
-mod backend;
-pub use backend::*;
+    /// Get the central moment of the simulation (GPU version)
+    ///
+    /// # Arguments
+    ///
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the simulation.
+    fn central_moment_gpu(
+        &self,
+        duration: f32,
+        order: i32,
+        particles: usize,
+        time_step: f32,
+    ) -> XResult<f32>;
 
-mod simulator;
-pub use simulator::*;
+    fn mean_gpu(&self, duration: f32, particles: usize, time_step: f32) -> XResult<f32>;
+    fn msd_gpu(&self, duration: f32, particles: usize, time_step: f32) -> XResult<f32>;
+}
 
-mod traits;
-pub use traits::*;
-
-pub mod mc;
-
-mod gpu_moment;
-pub use gpu_moment::*;
-
-pub mod random;
+pub mod bm;

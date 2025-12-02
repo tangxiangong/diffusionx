@@ -1,99 +1,190 @@
-/**
- * CUDA Kernel for Brownian Motion (bm.rs)
- * 
- * Corresponds to: src/simulation/continuous/bm.rs
- */
-
-#include <cuda_runtime.h>
 #include <curand_kernel.h>
 
-extern "C" {
+extern "C" __global__ void bm_mean(float *out, float start_position,
+                                   float diffusivity, float duration,
+                                   float time_step, size_t particles,
+                                   unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
 
-/**
- * Simulate Brownian motion trajectories (single precision)
- * 
- * @param states cuRAND states for random number generation
- * @param positions Output array [num_particles * (num_steps + 1)]
- * @param start_position Initial position for all particles
- * @param diffusion_coefficient Diffusion coefficient (D)
- * @param time_step Time step (dt)
- * @param num_steps Number of time steps
- * @param num_particles Number of particles to simulate
- */
-__global__ void simulate_bm_f32(
-    curandState* states,
-    float* positions,
-    float start_position,
-    float diffusion_coefficient,
-    float time_step,
-    int num_steps,
-    int num_particles
-) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= num_particles) return;
-    
-    curandState local_state = states[idx];
-    float position = start_position;
-    int offset = idx * (num_steps + 1);
-    
-    positions[offset] = position;
-    
-    // Precompute noise scaling: sqrt(2 * D * dt)
-    float noise_scale = sqrtf(2.0f * diffusion_coefficient * time_step);
-    
-    for (int step = 0; step < num_steps; step++) {
-        float random_normal = curand_normal(&local_state);
-        position += noise_scale * random_normal;
-        positions[offset + step + 1] = position;
+    float current_x = start_position;
+    float sigma = sqrtf(2.0f * diffusivity * time_step);
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+    if (idx < particles)
+    {
+        curandState state;
+        curand_init(seed, idx, 0, &state);
+
+        for (size_t i = 0; i < num_steps - 1; ++i)
+        {
+            float xi = curand_normal(&state);
+            current_x += xi * sigma;
+        }
+
+        float last_step = duration - (num_steps - 1) * time_step;
+        float xi = curand_normal(&state);
+        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
     }
-    
-    states[idx] = local_state;
-}
 
-/**
- * Simulate Brownian motion trajectories (double precision)
- */
-__global__ void simulate_bm_f64(
-    curandState* states,
-    double* positions,
-    double start_position,
-    double diffusion_coefficient,
-    double time_step,
-    int num_steps,
-    int num_particles
-) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= num_particles) return;
-    
-    curandState local_state = states[idx];
-    double position = start_position;
-    int offset = idx * (num_steps + 1);
-    
-    positions[offset] = position;
-    
-    double noise_scale = sqrt(2.0 * diffusion_coefficient * time_step);
-    
-    for (int step = 0; step < num_steps; step++) {
-        double random_normal = curand_normal_double(&local_state);
-        position += noise_scale * random_normal;
-        positions[offset + step + 1] = position;
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = current_x;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
     }
-    
-    states[idx] = local_state;
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
 }
 
-/**
- * Initialize cuRAND states for each thread
- */
-__global__ void init_curand_states(
-    curandState* states,
-    unsigned long long seed,
-    int num_particles
-) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= num_particles) return;
-    
-    curand_init(seed, idx, 0, &states[idx]);
+extern "C" __global__ void bm_msd(float *out, float diffusivity, float duration,
+                                  float time_step, size_t particles,
+                                  unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float current_x = 0.0;
+    float sd;
+    float sigma = sqrtf(2.0f * diffusivity * time_step);
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+    if (idx < particles)
+    {
+        curandState state;
+        curand_init(seed, idx, 0, &state);
+
+        for (size_t i = 0; i < num_steps - 1; ++i)
+        {
+            float xi = curand_normal(&state);
+            current_x += xi * sigma;
+        }
+
+        float last_step = duration - (num_steps - 1) * time_step;
+        float xi = curand_normal(&state);
+        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
+        sd = current_x * current_x;
+    }
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = sd;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
 }
 
-} // extern "C"
+extern "C" __global__ void
+bm_central_moment(float *out, float mean, float start_position,
+                  float diffusivity, int order, float duration, float time_step,
+                  size_t particles, unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float current_x = start_position;
+    float sd;
+    float sigma = sqrtf(2.0f * diffusivity * time_step);
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+    if (idx < particles)
+    {
+        curandState state;
+        curand_init(seed, idx, 0, &state);
+
+        for (size_t i = 0; i < num_steps - 1; ++i)
+        {
+            float xi = curand_normal(&state);
+            current_x += xi * sigma;
+        }
+
+        float last_step = duration - (num_steps - 1) * time_step;
+        float xi = curand_normal(&state);
+        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
+        sd = pow(current_x - mean, order);
+    }
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = sd;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
+}
+
+extern "C" __global__ void
+bm_raw_moment(float *out, float start_position,
+              float diffusivity, int order, float duration, float time_step,
+              size_t particles, unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float current_x = start_position;
+    float sd;
+    float sigma = sqrtf(2.0f * diffusivity * time_step);
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+    if (idx < particles)
+    {
+        curandState state;
+        curand_init(seed, idx, 0, &state);
+
+        for (size_t i = 0; i < num_steps - 1; ++i)
+        {
+            float xi = curand_normal(&state);
+            current_x += xi * sigma;
+        }
+
+        float last_step = duration - (num_steps - 1) * time_step;
+        float xi = curand_normal(&state);
+        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
+        sd = pow(current_x, order);
+    }
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = sd;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
+}

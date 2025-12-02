@@ -23,6 +23,6 @@ pub mod utils;
 pub mod visualize;
 
 /// GPU acceleration module
-#[cfg(any(feature = "cuda", feature = "metal"))]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "cuda", feature = "metal"))))]
+#[cfg(feature = "cuda")]
+#[cfg_attr(docsrs, doc(cfg(feature = "cuda")))]
 pub mod gpu;

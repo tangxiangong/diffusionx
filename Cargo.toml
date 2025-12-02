@@ -20,7 +20,7 @@ name = "diffusionx"
 doctest = false
 
 [features]
-default = ["metal"]
+default = []
 visualize = [
     "dep:plotters",
     "dep:derive_builder",
@@ -28,25 +28,22 @@ visualize = [
     "dep:either",
 ]
 io = ["dep:csv"]
-cuda = ["dep:cudarc", "dep:bytemuck", "dep:cuda-kernel"]
-metal = ["dep:metal", "dep:objc", "dep:metal-kernel"]
+cuda = ["dep:cudarc", "dep:cuda-kernel"]
+
 
 [dependencies]
-bytemuck = { version = "1.14", optional = true }
 csv = { version = "1.4", optional = true }
 cuda-kernel = { path = "./kernels/cuda-kernel", optional = true }
 cudarc = { version = "0.18", optional = true, features = [
     "std",
     "cuda-version-from-build-system",
+    "curand",
 ] }
 derive_builder = { version = "0.20", optional = true }
 either = { version = "1", optional = true }
 gauss-quad = "0.2.4"
-metal = { version = "0.32", optional = true }
-metal-kernel = { path = "./kernels/metal-kernel", optional = true }
 num-complex = "0.4"
 num-traits = "0.2"
-objc = { version = "0.2", optional = true }
 plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }
 rand = "0.9"
@@ -56,7 +53,7 @@ realfft = "3.5"
 thiserror = "2"
 
 [dev-dependencies]
-criterion = "0.7"
+criterion = "0.8"
 
 # Workaround for rustc ICE with scrape-examples and Unicode characters
 # See: https://github.com/rust-lang/rust/issues/147399

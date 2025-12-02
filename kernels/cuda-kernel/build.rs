@@ -1,50 +1,39 @@
 use std::env;
-use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
-    // List all CUDA kernel files
-    let kernel_files = vec![
-        "bm",
-        "ou",
-        "geometric_bm",
-        "stats",
-        "fbm",
-        "cauchy",
-        "gamma",
-        "langevin",
-        "levy",
-        "levy_walk",
-        "brownian_bridge",
-        "brownian_excursion",
-        "brownian_meander",
-        "bng",
-        "stable",
-    ];
+    let kernels = ["bm"];
 
-    // Watch for changes in kernel files
-    for name in &kernel_files {
-        println!("cargo:rerun-if-changed=src/{}.cu", name);
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+
+    for kernel in kernels {
+        let kernel_file = format!("src/{kernel}.cu");
+        println!("cargo:rerun-if-changed={kernel_file}");
+
+        let ptx_path = out_dir.join(&format!("{kernel}.ptx"));
+
+        let status = Command::new("nvcc")
+            .args([
+                "-ptx",
+                &kernel_file,
+                "-o",
+                ptx_path.to_str().expect("Invalid PTX path"),
+            ])
+            .status()
+            .expect("Failed to execute nvcc. Is CUDA installed and nvcc in PATH?");
+
+        if !status.success() {
+            panic!("nvcc failed with status: {status}");
+        }
+
+        let upper_kernel = kernel.to_uppercase();
+
+        println!(
+            "cargo:rustc-env={upper_kernel}_KERNEL_PTX={}",
+            ptx_path.display()
+        );
     }
-
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let ptx_path = out_dir.join("ptx.rs");
-
-    // Build PTX bindings for all kernels
-    let mut builder = bindgen_cuda::Builder::default();
-
-    for name in &kernel_files {
-        let cu_file = format!("src/{}.cu", name);
-        builder = builder.kernel(&cu_file);
-    }
-
-    let bindings = builder.build_ptx().unwrap();
-    bindings.write(&ptx_path).unwrap();
-
-    println!(
-        "cargo:info=Generated PTX bindings at {}",
-        ptx_path.display()
-    );
 }
