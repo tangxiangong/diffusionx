@@ -1,8 +1,8 @@
-use super::CUDA_CTX;
+use super::{CUDA_CTX, config, load_kernel};
 use crate::{XResult, gpu::GPUMoment, simulation::continuous::Bm};
 use cuda_kernel::BM_PTX;
 use cudarc::{
-    driver::{CudaModule, LaunchConfig, PushKernelArg},
+    driver::{CudaModule, PushKernelArg},
     nvrtc::Ptx,
 };
 use std::sync::{Arc, LazyLock};
@@ -20,24 +20,13 @@ pub fn bm_mean(
     time_step: f32,
     particles: usize,
 ) -> XResult<f32> {
-    let ctx = CUDA_CTX.as_ref()?;
-    let stream = ctx.default_stream();
-    let module = MODULE.as_ref()?;
-    let mean = module.load_function("bm_mean")?;
-
+    let (stream, kernel) = load_kernel(&MODULE, "bm_mean")?;
     let mut device_out = stream.alloc_zeros::<f32>(1)?;
-
-    let block_size = 256;
-    let grid_size = particles.div_ceil(block_size);
-    let cfg = LaunchConfig {
-        grid_dim: (grid_size as u32, 1, 1),
-        block_dim: (block_size as u32, 1, 1),
-        shared_mem_bytes: 0,
-    };
+    let cfg = config(particles);
 
     let seed = std::time::SystemTime::now().elapsed()?.as_secs();
 
-    let mut builder = stream.launch_builder(&mean);
+    let mut builder = stream.launch_builder(&kernel);
     builder.arg(&mut device_out);
     builder.arg(&start_position);
     builder.arg(&diffusivity);
@@ -56,24 +45,13 @@ pub fn bm_mean(
 }
 
 pub fn bm_msd(diffusivity: f32, duration: f32, time_step: f32, particles: usize) -> XResult<f32> {
-    let ctx = CUDA_CTX.as_ref()?;
-    let stream = ctx.default_stream();
-    let module = MODULE.as_ref()?;
-    let msd = module.load_function("bm_msd")?;
-
+    let (stream, kernel) = load_kernel(&MODULE, "bm_msd")?;
     let mut device_out = stream.alloc_zeros::<f32>(1)?;
-
-    let block_size = 256;
-    let grid_size = particles.div_ceil(block_size);
-    let cfg = LaunchConfig {
-        grid_dim: (grid_size as u32, 1, 1),
-        block_dim: (block_size as u32, 1, 1),
-        shared_mem_bytes: 0,
-    };
+    let cfg = config(particles);
 
     let seed = std::time::SystemTime::now().elapsed()?.as_secs();
 
-    let mut builder = stream.launch_builder(&msd);
+    let mut builder = stream.launch_builder(&kernel);
     builder.arg(&mut device_out);
     builder.arg(&diffusivity);
     builder.arg(&duration);
@@ -90,44 +68,57 @@ pub fn bm_msd(diffusivity: f32, duration: f32, time_step: f32, particles: usize)
     Ok(sum / particles as f32)
 }
 
-pub fn bm_moment(
+pub fn bm_raw_moment(
     start_position: f32,
     diffusivity: f32,
     order: i32,
-    central: bool,
     duration: f32,
     time_step: f32,
     particles: usize,
 ) -> XResult<f32> {
-    let mean = bm_mean(start_position, diffusivity, duration, time_step, particles)?;
-    let ctx = CUDA_CTX.as_ref()?;
-    let stream = ctx.default_stream();
-    let module = MODULE.as_ref()?;
-
+    let (stream, kernel) = load_kernel(&MODULE, "bm_raw_moment")?;
     let mut device_out = stream.alloc_zeros::<f32>(1)?;
-
-    let block_size = 256;
-    let grid_size = particles.div_ceil(block_size);
-    let cfg = LaunchConfig {
-        grid_dim: (grid_size as u32, 1, 1),
-        block_dim: (block_size as u32, 1, 1),
-        shared_mem_bytes: 0,
-    };
-
-    let moment_func = if central {
-        module.load_function("bm_central_moment")?
-    } else {
-        module.load_function("bm_raw_moment")?
-    };
-
-    let mut builder = stream.launch_builder(&moment_func);
+    let cfg = config(particles);
 
     let seed = std::time::SystemTime::now().elapsed()?.as_secs();
 
+    let mut builder = stream.launch_builder(&kernel);
     builder.arg(&mut device_out);
-    if central {
-        builder.arg(&mean);
+    builder.arg(&start_position);
+    builder.arg(&diffusivity);
+    builder.arg(&order);
+    builder.arg(&duration);
+    builder.arg(&time_step);
+    builder.arg(&particles);
+    builder.arg(&seed);
+
+    unsafe {
+        builder.launch(cfg)?;
     }
+
+    let out_host = stream.clone_dtoh(&device_out)?;
+    let sum = out_host[0];
+    Ok(sum / particles as f32)
+}
+
+pub fn bm_central_moment(
+    start_position: f32,
+    diffusivity: f32,
+    order: i32,
+    duration: f32,
+    time_step: f32,
+    particles: usize,
+) -> XResult<f32> {
+    let (stream, kernel) = load_kernel(&MODULE, "bm_central_moment")?;
+    let mut device_out = stream.alloc_zeros::<f32>(1)?;
+    let cfg = config(particles);
+
+    let seed = std::time::SystemTime::now().elapsed()?.as_secs();
+    let mean = bm_mean(start_position, diffusivity, duration, time_step, particles)?;
+
+    let mut builder = stream.launch_builder(&kernel);
+    builder.arg(&mut device_out);
+    builder.arg(&mean);
     builder.arg(&start_position);
     builder.arg(&diffusivity);
     builder.arg(&order);
@@ -153,11 +144,10 @@ impl GPUMoment for Bm {
         particles: usize,
         time_step: f32,
     ) -> XResult<f32> {
-        bm_moment(
+        bm_central_moment(
             self.get_start_position() as f32,
             self.get_diffusion_coefficient() as f32,
             order,
-            true,
             duration,
             time_step,
             particles,
@@ -171,11 +161,10 @@ impl GPUMoment for Bm {
         particles: usize,
         time_step: f32,
     ) -> XResult<f32> {
-        bm_moment(
+        bm_raw_moment(
             self.get_start_position() as f32,
             self.get_diffusion_coefficient() as f32,
             order,
-            false,
             duration,
             time_step,
             particles,

@@ -1,8 +1,8 @@
-use super::CUDA_CTX;
+use super::{CUDA_CTX, config, load_kernel};
 use crate::XResult;
 use cuda_kernel::STABLE_PTX;
 use cudarc::{
-    driver::{CudaModule, LaunchConfig, PushKernelArg},
+    driver::{CudaModule, PushKernelArg},
     nvrtc::Ptx,
 };
 use std::sync::{Arc, LazyLock};
@@ -14,20 +14,9 @@ static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
 });
 
 pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f32>> {
-    let ctx = CUDA_CTX.as_ref()?;
-    let stream = ctx.default_stream();
-    let module = MODULE.as_ref()?;
-    let mean = module.load_function("standard_stable_rand")?;
-
+    let (stream, kernel) = load_kernel(&MODULE, "standard_stable_rand")?;
     let mut device_out = stream.alloc_zeros::<f32>(len)?;
-
-    let block_size = 256;
-    let grid_size = len.div_ceil(block_size);
-    let cfg = LaunchConfig {
-        grid_dim: (grid_size as u32, 1, 1),
-        block_dim: (block_size as u32, 1, 1),
-        shared_mem_bytes: 0,
-    };
+    let cfg = config(len);
 
     let seed = std::time::SystemTime::now().elapsed()?.as_secs();
 
@@ -42,7 +31,7 @@ pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f
         (inv_alpha, one_minus_alpha_div_alpha, b, s)
     };
 
-    let mut builder = stream.launch_builder(&mean);
+    let mut builder = stream.launch_builder(&kernel);
     builder.arg(&mut device_out);
     builder.arg(&alpha);
     builder.arg(&beta);
