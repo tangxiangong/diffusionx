@@ -11,8 +11,9 @@
 
 use crate::{XError, XResult};
 use num_traits::float::Float;
-use rand::{prelude::*, rng};
+use rand::prelude::*;
 use rand_distr::{Exp, Exp1};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Exponential distribution with rate parameter $\lambda$
@@ -102,7 +103,8 @@ pub fn standard_rand<T: Float + Send + Sync>() -> T
 where
     Exp1: Distribution<T>,
 {
-    rng().sample(Exp1)
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    rng.sample(Exp1)
 }
 
 /// Generate a vector of standard exponential random numbers
@@ -125,7 +127,10 @@ where
     let dist = Exp1;
     (0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(dist))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(dist),
+        )
         .collect()
 }
 
@@ -147,7 +152,8 @@ where
     Exp1: Distribution<T>,
 {
     let exp = Exp::new(lambda)?;
-    Ok(rng().sample(exp))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(exp))
 }
 
 /// Generate a vector of exponential random numbers
@@ -171,7 +177,10 @@ where
     let exp = Exp::new(lambda)?;
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(exp))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(exp),
+        )
         .collect())
 }
 

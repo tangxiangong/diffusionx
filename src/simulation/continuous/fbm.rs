@@ -1,7 +1,7 @@
 //! Fractional Brownian motion simulation
 
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     simulation::{continuous::Bm, prelude::*},
     utils::{CirculantEmbedding, cumsum, fbm_correlation},
 };
@@ -60,7 +60,7 @@ impl ContinuousProcess for FBm {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_fbm(
             self.start_position,
             self.hurst_exponent,
@@ -115,6 +115,8 @@ pub fn simulate_fbm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     if hurst_exponent == 0.5 {
         // Delegate to standard Brownian motion with D = 0.5 so Var[B(t)] = t
         return crate::simulation::continuous::bm::simulate_bm(

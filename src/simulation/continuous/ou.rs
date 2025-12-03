@@ -1,12 +1,6 @@
 //! Ornstein-Uhlenbeck process simulation
 
-use crate::{
-    XResult,
-    simulation::{
-        continuous::{Langevin, simulate_langevin},
-        prelude::*,
-    },
-};
+use crate::{XResult, check_duration_time_step, random::normal, simulation::prelude::*};
 
 /// Ornstein–Uhlenbeck process
 ///
@@ -69,7 +63,7 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_ou(
             self.theta,
             self.sigma,
@@ -80,10 +74,28 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
-        let drift = |x: f64, _: f64| -self.theta * x;
-        let diffusion = |_: f64, _: f64| self.sigma;
-        let eq = Langevin::new(drift, diffusion, self.start_position)?;
-        eq.displacement(duration, time_step)
+        check_duration_time_step(duration, time_step)?;
+
+        let num_steps = (duration / time_step).ceil() as usize;
+
+        let mut scale = time_step.sqrt();
+
+        let mut current_x = self.start_position;
+        let mut mu;
+
+        let noises = normal::standard_rands::<f64>(num_steps - 1);
+
+        for xi in noises {
+            mu = -self.theta * current_x;
+            current_x += mu * time_step + self.sigma * xi * scale;
+        }
+
+        let last_step = duration - (num_steps - 1) as f64 * time_step;
+        scale = last_step.sqrt();
+        mu = -self.theta * current_x;
+        current_x += mu * last_step + self.sigma * normal::standard_rand::<f64>() * scale;
+
+        Ok(current_x - self.start_position)
     }
 }
 
@@ -117,9 +129,40 @@ pub fn simulate_ou(
     duration: f64,
     time_step: f64,
 ) -> XResult<Pair> {
-    let drift = |x: f64, _: f64| -theta * x;
-    let diffusion = |_: f64, _: f64| sigma;
-    simulate_langevin(&drift, &diffusion, start_position, duration, time_step)
+    check_duration_time_step(duration, time_step)?;
+
+    let num_steps = (duration / time_step).ceil() as usize;
+
+    let mut t = Vec::with_capacity(num_steps + 1);
+    let mut x = Vec::with_capacity(num_steps + 1);
+
+    t.push(0.0);
+    x.push(start_position);
+
+    let mut scale = time_step.sqrt();
+
+    let mut current_t = 0.0;
+    let mut current_x = start_position;
+    let mut mu;
+
+    let noises = normal::standard_rands::<f64>(num_steps - 1);
+
+    for xi in noises {
+        mu = -theta * current_x;
+        current_x += mu * time_step + sigma * xi * scale;
+        current_t += time_step;
+        t.push(current_t);
+        x.push(current_x);
+    }
+
+    let last_step = duration - current_t;
+    scale = last_step.sqrt();
+    mu = -theta * current_x;
+    current_x += mu * last_step + sigma * normal::standard_rand::<f64>() * scale;
+    x.push(current_x);
+    t.push(duration);
+
+    Ok((t, x))
 }
 
 #[cfg(test)]

@@ -15,8 +15,9 @@
 
 use crate::{XError, XResult};
 use num_traits::float::Float;
-use rand::{prelude::*, rng};
+use rand::prelude::*;
 use rand_distr::{Exp1, Open01, StandardNormal};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Gamma distribution with shape parameter $\alpha$ and scale parameter $\theta$
@@ -127,7 +128,8 @@ where
 {
     let gamma = rand_distr::Gamma::new(shape, scale)
         .map_err(|e| XError::InvalidParameters(e.to_string()))?;
-    Ok(rng().sample(gamma))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(gamma))
 }
 
 /// Generate a vector of gamma random numbers
@@ -155,7 +157,10 @@ where
         .map_err(|e| XError::InvalidParameters(e.to_string()))?;
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(gamma))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(gamma),
+        )
         .collect())
 }
 

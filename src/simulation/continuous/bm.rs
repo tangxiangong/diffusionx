@@ -1,6 +1,11 @@
 //! Brownian motion simulation
 
-use crate::{SimulationError, XResult, random::normal, simulation::prelude::*};
+use crate::{
+    SimulationError, XResult, check_duration_time_step, random::normal, simulation::prelude::*,
+};
+use rand::prelude::*;
+use rand_xoshiro::Xoshiro256PlusPlus;
+use rayon::prelude::*;
 
 /// Brownian motion
 #[derive(Debug, Clone)]
@@ -61,7 +66,7 @@ impl ContinuousProcess for Bm {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_bm(
             self.start_position,
             self.diffusion_coefficient,
@@ -71,15 +76,21 @@ impl ContinuousProcess for Bm {
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
         let num_steps = (duration / time_step).ceil() as usize;
-
         let std_dev = (2.0 * self.diffusion_coefficient * time_step).sqrt();
-        let mut noise = normal::rands(0.0, std_dev, num_steps)?;
+        let normal = rand_distr::Normal::new(0.0, std_dev)?;
+        let mut delta_x = (0..num_steps - 1)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(normal),
+            )
+            .sum();
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        *noise.last_mut().unwrap() =
-            2.0 * self.diffusion_coefficient * last_step * normal::standard_rand::<f64>();
-
-        Ok(noise.iter().sum())
+        delta_x +=
+            (2.0 * self.diffusion_coefficient * last_step).sqrt() * normal::standard_rand::<f64>();
+        Ok(delta_x)
     }
 }
 
@@ -109,6 +120,8 @@ pub fn simulate_bm(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
 
     let std_dev = (2.0 * diffusion_coefficient * time_step).sqrt();

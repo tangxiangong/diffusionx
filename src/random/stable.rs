@@ -36,13 +36,44 @@
 //! Center 649 - Economic Risk, Berlin](https://hdl.handle.net/10419/25027)
 
 use crate::{StableError, XResult};
-use rand::{Rng, prelude::*, rng};
+use rand::{Rng, prelude::*};
 use rand_distr::Exp1;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 use std::{
-    f64::consts::PI,
+    f64::consts::{FRAC_PI_2, PI},
     ops::{Add, Mul},
 };
+
+/// Precomputed constants for stable distribution sampling
+#[derive(Debug, Clone, Copy)]
+struct StableConstants {
+    /// 1.0 / alpha
+    inv_alpha: f64,
+    /// (1.0 - alpha) / alpha
+    one_minus_alpha_div_alpha: f64,
+    /// atan(beta * tan(alpha * PI/2)) / alpha
+    b: f64,
+    /// (1.0 + (beta * tan(alpha * PI/2))^2)^(1/(2*alpha))
+    s: f64,
+}
+
+impl StableConstants {
+    #[inline]
+    fn new(alpha: f64, beta: f64) -> Self {
+        let inv_alpha = 1.0 / alpha;
+        let one_minus_alpha_div_alpha = (1.0 - alpha) * inv_alpha;
+        let tmp = beta * (alpha * FRAC_PI_2).tan();
+        let b = tmp.atan() * inv_alpha;
+        let s = (1.0 + tmp * tmp).powf(0.5 * inv_alpha);
+        Self {
+            inv_alpha,
+            b,
+            s,
+            one_minus_alpha_div_alpha,
+        }
+    }
+}
 
 /// Standard Lévy stable distribution
 ///
@@ -113,64 +144,48 @@ impl StandardStable {
 }
 
 /// Sample standard stable random number when alpha is not 1
-fn sample_standard_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, rng: &mut R) -> f64 {
-    let half_pi = PI / 2.0;
-    let tmp = beta * (alpha * half_pi).tan();
-    let v = rng.random_range(-half_pi..half_pi);
-    let w = rng.sample::<f64, _>(Exp1);
-    let b = tmp.atan() / alpha;
-    let s = (1.0 + tmp * tmp).powf(1.0 / (2.0 * alpha));
-    let c1 = alpha * (v + b).sin() / (v.cos()).powf(1.0 / alpha);
-    let c2 = ((v - alpha * (v + b)).cos() / w).powf((1. - alpha) / alpha);
-    s * c1 * c2
+pub(crate) fn sample_standard_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, rng: &mut R) -> f64 {
+    let constants = StableConstants::new(alpha, beta);
+    sample_standard_alpha_with_constants(&constants, alpha, rng)
 }
 
-/// Sample stable random number from the standard version
-///
-/// # Arguments
-///
-/// * `alpha` - The index of stability.
-/// * `beta` - The skewness parameter.
-/// * `sigma` - The scale parameter.
-/// * `mu` - The location parameter.
-fn sample_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, sigma: f64, mu: f64, rng: &mut R) -> f64 {
-    let r = sample_standard_alpha(alpha, beta, rng);
-    sigma * r + mu
-}
-
-/// Sample stable random number from the standard version when alpha is 1
-///
-/// # Arguments
-///
-/// * `alpha` - The index of stability.
-/// * `beta` - The skewness parameter.
-/// * `sigma` - The scale parameter.
-/// * `mu` - The location parameter.
-fn sample_alpha_one<R: Rng + ?Sized>(
+/// Sample standard stable random number with precomputed constants
+#[inline]
+fn sample_standard_alpha_with_constants<R: Rng + ?Sized>(
+    c: &StableConstants,
     alpha: f64,
-    beta: f64,
-    sigma: f64,
-    mu: f64,
     rng: &mut R,
 ) -> f64 {
-    let r = sample_standard_alpha_one(alpha, beta, rng);
-    sigma * r + mu + 2.0 * beta * sigma * sigma * sigma.ln() / PI
+    let v = rng.random_range(-FRAC_PI_2..FRAC_PI_2);
+    let w: f64 = rng.sample(Exp1);
+    let v_plus_b = v + c.b;
+    let cos_v = v.cos();
+    // alpha * sin(v + b) / cos(v)^(1/alpha)
+    let c1 = alpha * v_plus_b.sin() / cos_v.powf(c.inv_alpha);
+    // ((cos(v - alpha*(v+b)) / w))^((1-alpha)/alpha)
+    let c2 = ((v - alpha * v_plus_b).cos() / w).powf(c.one_minus_alpha_div_alpha);
+    c.s * c1 * c2
 }
 
 /// Sample standard stable random number when alpha is 1
-fn sample_standard_alpha_one<R: Rng + ?Sized>(_alpha: f64, beta: f64, rng: &mut R) -> f64 {
-    let half_pi = PI / 2.0;
-    let v = rng.random_range(-half_pi..half_pi);
-    let w = rng.sample::<f64, _>(Exp1);
-    let c1 = (half_pi + beta * v) * v.tan();
-    let c2 = ((half_pi * w * v.cos()) / (half_pi + beta * v)).ln() * beta;
-    2.0 * (c1 - c2) / PI
+#[inline]
+pub(crate) fn sample_standard_alpha_one<R: Rng + ?Sized>(
+    _alpha: f64,
+    beta: f64,
+    rng: &mut R,
+) -> f64 {
+    let v = rng.random_range(-FRAC_PI_2..FRAC_PI_2);
+    let w: f64 = rng.sample(Exp1);
+    let half_pi_plus_beta_v = FRAC_PI_2 + beta * v;
+    let c1 = half_pi_plus_beta_v * v.tan();
+    let c2 = ((FRAC_PI_2 * w * v.cos()) / half_pi_plus_beta_v).ln() * beta;
+    (c1 - c2) * std::f64::consts::FRAC_2_PI
 }
 
 /// Sample from the standard Lévy stable distribution
 impl Distribution<f64> for StandardStable {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> f64 {
-        if self.alpha != 1.0 {
+        if (self.alpha - 1.0).abs() > 1e-10 {
             sample_standard_alpha(self.alpha, self.beta, rng)
         } else {
             sample_standard_alpha_one(self.alpha, self.beta, rng)
@@ -449,7 +464,8 @@ impl Distribution<f64> for SymmetricStandardStable {
 /// ```
 pub fn standard_rand(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<f64> {
     let standard = StandardStable::new(alpha, beta)?;
-    Ok(rng().sample(standard))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(standard))
 }
 
 /// Sample the standard Lévy stable distribution random numbers
@@ -480,15 +496,24 @@ pub fn standard_rands(alpha: impl Into<f64>, beta: impl Into<f64>, n: usize) -> 
     if !(-1.0..=1.0).contains(&beta) {
         return Err(StableError::InvalidSkewness.into());
     }
-    let generator = if alpha == 1.0 {
-        sample_standard_alpha_one
+    if (alpha - 1.0).abs() < 1e-10 {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_one(alpha, beta, r),
+            )
+            .collect())
     } else {
-        sample_standard_alpha
-    };
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(rng, |r, _| generator(alpha, beta, r))
-        .collect())
+        let constants = StableConstants::new(alpha, beta);
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+            )
+            .collect())
+    }
 }
 
 /// Sample the Lévy stable distribution random number
@@ -519,7 +544,8 @@ pub fn rand(
     mu: impl Into<f64>,
 ) -> XResult<f64> {
     let levy = Stable::new(alpha, beta, sigma, mu)?;
-    Ok(rng().sample(levy))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(levy))
 }
 
 /// Sample the Lévy stable distribution random numbers
@@ -567,15 +593,31 @@ pub fn rands(
     if mu.is_nan() {
         return Err(StableError::InvalidLocation.into());
     }
-    let generator = if alpha == 1.0 {
-        sample_alpha_one
+    if (alpha - 1.0).abs() < 1e-10 {
+        let correction = 2.0 * beta * sigma * sigma.ln() / PI;
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| {
+                    let std_sample = sample_standard_alpha_one(alpha, beta, r);
+                    sigma * std_sample + mu + correction
+                },
+            )
+            .collect())
     } else {
-        sample_alpha
-    };
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(rng, |r, _| generator(alpha, beta, sigma, mu, r))
-        .collect())
+        let constants = StableConstants::new(alpha, beta);
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| {
+                    let std_sample = sample_standard_alpha_with_constants(&constants, alpha, r);
+                    sigma * std_sample + mu
+                },
+            )
+            .collect())
+    }
 }
 
 /// Sample the standard skew Lévy stable distribution random number
@@ -595,7 +637,8 @@ pub fn rands(
 /// ```
 pub fn skew_rand(alpha: impl Into<f64>) -> XResult<f64> {
     let skew = StandardSkewStable::new(alpha)?;
-    Ok(rng().sample(skew))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(skew))
 }
 
 /// Sample the standard skew Lévy stable distribution random numbers
@@ -619,10 +662,13 @@ pub fn skew_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
     if alpha <= 0.0 || alpha >= 1.0 || alpha.is_nan() {
         return Err(StableError::InvalidSkewIndex.into());
     }
-    let generator = sample_standard_alpha;
+    let constants = StableConstants::new(alpha, 1.0);
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| generator(alpha, 1.0, r))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+        )
         .collect())
 }
 
@@ -643,7 +689,8 @@ pub fn skew_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
 /// ```
 pub fn sym_standard_rand(alpha: impl Into<f64>) -> XResult<f64> {
     let sym = SymmetricStandardStable::new(alpha)?;
-    Ok(rng().sample(sym))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(sym))
 }
 
 /// Sample the symmetric standard Lévy stable distribution random numbers
@@ -668,15 +715,24 @@ pub fn sym_standard_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> 
     if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
         return Err(StableError::InvalidIndex.into());
     }
-    let generator = if alpha == 1.0 {
-        sample_standard_alpha_one
+    if (alpha - 1.0).abs() < 1e-10 {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_one(alpha, 0.0, r),
+            )
+            .collect())
     } else {
-        sample_standard_alpha
-    };
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(rng, |r, _| generator(alpha, 0.0, r))
-        .collect())
+        let constants = StableConstants::new(alpha, 0.0);
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+            )
+            .collect())
+    }
 }
 
 /// Add two independent Lévy stable distributions

@@ -7,8 +7,8 @@ use rand::{
         uniform::{SampleUniform, Uniform},
     },
     prelude::*,
-    rng,
 };
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 use std::ops::{Range, RangeInclusive};
 
@@ -23,7 +23,8 @@ use std::ops::{Range, RangeInclusive};
 /// assert!((0.0..1.0).contains(&random));
 /// ```
 pub fn standard_rand() -> f64 {
-    rng().sample(StandardUniform)
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    rng.sample(StandardUniform)
 }
 
 /// Generate a vector of standard uniform random numbers
@@ -41,7 +42,10 @@ pub fn standard_rands(n: usize) -> Vec<f64> {
     let dist = StandardUniform;
     (0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(dist))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(dist),
+        )
         .collect()
 }
 
@@ -60,7 +64,8 @@ where
     T: SampleUniform,
 {
     let uniform = Uniform::new(range.start, range.end)?;
-    Ok(rng().sample(uniform))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(uniform))
 }
 
 /// Generate a vector of random numbers from a range
@@ -83,7 +88,10 @@ where
     let uniform = Uniform::new(range.start, range.end)?;
     let result = (0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(uniform))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(uniform),
+        )
         .collect();
     Ok(result)
 }
@@ -103,7 +111,8 @@ where
     T: SampleUniform,
 {
     let uniform = Uniform::new_inclusive(range.start(), range.end())?;
-    Ok(rng().sample(uniform))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(uniform))
 }
 
 /// Generate a vector of random numbers from an inclusive range
@@ -126,7 +135,10 @@ where
     let uniform = Uniform::new_inclusive(range.start(), range.end())?;
     let result = (0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(uniform))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(uniform),
+        )
         .collect();
     Ok(result)
 }
@@ -145,7 +157,8 @@ pub fn bool_rand(p: f64) -> XResult<bool> {
     if !(0.0..=1.0).contains(&p) {
         return Err(XError::BoolSampleError);
     }
-    let result = rng().random_bool(p);
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    let result = rng.random_bool(p);
     Ok(result)
 }
 
@@ -165,7 +178,10 @@ pub fn bool_rands(p: f64, n: usize) -> XResult<Vec<bool>> {
     }
     let result = (0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.random_bool(p))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.random_bool(p),
+        )
         .collect();
     Ok(result)
 }

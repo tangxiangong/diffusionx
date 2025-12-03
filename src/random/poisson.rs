@@ -1,7 +1,8 @@
 //! Poisson distribution random number generation
 
 use crate::{XError, XResult};
-use rand::{prelude::*, rng};
+use rand::prelude::*;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Poisson distribution
@@ -68,7 +69,8 @@ impl Poisson {
 pub fn rand(lambda: impl Into<f64>) -> XResult<usize> {
     let lambda: f64 = lambda.into();
     let poisson = rand_distr::Poisson::new(lambda)?;
-    Ok(rng().sample(poisson) as usize)
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(poisson) as usize)
 }
 
 /// Generate a vector of Poisson random numbers
@@ -90,7 +92,10 @@ pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<usize>> {
     let poisson = rand_distr::Poisson::new(lambda)?;
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(poisson) as usize)
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(poisson) as usize,
+        )
         .collect())
 }
 

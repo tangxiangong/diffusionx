@@ -1,6 +1,13 @@
 //! Subordinator simulation
 
-use crate::{SimulationError, XResult, random::stable, simulation::prelude::*};
+use crate::{
+    SimulationError, XResult, check_duration_time_step,
+    random::stable::{self, sample_standard_alpha},
+    simulation::prelude::*,
+};
+use rand::prelude::*;
+use rand_xoshiro::Xoshiro256PlusPlus;
+use rayon::prelude::*;
 
 /// alpha-stable subordinator
 ///
@@ -48,24 +55,33 @@ impl ContinuousProcess for Subordinator {
         0.0
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_subordinator(self.alpha, duration, time_step)
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
+
         let num_steps = (duration / time_step).ceil() as usize;
         let power = 1.0 / self.alpha;
-        let sigma = time_step.powf(power);
-        let noise = stable::skew_rands(self.alpha, num_steps)?;
+        let mut scale = time_step.powf(power);
+        let generator = sample_standard_alpha;
+        let mut delta_x = (0..num_steps - 1)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| scale * generator(self.alpha, 1.0, r),
+            )
+            .sum();
 
-        let mut sum = 0.0;
-        for i in 0..num_steps - 1 {
-            sum += unsafe { *noise.get_unchecked(i) } * sigma;
-        }
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
-        sum += last_noise * last_step;
-        Ok(sum)
+        scale = last_step.powf(power);
+        delta_x += generator(
+            self.alpha,
+            1.0,
+            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+        ) * scale;
+        Ok(delta_x)
     }
 }
 
@@ -89,9 +105,11 @@ pub fn simulate_subordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
     let power = 1.0 / alpha;
-    let sigma = time_step.powf(power);
+    let mut scale = time_step.powf(power);
     let noise = stable::skew_rands(alpha, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
@@ -103,15 +121,15 @@ pub fn simulate_subordinator(
     let mut current_x = 0.0;
     let mut current_t = 0.0;
     for xi in noise {
-        current_x += xi * sigma;
+        current_x += xi * scale;
         x.push(current_x);
         current_t += time_step;
         t.push(current_t);
     }
     let last_step = duration - current_t;
     let xi = stable::skew_rand(alpha)?;
-    let sigma = last_step.powf(power);
-    current_x += xi * sigma;
+    scale = last_step.powf(power);
+    current_x += xi * scale;
     x.push(current_x);
     t.push(duration);
 
@@ -160,7 +178,7 @@ impl ContinuousProcess for InvSubordinator {
         0.0
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_invsubordinator(self.alpha, duration, time_step)
     }
 
@@ -224,6 +242,8 @@ pub fn simulate_invsubordinator(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let mut mut_duration = duration;
     let (t, s) = loop {
         let (t, s) = simulate_subordinator(alpha, mut_duration, time_step)?;

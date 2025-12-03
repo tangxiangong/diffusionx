@@ -1,5 +1,5 @@
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     random::{exponential, stable},
     simulation::prelude::*,
     utils::{cumsum, linear_interpolate},
@@ -123,12 +123,14 @@ impl ContinuousProcess for LevyWalk {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         let (t, x) = self.simulate_with_duration(duration)?;
         linear_interpolate(&t, &x, time_step)
     }
 
     fn displacement(&self, duration: f64, _time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, _time_step)?;
+
         let mut num_step = duration.ceil() as usize;
         let (t, x) = loop {
             let (t, x) = simulate_levy_walk_with_step(
@@ -235,6 +237,9 @@ pub fn simulate_levy_walk_with_duration(
     start_position: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
     let duration = duration.into();
+
+    check_duration_time_step(duration, 0.01)?;
+
     let mut num_step = duration.ceil() as usize;
     let (t, x) = loop {
         let (t, x) = simulate_levy_walk_with_step(alpha, velocity, num_step, start_position)?;

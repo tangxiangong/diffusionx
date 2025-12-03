@@ -1,7 +1,7 @@
 //! Brownian bridge simulation
 
 use crate::{
-    SimulationError, XResult,
+    SimulationError, XResult, check_duration_time_step,
     simulation::{continuous::Bm, prelude::*},
 };
 use rayon::prelude::*;
@@ -15,7 +15,7 @@ impl ContinuousProcess for BrownianBridge {
         0.0
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_brownian_bridge(duration, time_step)
     }
 
@@ -41,8 +41,10 @@ impl ContinuousProcess for BrownianBridge {
 /// let (t, x) = simulate_brownian_bridge(duration, time_step).unwrap();
 /// ```
 pub fn simulate_brownian_bridge(duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let bm = Bm::default();
-    let (t, traj) = bm.simulate_unchecked(duration, time_step)?;
+    let (t, traj) = bm.simulate(duration, time_step)?;
     let end_position = match traj.last() {
         Some(x) => *x,
         None => return Err(SimulationError::Unknown.into()),

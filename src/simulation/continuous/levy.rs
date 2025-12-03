@@ -2,7 +2,14 @@
 //!
 //! The Lévy process is a process with independent and stationary increments.
 
-use crate::{SimulationError, XResult, random::stable, simulation::prelude::*};
+use crate::{
+    SimulationError, XResult, check_duration_time_step,
+    random::stable::{self, sample_standard_alpha, sample_standard_alpha_one},
+    simulation::prelude::*,
+};
+use rand::prelude::*;
+use rand_xoshiro::Xoshiro256PlusPlus;
+use rayon::prelude::*;
 
 /// Asymmetric Lévy process
 #[derive(Debug, Clone)]
@@ -79,7 +86,7 @@ impl ContinuousProcess for AsymmetricLevy {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_asymmetric_levy(
             self.start_position,
             self.alpha,
@@ -90,19 +97,31 @@ impl ContinuousProcess for AsymmetricLevy {
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
+
         let num_steps = (duration / time_step).ceil() as usize;
         let power = 1.0 / self.alpha;
-        let sigma = time_step.powf(power);
-        let noise = stable::standard_rands(self.alpha, self.beta, num_steps)?;
+        let scale = time_step.powf(power);
+        let generator = if self.alpha == 1.0 {
+            sample_standard_alpha_one
+        } else {
+            sample_standard_alpha
+        };
+        let mut delta_x = (0..num_steps - 1)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| scale * generator(self.alpha, self.beta, r),
+            )
+            .sum();
 
-        let mut sum = self.start_position;
-        for i in 0..num_steps - 1 {
-            sum += unsafe { *noise.get_unchecked(i) } * sigma;
-        }
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
-        sum += last_noise * last_step;
-        Ok(sum - self.start_position)
+        delta_x += generator(
+            self.alpha,
+            self.beta,
+            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+        ) * last_step.powf(power);
+        Ok(delta_x)
     }
 }
 
@@ -131,9 +150,11 @@ pub fn simulate_asymmetric_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
     let power = 1.0 / alpha;
-    let sigma = time_step.powf(power);
+    let mut scale = time_step.powf(power);
     let noise = stable::standard_rands(alpha, beta, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
@@ -145,15 +166,15 @@ pub fn simulate_asymmetric_levy(
     let mut current_x = start_position;
     let mut current_t = 0.0;
     for xi in noise {
-        current_x += xi * sigma;
+        current_x += xi * scale;
         x.push(current_x);
         current_t += time_step;
         t.push(current_t);
     }
     let last_step = duration - current_t;
     let xi = stable::standard_rand(alpha, beta)?;
-    let sigma = last_step.powf(power);
-    current_x += xi * sigma;
+    scale = last_step.powf(power);
+    current_x += xi * scale;
     x.push(current_x);
     t.push(duration);
 
@@ -215,24 +236,37 @@ impl ContinuousProcess for Levy {
         self.start_position
     }
 
-    fn simulate_unchecked(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
         simulate_levy(self.start_position, self.alpha, duration, time_step)
     }
 
     fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+        check_duration_time_step(duration, time_step)?;
+
         let num_steps = (duration / time_step).ceil() as usize;
         let power = 1.0 / self.alpha;
-        let sigma = time_step.powf(power);
-        let noise = stable::sym_standard_rands(self.alpha, num_steps)?;
+        let mut scale = time_step.powf(power);
+        let generator = if self.alpha == 1.0 {
+            sample_standard_alpha_one
+        } else {
+            sample_standard_alpha
+        };
+        let mut delta_x = (0..num_steps - 1)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| scale * generator(self.alpha, 0.0, r),
+            )
+            .sum();
 
-        let mut sum = self.start_position;
-        for i in 0..num_steps - 1 {
-            sum += unsafe { *noise.get_unchecked(i) } * sigma;
-        }
         let last_step = duration - (num_steps - 1) as f64 * time_step;
-        let last_noise = unsafe { *noise.get_unchecked(num_steps - 1) } * sigma;
-        sum += last_noise * last_step;
-        Ok(sum - self.start_position)
+        scale = last_step.powf(power);
+        delta_x += generator(
+            self.alpha,
+            0.0,
+            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+        ) * scale;
+        Ok(delta_x)
     }
 }
 
@@ -258,9 +292,11 @@ pub fn simulate_levy(
     duration: f64,
     time_step: f64,
 ) -> XResult<(Vec<f64>, Vec<f64>)> {
+    check_duration_time_step(duration, time_step)?;
+
     let num_steps = (duration / time_step).ceil() as usize;
     let power = 1.0 / alpha;
-    let sigma = time_step.powf(power);
+    let mut scale = time_step.powf(power);
     let noise = stable::sym_standard_rands(alpha, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
@@ -271,15 +307,15 @@ pub fn simulate_levy(
     let mut current_x = start_position;
     let mut current_t = 0.0;
     for xi in noise {
-        current_x += xi * sigma;
+        current_x += xi * scale;
         x.push(current_x);
         current_t += time_step;
         t.push(current_t);
     }
     let last_step = duration - current_t;
-    let xi = stable::sym_standard_rand(alpha)? * sigma;
-    let sigma = last_step.powf(power);
-    current_x += xi * sigma;
+    let xi = stable::sym_standard_rand(alpha)? * scale;
+    scale = last_step.powf(power);
+    current_x += xi * scale;
     x.push(current_x);
     t.push(duration);
 

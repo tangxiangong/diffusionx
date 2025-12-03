@@ -36,7 +36,7 @@ macro_rules! generalized_langevin {
     }};
 }
 
-/// Create a Generalized Langevin equation with a given drift and diffusion functions.
+/// Create a Subordinated Langevin equation with a given drift and diffusion functions.
 ///
 /// # Example
 /// ```
