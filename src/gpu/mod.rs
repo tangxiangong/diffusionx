@@ -40,3 +40,4 @@ pub trait GPUMoment {
 }
 
 pub mod bm;
+pub mod stable;

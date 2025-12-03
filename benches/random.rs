@@ -28,6 +28,18 @@ fn criterion_benchmark(c: &mut Criterion) {
             let _ = stable::sym_standard_rands(black_box(0.7), black_box(N)).unwrap();
         })
     });
+
+    #[cfg(feature = "cuda")]
+    c.bench_function("stable distribution (cuda)", |b| {
+        b.iter(|| {
+            let _ = diffusionx::gpu::stable::standard_stable_rands(
+                black_box(0.7),
+                black_box(0.0),
+                black_box(N),
+            )
+            .unwrap();
+        })
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);
