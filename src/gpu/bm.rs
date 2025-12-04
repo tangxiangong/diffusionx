@@ -5,7 +5,11 @@ use cudarc::{
     driver::{CudaModule, PushKernelArg},
     nvrtc::Ptx,
 };
-use std::sync::{Arc, LazyLock};
+use num_traits::Float;
+use std::{
+    fmt::Debug,
+    sync::{Arc, LazyLock},
+};
 
 static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
     let ctx = CUDA_CTX.as_ref()?;
@@ -25,7 +29,7 @@ subscribe_central_moment_gpu_function!(MODULE, central_moment, "central_moment",
 
 subscribe_central_moment_gpu_function!(MODULE, frac_central_moment, "frac_central_moment", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32), f32);
 
-impl GPUMoment for Bm {
+impl<T: Float + Debug> GPUMoment for Bm<T> {
     fn central_moment_gpu(
         &self,
         duration: f32,
@@ -34,8 +38,8 @@ impl GPUMoment for Bm {
         time_step: f32,
     ) -> XResult<f32> {
         central_moment(
-            self.get_start_position() as f32,
-            self.get_diffusion_coefficient() as f32,
+            self.get_start_position().to_f32().unwrap(),
+            self.get_diffusion_coefficient().to_f32().unwrap(),
             duration,
             time_step,
             order,
@@ -51,8 +55,8 @@ impl GPUMoment for Bm {
         time_step: f32,
     ) -> XResult<f32> {
         raw_moment(
-            self.get_start_position() as f32,
-            self.get_diffusion_coefficient() as f32,
+            self.get_start_position().to_f32().unwrap(),
+            self.get_diffusion_coefficient().to_f32().unwrap(),
             order,
             duration,
             time_step,
@@ -62,8 +66,8 @@ impl GPUMoment for Bm {
 
     fn mean_gpu(&self, duration: f32, particles: usize, time_step: f32) -> XResult<f32> {
         mean(
-            self.get_start_position() as f32,
-            self.get_diffusion_coefficient() as f32,
+            self.get_start_position().to_f32().unwrap(),
+            self.get_diffusion_coefficient().to_f32().unwrap(),
             duration,
             time_step,
             particles,
@@ -72,8 +76,8 @@ impl GPUMoment for Bm {
 
     fn msd_gpu(&self, duration: f32, particles: usize, time_step: f32) -> XResult<f32> {
         msd(
-            self.get_start_position() as f32,
-            self.get_diffusion_coefficient() as f32,
+            self.get_start_position().to_f32().unwrap(),
+            self.get_diffusion_coefficient().to_f32().unwrap(),
             duration,
             time_step,
             particles,
@@ -88,8 +92,8 @@ impl GPUMoment for Bm {
         time_step: f32,
     ) -> XResult<f32> {
         frac_central_moment(
-            self.get_start_position() as f32,
-            self.get_diffusion_coefficient() as f32,
+            self.get_start_position().to_f32().unwrap(),
+            self.get_diffusion_coefficient().to_f32().unwrap(),
             duration,
             time_step,
             order,
@@ -105,8 +109,8 @@ impl GPUMoment for Bm {
         time_step: f32,
     ) -> XResult<f32> {
         frac_raw_moment(
-            self.get_start_position() as f32,
-            self.get_diffusion_coefficient() as f32,
+            self.get_start_position().to_f32().unwrap(),
+            self.get_diffusion_coefficient().to_f32().unwrap(),
             order,
             duration,
             time_step,
@@ -122,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_gpu_moment() {
-        let bm = Bm::default();
+        let bm = Bm::<f32>::default();
         bm.mean_gpu(1.0, 100, 0.1).unwrap();
         bm.msd_gpu(1.0, 100, 0.1).unwrap();
         bm.raw_moment_gpu(1.0, 2, 100, 0.1).unwrap();
