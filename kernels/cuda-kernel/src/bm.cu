@@ -275,7 +275,7 @@ extern "C" __global__ void frac_raw_moment(float *out,
     if (idx < particles)
     {
         float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
-        val = powf(end, order);
+        val = powf(fabsf(end), order);
     }
 
     __shared__ float sdata[256];
@@ -331,7 +331,7 @@ extern "C" __global__ void frac_central_moment(float *out,
     if (idx < particles)
     {
         float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
-        val = powf(end - mean, order);
+        val = powf(fabsf(end - mean), order);
     }
 
     __shared__ float sdata[256];
