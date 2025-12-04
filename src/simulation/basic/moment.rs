@@ -3,10 +3,12 @@ use super::{
     PointTrajectory,
 };
 use crate::{SimulationError, XResult};
+use num_traits::Float;
 use rayon::prelude::*;
+use std::fmt::Debug;
 
 /// Moment trait
-pub trait Moment {
+pub trait Moment<T: Float + Send + Sync = f64> {
     /// Get the raw moment of the simulation
     ///
     /// # Arguments
@@ -14,7 +16,7 @@ pub trait Moment {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
-    fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64>;
+    fn raw_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T>;
 
     /// Get the central moment of the simulation
     ///
@@ -23,11 +25,13 @@ pub trait Moment {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
-    fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64>;
+    fn central_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T>;
 }
 
-impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
-    fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
+impl<T: Float + Send + Sync + Debug + std::iter::Sum, SP: ContinuousProcess<T> + Clone> Moment<T>
+    for ContinuousTrajectory<SP, T>
+{
+    fn raw_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got {particles}"
@@ -36,11 +40,11 @@ impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
         }
 
         if order == 0 {
-            return Ok(1.0);
+            return Ok(T::one());
         }
-        if time_step <= 0.0 {
+        if time_step <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
+                "The `time_step` must be positive, got `{time_step:?}`"
             ))
             .into());
         }
@@ -56,19 +60,19 @@ impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
                 };
                 if order == 1 { end } else { end.powi(order) }
             })
-            .sum::<f64>();
+            .sum::<T>();
 
-        let result = values / (particles as f64);
+        let result = values / (T::from(particles).unwrap());
         Ok(result)
     }
 
-    fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
+    fn central_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T> {
         if order == 0 {
-            return Ok(1.0);
+            return Ok(T::one());
         }
-        if time_step <= 0.0 {
+        if time_step <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
+                "The `time_step` must be positive, got `{time_step:?}`"
             ))
             .into());
         }
@@ -93,9 +97,9 @@ impl<SP: ContinuousProcess + Clone> Moment for ContinuousTrajectory<SP> {
                     (end_position - mean).powi(order)
                 }
             })
-            .sum::<f64>();
+            .sum::<T>();
 
-        let result = values / (particles as f64);
+        let result = values / (T::from(particles).unwrap());
         Ok(result)
     }
 }
