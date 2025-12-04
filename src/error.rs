@@ -5,8 +5,10 @@
 //! sampling, simulation processes, and visualization.
 
 use gauss_quad::legendre::GaussLegendreError;
+use num_traits::Float;
 use rand::distr::uniform::Error as UniformError;
 use rand_distr::{ExpError, NormalError, PoissonError};
+use std::fmt::Debug;
 use thiserror::Error;
 
 /// Result type for this crate
@@ -169,24 +171,24 @@ impl<E: std::error::Error + Send + Sync> From<plotters::drawing::DrawingAreaErro
 
 #[inline]
 /// Check the duration and time step
-pub fn check_duration_time_step(duration: f64, time_step: f64) -> XResult<()> {
-    if duration <= 0.0 {
+pub fn check_duration_time_step<T: Float + Debug>(duration: T, time_step: T) -> XResult<()> {
+    if duration <= T::zero() {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be positive, got {duration}"
+            "The `duration` must be positive, got {duration:?}"
         ))
         .into());
     }
 
-    if time_step <= 0.0 {
+    if time_step <= T::zero() {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `time_step` must be positive, got `{time_step}`"
+            "The `time_step` must be positive, got `{time_step:?}`"
         ))
         .into());
     }
 
     if time_step > duration {
         return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be less than or equal to the `duration`, got `{time_step}` > `{duration}`"
+                "The `time_step` must be less than or equal to the `duration`, got `{time_step:?}` > `{duration:?}`"
             ))
             .into());
     }
