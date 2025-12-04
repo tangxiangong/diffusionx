@@ -7,7 +7,7 @@ const N: usize = 10_000_000;
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("uniform distribution", |b| {
         b.iter(|| {
-            let _ = uniform::standard_rands(black_box(N));
+            let _ = uniform::standard_rands::<f64>(black_box(N));
         })
     });
 

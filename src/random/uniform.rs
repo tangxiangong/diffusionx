@@ -1,6 +1,7 @@
 //! Uniform random number generation
 
 use crate::{XError, XResult};
+use num_traits::float::Float;
 use rand::{
     distr::{
         StandardUniform,
@@ -22,7 +23,10 @@ use std::ops::{Range, RangeInclusive};
 /// let random = standard_rand();
 /// assert!((0.0..1.0).contains(&random));
 /// ```
-pub fn standard_rand() -> f64 {
+pub fn standard_rand<T: Float>() -> T
+where
+    StandardUniform: Distribution<T>,
+{
     let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
     rng.sample(StandardUniform)
 }
@@ -38,7 +42,11 @@ pub fn standard_rand() -> f64 {
 /// assert_eq!(randoms.len(), 10);
 /// assert!(randoms.iter().all(|x| (0.0..1.0).contains(x)));
 /// ```
-pub fn standard_rands(n: usize) -> Vec<f64> {
+pub fn standard_rands<T>(n: usize) -> Vec<T>
+where
+    T: Send + Sync + Float,
+    StandardUniform: Distribution<T>,
+{
     let dist = StandardUniform;
     (0..n)
         .into_par_iter()

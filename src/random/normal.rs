@@ -7,7 +7,6 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
-use std::ops::{Add, Mul, Neg, Sub};
 
 /// Normal distribution
 #[derive(Debug, Clone)]
@@ -89,97 +88,6 @@ impl<T: Float + Send + Sync> Normal<T> {
         } else {
             rands(self.mu, self.sigma, n)
         }
-    }
-}
-
-impl<T: Float + Send + Sync> Neg for Normal<T> {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        Self {
-            mu: -self.mu,
-            sigma: self.sigma,
-        }
-    }
-}
-
-impl<T: Float + Send + Sync> Add for Normal<T> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        let sigma = (self.sigma * self.sigma + rhs.sigma * rhs.sigma).sqrt();
-        Self {
-            mu: self.mu + rhs.mu,
-            sigma,
-        }
-    }
-}
-
-impl<T: Float + Send + Sync> Sub for Normal<T> {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        self + (-rhs)
-    }
-}
-
-impl<T: Float + Send + Sync> Mul<T> for Normal<T> {
-    type Output = Self;
-
-    fn mul(self, rhs: T) -> Self::Output {
-        Self {
-            mu: self.mu * rhs,
-            sigma: self.sigma * rhs.abs(),
-        }
-    }
-}
-
-impl Mul<Normal> for f64 {
-    type Output = Normal;
-
-    fn mul(self, rhs: Normal) -> Self::Output {
-        Self::Output {
-            mu: self * rhs.mu,
-            sigma: self.abs() * rhs.sigma,
-        }
-    }
-}
-
-impl<T: Send + Sync + Float> Add<T> for Normal<T> {
-    type Output = Self;
-
-    fn add(self, rhs: T) -> Self::Output {
-        Self {
-            mu: self.mu + rhs,
-            sigma: self.sigma,
-        }
-    }
-}
-
-impl Add<Normal> for f64 {
-    type Output = Normal;
-
-    fn add(self, rhs: Normal) -> Self::Output {
-        Self::Output {
-            mu: self + rhs.mu,
-            sigma: rhs.sigma,
-        }
-    }
-}
-
-impl<T: Send + Sync + Float> Sub<T> for Normal<T> {
-    type Output = Self;
-
-    fn sub(self, rhs: T) -> Self::Output {
-        self + (-rhs)
-    }
-}
-
-impl Sub<Normal> for f64 {
-    type Output = Normal;
-
-    fn sub(self, rhs: Normal) -> Self::Output {
-        self + (-rhs)
     }
 }
 
