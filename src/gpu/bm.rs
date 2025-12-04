@@ -1,5 +1,5 @@
 use super::{CUDA_CTX, config, load_kernel};
-use crate::{XResult, gpu::GPUMoment, simulation::continuous::Bm};
+use crate::{XResult, gpu::GPUMoment, simulation::continuous::Bm, subscribe_gpu_function};
 use cuda_kernel::BM_PTX;
 use cudarc::{
     driver::{CudaModule, PushKernelArg},
@@ -13,196 +13,17 @@ static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
     Ok(module)
 });
 
-fn mean(
-    start_position: f32,
-    diffusivity: f32,
-    duration: f32,
-    time_step: f32,
-    particles: usize,
-) -> XResult<f32> {
-    let (stream, kernel) = load_kernel(&MODULE, "bm_mean")?;
-    let mut device_out = stream.alloc_zeros::<f32>(1)?;
-    let cfg = config(particles);
+subscribe_gpu_function!(MODULE, mean, "mean", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32));
 
-    let seed = std::time::SystemTime::now().elapsed()?.as_secs();
+subscribe_gpu_function!(MODULE, msd, "msd", (diffusivity: f32, duration: f32, time_step: f32));
 
-    let mut builder = stream.launch_builder(&kernel);
-    builder.arg(&mut device_out);
-    builder.arg(&start_position);
-    builder.arg(&diffusivity);
-    builder.arg(&duration);
-    builder.arg(&time_step);
-    builder.arg(&particles);
-    builder.arg(&seed);
+subscribe_gpu_function!(MODULE, raw_moment, "raw_moment", (start_position: f32, diffusivity: f32, order: i32, duration: f32, time_step: f32));
 
-    unsafe {
-        builder.launch(cfg)?;
-    }
+subscribe_gpu_function!(MODULE, frac_raw_moment, "frac_raw_moment", (start_position: f32, diffusivity: f32, order: f32, duration: f32, time_step: f32));
 
-    let out_host = stream.clone_dtoh(&device_out)?;
-    let sum = out_host[0];
-    Ok(sum / particles as f32)
-}
+subscribe_central_moment_gpu_function!(MODULE, central_moment, "central_moment", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32), i32);
 
-fn msd(diffusivity: f32, duration: f32, time_step: f32, particles: usize) -> XResult<f32> {
-    let (stream, kernel) = load_kernel(&MODULE, "bm_msd")?;
-    let mut device_out = stream.alloc_zeros::<f32>(1)?;
-    let cfg = config(particles);
-
-    let seed = std::time::SystemTime::now().elapsed()?.as_secs();
-
-    let mut builder = stream.launch_builder(&kernel);
-    builder.arg(&mut device_out);
-    builder.arg(&diffusivity);
-    builder.arg(&duration);
-    builder.arg(&time_step);
-    builder.arg(&particles);
-    builder.arg(&seed);
-
-    unsafe {
-        builder.launch(cfg)?;
-    }
-
-    let out_host = stream.clone_dtoh(&device_out)?;
-    let sum = out_host[0];
-    Ok(sum / particles as f32)
-}
-
-fn raw_moment(
-    start_position: f32,
-    diffusivity: f32,
-    order: i32,
-    duration: f32,
-    time_step: f32,
-    particles: usize,
-) -> XResult<f32> {
-    let (stream, kernel) = load_kernel(&MODULE, "bm_raw_moment")?;
-    let mut device_out = stream.alloc_zeros::<f32>(1)?;
-    let cfg = config(particles);
-
-    let seed = std::time::SystemTime::now().elapsed()?.as_secs();
-
-    let mut builder = stream.launch_builder(&kernel);
-    builder.arg(&mut device_out);
-    builder.arg(&start_position);
-    builder.arg(&diffusivity);
-    builder.arg(&order);
-    builder.arg(&duration);
-    builder.arg(&time_step);
-    builder.arg(&particles);
-    builder.arg(&seed);
-
-    unsafe {
-        builder.launch(cfg)?;
-    }
-
-    let out_host = stream.clone_dtoh(&device_out)?;
-    let sum = out_host[0];
-    Ok(sum / particles as f32)
-}
-
-fn central_moment(
-    start_position: f32,
-    diffusivity: f32,
-    order: i32,
-    duration: f32,
-    time_step: f32,
-    particles: usize,
-) -> XResult<f32> {
-    let (stream, kernel) = load_kernel(&MODULE, "bm_central_moment")?;
-    let mut device_out = stream.alloc_zeros::<f32>(1)?;
-    let cfg = config(particles);
-
-    let seed = std::time::SystemTime::now().elapsed()?.as_secs();
-    let mean = mean(start_position, diffusivity, duration, time_step, particles)?;
-
-    let mut builder = stream.launch_builder(&kernel);
-    builder.arg(&mut device_out);
-    builder.arg(&mean);
-    builder.arg(&start_position);
-    builder.arg(&diffusivity);
-    builder.arg(&order);
-    builder.arg(&duration);
-    builder.arg(&time_step);
-    builder.arg(&particles);
-    builder.arg(&seed);
-
-    unsafe {
-        builder.launch(cfg)?;
-    }
-
-    let out_host = stream.clone_dtoh(&device_out)?;
-    let sum = out_host[0];
-    Ok(sum / particles as f32)
-}
-
-fn frac_raw_moment(
-    start_position: f32,
-    diffusivity: f32,
-    order: f32,
-    duration: f32,
-    time_step: f32,
-    particles: usize,
-) -> XResult<f32> {
-    let (stream, kernel) = load_kernel(&MODULE, "bm_raw_moment")?;
-    let mut device_out = stream.alloc_zeros::<f32>(1)?;
-    let cfg = config(particles);
-
-    let seed = std::time::SystemTime::now().elapsed()?.as_secs();
-
-    let mut builder = stream.launch_builder(&kernel);
-    builder.arg(&mut device_out);
-    builder.arg(&start_position);
-    builder.arg(&diffusivity);
-    builder.arg(&order);
-    builder.arg(&duration);
-    builder.arg(&time_step);
-    builder.arg(&particles);
-    builder.arg(&seed);
-
-    unsafe {
-        builder.launch(cfg)?;
-    }
-
-    let out_host = stream.clone_dtoh(&device_out)?;
-    let sum = out_host[0];
-    Ok(sum / particles as f32)
-}
-
-fn frac_central_moment(
-    start_position: f32,
-    diffusivity: f32,
-    order: i32,
-    duration: f32,
-    time_step: f32,
-    particles: usize,
-) -> XResult<f32> {
-    let (stream, kernel) = load_kernel(&MODULE, "bm_central_moment")?;
-    let mut device_out = stream.alloc_zeros::<f32>(1)?;
-    let cfg = config(particles);
-
-    let seed = std::time::SystemTime::now().elapsed()?.as_secs();
-    let mean = mean(start_position, diffusivity, duration, time_step, particles)?;
-
-    let mut builder = stream.launch_builder(&kernel);
-    builder.arg(&mut device_out);
-    builder.arg(&mean);
-    builder.arg(&start_position);
-    builder.arg(&diffusivity);
-    builder.arg(&order);
-    builder.arg(&duration);
-    builder.arg(&time_step);
-    builder.arg(&particles);
-    builder.arg(&seed);
-
-    unsafe {
-        builder.launch(cfg)?;
-    }
-
-    let out_host = stream.clone_dtoh(&device_out)?;
-    let sum = out_host[0];
-    Ok(sum / particles as f32)
-}
+subscribe_central_moment_gpu_function!(MODULE, frac_central_moment, "frac_central_moment", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32), f32);
 
 impl GPUMoment for Bm {
     fn central_moment_gpu(
@@ -215,9 +36,9 @@ impl GPUMoment for Bm {
         central_moment(
             self.get_start_position() as f32,
             self.get_diffusion_coefficient() as f32,
-            order,
             duration,
             time_step,
+            order,
             particles,
         )
     }
@@ -268,9 +89,9 @@ impl GPUMoment for Bm {
         frac_central_moment(
             self.get_start_position() as f32,
             self.get_diffusion_coefficient() as f32,
-            order as i32,
             duration,
             time_step,
+            order,
             particles,
         )
     }
@@ -290,5 +111,22 @@ impl GPUMoment for Bm {
             time_step,
             particles,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::gpu::GPUMoment;
+    use crate::simulation::continuous::Bm;
+
+    #[test]
+    fn test_gpu_moment() {
+        let bm = Bm::default();
+        bm.mean_gpu(1.0, 100, 0.1).unwrap();
+        bm.msd_gpu(1.0, 100, 0.1).unwrap();
+        bm.raw_moment_gpu(1.0, 2, 100, 0.1).unwrap();
+        bm.frac_raw_moment_gpu(1.0, 1.4, 100, 0.1).unwrap();
+        bm.central_moment_gpu(1.0, 2, 100, 0.1).unwrap();
+        bm.frac_central_moment_gpu(1.0, 1.5, 100, 0.1).unwrap();
     }
 }

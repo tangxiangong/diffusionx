@@ -107,5 +107,83 @@ pub trait GPUMoment {
     ) -> XResult<f32>;
 }
 
+#[macro_export]
+/// Macro to generate GPU-accelerated moment calculation functions
+macro_rules! subscribe_gpu_function {
+    ($module:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?)) => {
+        fn $func_name(
+            $(
+                $param_name: $param_type,
+            )+
+            particles: usize,
+        ) -> XResult<f32> {
+            let (stream, kernel) = load_kernel(&$module, $kernel_name)?;
+            let mut device_out = stream.alloc_zeros::<f32>(1)?;
+            let cfg = config(particles);
+
+            let seed = std::time::SystemTime::now().elapsed()?.as_secs();
+
+            let mut builder = stream.launch_builder(&kernel);
+            builder.arg(&mut device_out);
+
+            $(
+                builder.arg(&$param_name);
+            )+
+
+            builder.arg(&particles);
+            builder.arg(&seed);
+
+            unsafe {
+                builder.launch(cfg)?;
+            }
+
+            let out_host = stream.clone_dtoh(&device_out)?;
+            let sum = out_host[0];
+            Ok(sum / particles as f32)
+        }
+    };
+}
+
+#[macro_export]
+/// Macro to generate GPU-accelerated central moment calculation functions
+macro_rules! subscribe_central_moment_gpu_function {
+    ($module:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?), $order_type:ty) => {
+        fn $func_name(
+            $(
+                $param_name: $param_type,
+            )+
+            order: $order_type,
+            particles: usize,
+        ) -> XResult<f32> {
+            let (stream, kernel) = load_kernel(&$module, $kernel_name)?;
+            let mut device_out = stream.alloc_zeros::<f32>(1)?;
+            let cfg = config(particles);
+
+            let seed = std::time::SystemTime::now().elapsed()?.as_secs();
+            let mean = mean($($param_name,)+ particles)?;
+
+            let mut builder = stream.launch_builder(&kernel);
+            builder.arg(&mut device_out);
+            builder.arg(&mean);
+            builder.arg(&order);
+
+            $(
+                builder.arg(&$param_name);
+            )+
+
+            builder.arg(&particles);
+            builder.arg(&seed);
+
+            unsafe {
+                builder.launch(cfg)?;
+            }
+
+            let out_host = stream.clone_dtoh(&device_out)?;
+            let sum = out_host[0];
+            Ok(sum / particles as f32)
+        }
+    };
+}
+
 pub mod bm;
 pub mod stable;
