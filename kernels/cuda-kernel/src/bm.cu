@@ -10,6 +10,38 @@
 #include <curand_kernel.h>
 
 /**
+ * @brief Simulates Brownian motion for a single particle
+ *
+ * @param start_position Initial position of the particle
+ * @param diffusivity Diffusion coefficient (D) controlling the rate of diffusion
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param seed Random seed for CURAND
+ * @param idx Index of the particle
+ */
+QUALIFIERS float simulate(float start_position, float diffusivity, float duration, float time_step, unsigned long long seed, size_t idx)
+{
+    float current_x = start_position;
+
+    float sigma = sqrtf(2.0f * diffusivity * time_step);
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+
+    curandState state;
+    curand_init(seed, idx, 0, &state);
+
+    for (size_t i = 0; i < num_steps - 1; ++i)
+    {
+        float xi = curand_normal(&state);
+        current_x += xi * sigma;
+    }
+
+    float last_step = duration - (num_steps - 1) * time_step;
+    float xi = curand_normal(&state);
+    current_x += xi * sqrtf(2.0f * diffusivity * last_step);
+    return current_x;
+}
+
+/**
  * @brief Simulates Brownian motion and computes the mean position across all particles
  *
  * This kernel simulates multiple independent Brownian motion paths and computes
@@ -35,24 +67,7 @@ extern "C" __global__ void mean(float *out,
 
     if (idx < particles)
     {
-        float current_x = start_position;
-
-        float sigma = sqrtf(2.0f * diffusivity * time_step);
-        size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
-
-        curandState state;
-        curand_init(seed, idx, 0, &state);
-
-        for (size_t i = 0; i < num_steps - 1; ++i)
-        {
-            float xi = curand_normal(&state);
-            current_x += xi * sigma;
-        }
-
-        float last_step = duration - (num_steps - 1) * time_step;
-        float xi = curand_normal(&state);
-        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
-        val = current_x;
+        val = simulate(start_position, diffusivity, duration, time_step, seed, idx);
     }
 
     __shared__ float sdata[256];
@@ -88,7 +103,7 @@ extern "C" __global__ void mean(float *out,
  * @param particles Number of particles to simulate
  * @param seed Random seed for CURAND
  */
-extern "C" __global__ void msd(float *out,
+extern "C" __global__ void msd(float *out, float start_position,
                                float diffusivity, float duration,
                                float time_step, size_t particles,
                                unsigned long long seed)
@@ -99,23 +114,8 @@ extern "C" __global__ void msd(float *out,
 
     if (idx < particles)
     {
-        float current_x = 0.0;
-        float sigma = sqrtf(2.0f * diffusivity * time_step);
-        size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
-
-        curandState state;
-        curand_init(seed, idx, 0, &state);
-
-        for (size_t i = 0; i < num_steps - 1; ++i)
-        {
-            float xi = curand_normal(&state);
-            current_x += xi * sigma;
-        }
-
-        float last_step = duration - (num_steps - 1) * time_step;
-        float xi = curand_normal(&state);
-        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
-        val = current_x * current_x;
+        float end = simulate(0.0f, diffusivity, duration, time_step, seed, idx);
+        val = (end - start_position) * (end - start_position);
     }
 
     __shared__ float sdata[256];
@@ -167,23 +167,8 @@ extern "C" __global__ void raw_moment(float *out,
 
     if (idx < particles)
     {
-        float current_x = start_position;
-        float sigma = sqrtf(2.0f * diffusivity * time_step);
-        size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
-
-        curandState state;
-        curand_init(seed, idx, 0, &state);
-
-        for (size_t i = 0; i < num_steps - 1; ++i)
-        {
-            float xi = curand_normal(&state);
-            current_x += xi * sigma;
-        }
-
-        float last_step = duration - (num_steps - 1) * time_step;
-        float xi = curand_normal(&state);
-        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
-        val = pow(current_x, order);
+        float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
+        val = pow(end, order);
     }
 
     __shared__ float sdata[256];
@@ -236,23 +221,8 @@ extern "C" __global__ void central_moment(float *out,
 
     if (idx < particles)
     {
-        float current_x = start_position;
-        float sigma = sqrtf(2.0f * diffusivity * time_step);
-        size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
-
-        curandState state;
-        curand_init(seed, idx, 0, &state);
-
-        for (size_t i = 0; i < num_steps - 1; ++i)
-        {
-            float xi = curand_normal(&state);
-            current_x += xi * sigma;
-        }
-
-        float last_step = duration - (num_steps - 1) * time_step;
-        float xi = curand_normal(&state);
-        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
-        val = pow(current_x - mean, order);
+        float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
+        val = pow(end - mean, order);
     }
 
     __shared__ float sdata[256];
@@ -304,23 +274,8 @@ extern "C" __global__ void frac_raw_moment(float *out,
 
     if (idx < particles)
     {
-        float current_x = start_position;
-        float sigma = sqrtf(2.0f * diffusivity * time_step);
-        size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
-
-        curandState state;
-        curand_init(seed, idx, 0, &state);
-
-        for (size_t i = 0; i < num_steps - 1; ++i)
-        {
-            float xi = curand_normal(&state);
-            current_x += xi * sigma;
-        }
-
-        float last_step = duration - (num_steps - 1) * time_step;
-        float xi = curand_normal(&state);
-        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
-        val = powf(current_x, order);
+        float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
+        val = powf(end, order);
     }
 
     __shared__ float sdata[256];
@@ -375,23 +330,8 @@ extern "C" __global__ void frac_central_moment(float *out,
 
     if (idx < particles)
     {
-        float current_x = start_position;
-        float sigma = sqrtf(2.0f * diffusivity * time_step);
-        size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
-
-        curandState state;
-        curand_init(seed, idx, 0, &state);
-
-        for (size_t i = 0; i < num_steps - 1; ++i)
-        {
-            float xi = curand_normal(&state);
-            current_x += xi * sigma;
-        }
-
-        float last_step = duration - (num_steps - 1) * time_step;
-        float xi = curand_normal(&state);
-        current_x += xi * sqrtf(2.0f * diffusivity * last_step);
-        val = powf(current_x - mean, order);
+        float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
+        val = powf(end - mean, order);
     }
 
     __shared__ float sdata[256];

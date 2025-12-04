@@ -15,7 +15,7 @@ static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
 
 subscribe_gpu_function!(MODULE, mean, "mean", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32));
 
-subscribe_gpu_function!(MODULE, msd, "msd", (diffusivity: f32, duration: f32, time_step: f32));
+subscribe_gpu_function!(MODULE, msd, "msd", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32));
 
 subscribe_gpu_function!(MODULE, raw_moment, "raw_moment", (start_position: f32, diffusivity: f32, order: i32, duration: f32, time_step: f32));
 
@@ -72,6 +72,7 @@ impl GPUMoment for Bm {
 
     fn msd_gpu(&self, duration: f32, particles: usize, time_step: f32) -> XResult<f32> {
         msd(
+            self.get_start_position() as f32,
             self.get_diffusion_coefficient() as f32,
             duration,
             time_step,
