@@ -111,6 +111,7 @@ pub trait GPUMoment {
 /// Macro to generate GPU-accelerated moment calculation functions
 macro_rules! subscribe_gpu_function {
     ($module:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?)) => {
+        #[allow(clippy::too_many_arguments)]
         fn $func_name(
             $(
                 $param_name: $param_type,
@@ -148,6 +149,7 @@ macro_rules! subscribe_gpu_function {
 /// Macro to generate GPU-accelerated central moment calculation functions
 macro_rules! subscribe_central_moment_gpu_function {
     ($module:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?), $order_type:ty) => {
+        #[allow(clippy::too_many_arguments)]
         fn $func_name(
             $(
                 $param_name: $param_type,
@@ -186,4 +188,5 @@ macro_rules! subscribe_central_moment_gpu_function {
 }
 
 pub mod bm;
+pub mod levy;
 pub mod stable;
