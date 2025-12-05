@@ -32,7 +32,133 @@ QUALIFIERS float sample_symmetric_standard_alpha_with_constants(
 }
 
 /**
- * @brief Simulates α stable Levy process for a single particle when α = 1
+ * @brief Simulates the α stable Levy process for a single particle when α = 1
+ *
+ * @param t Pointer to array of time points
+ * @param x Pointer to array of positions
+ * @param start_position Initial position of the particle
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param seed Random seed for CURAND
+ * @param idx Index of the particle
+ */
+QUALIFIERS void simulate_alpha_one(float *t, float *x, float start_position, float duration,
+                                   float time_step, unsigned long long seed,
+                                   size_t idx)
+{
+    float current_x = start_position;
+    float current_t = 0.0f;
+
+    t[0] = current_t;
+    x[0] = current_x;
+
+    float sigma = time_step;
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
+    for (size_t i = 0; i < num_steps - 1; ++i)
+    {
+        float xi = sample_symmetric_standard_alpha_one(&state);
+        current_x += xi * sigma;
+        current_t += time_step;
+        t[i + 1] = current_t;
+        x[i + 1] = current_x;
+    }
+
+    float last_step = duration - current_t;
+    float xi = sample_symmetric_standard_alpha_one(&state);
+    sigma = last_step;
+    current_x += xi * last_step;
+
+    t[num_steps] = duration;
+    x[num_steps] = current_x;
+}
+
+/**
+ * @brief Simulates the α stable Levy process for a single particle when α != 1
+ *
+ * @param t Pointer to array of time points
+ * @param x Pointer to array of positions
+ * @param start_position Initial position of the particle
+ * @param alpha Stability parameter (0 < α ≤ 2, α ≠ 1)
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param seed Random seed for CURAND
+ * @param idx Index of the particle
+ * @param inv_alpha Precomputed value of 1/α
+ * @param one_minus_alpha_div_alpha Precomputed value of (1-α)/α
+ */
+QUALIFIERS void simulate_alpha(float *t, float *x, float alpha, float start_position,
+                               float duration, float time_step,
+                               unsigned long long seed, size_t idx,
+                               float inv_alpha,
+                               float one_minus_alpha_div_alpha)
+{
+    float current_x = start_position;
+    float current_t = 0.0f;
+
+    t[0] = current_t;
+    x[0] = current_x;
+
+    float sigma = powf(time_step, inv_alpha);
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, idx, 0, &state);
+
+    for (size_t i = 0; i < num_steps - 1; ++i)
+    {
+        float xi = sample_symmetric_standard_alpha_with_constants(
+            alpha, inv_alpha, one_minus_alpha_div_alpha, &state);
+        current_x += xi * sigma;
+        current_t += time_step;
+        t[i + 1] = current_t;
+        x[i + 1] = current_x;
+    }
+
+    float last_step = duration - current_t;
+    float xi = sample_symmetric_standard_alpha_with_constants(
+        alpha, inv_alpha, one_minus_alpha_div_alpha, &state);
+    sigma = powf(last_step, inv_alpha);
+    current_x += xi * sigma;
+
+    t[num_steps] = duration;
+    x[num_steps] = current_x;
+}
+
+/**
+ * @brief Simulates the displacement of α stable Levy process for a single particle
+ *
+ * @param t Pointer to array of time points
+ * @param x Pointer to array of positions
+ * @param alpha Stability parameter (0 < α ≤ 2)
+ * @param start_position Initial position of the particle
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param seed Random seed for CURAND
+ * @param idx Index of the particle
+ * @param inv_alpha Precomputed value of 1/α
+ * @param one_minus_alpha_div_alpha Precomputed value of (1-α)/α
+ */
+QUALIFIERS void simulate(float *t, float *x, float alpha, float start_position, float duration,
+                         float time_step, unsigned long long seed, size_t idx,
+                         float inv_alpha, float one_minus_alpha_div_alpha)
+{
+    if (alpha == 1.0f)
+    {
+        return simulate_alpha_one(t, x, start_position, duration, time_step, seed, idx);
+    }
+    else
+    {
+        return simulate_alpha(t, x, alpha, start_position, duration, time_step, seed, idx,
+                              inv_alpha, one_minus_alpha_div_alpha);
+    }
+}
+
+/**
+ * @brief Simulates the displacement of α stable Levy process for a single particle when α = 1
  *
  * @param start_position Initial position of the particle
  * @param duration Total simulation time
@@ -40,9 +166,9 @@ QUALIFIERS float sample_symmetric_standard_alpha_with_constants(
  * @param seed Random seed for CURAND
  * @param idx Index of the particle
  */
-QUALIFIERS float simulate_alpha_one(float start_position, float duration,
-                                    float time_step, unsigned long long seed,
-                                    size_t idx)
+QUALIFIERS float displacement_alpha_one(float start_position, float duration,
+                                        float time_step, unsigned long long seed,
+                                        size_t idx)
 {
     float current_x = start_position;
 
@@ -66,7 +192,7 @@ QUALIFIERS float simulate_alpha_one(float start_position, float duration,
 }
 
 /**
- * @brief Simulates α stable Levy process for a single particle when α != 1
+ * @brief Simulates the displacement of α stable Levy process for a single particle when α != 1
  *
  * @param start_position Initial position of the particle
  * @param alpha Stability parameter (0 < α ≤ 2, α ≠ 1)
@@ -77,11 +203,11 @@ QUALIFIERS float simulate_alpha_one(float start_position, float duration,
  * @param inv_alpha Precomputed value of 1/α
  * @param one_minus_alpha_div_alpha Precomputed value of (1-α)/α
  */
-QUALIFIERS float simulate_alpha(float alpha, float start_position,
-                                float duration, float time_step,
-                                unsigned long long seed, size_t idx,
-                                float inv_alpha,
-                                float one_minus_alpha_div_alpha)
+QUALIFIERS float displacement_alpha(float alpha, float start_position,
+                                    float duration, float time_step,
+                                    unsigned long long seed, size_t idx,
+                                    float inv_alpha,
+                                    float one_minus_alpha_div_alpha)
 {
     float current_x = start_position;
 
@@ -107,7 +233,7 @@ QUALIFIERS float simulate_alpha(float alpha, float start_position,
 }
 
 /**
- * @brief Simulates α stable Levy process for a single particle
+ * @brief Simulates the displacement of α stable Levy process for a single particle
  *
  * @param alpha Stability parameter (0 < α ≤ 2)
  * @param start_position Initial position of the particle
@@ -118,18 +244,18 @@ QUALIFIERS float simulate_alpha(float alpha, float start_position,
  * @param inv_alpha Precomputed value of 1/α
  * @param one_minus_alpha_div_alpha Precomputed value of (1-α)/α
  */
-QUALIFIERS float simulate(float alpha, float start_position, float duration,
-                          float time_step, unsigned long long seed, size_t idx,
-                          float inv_alpha, float one_minus_alpha_div_alpha)
+QUALIFIERS float displacement(float alpha, float start_position, float duration,
+                              float time_step, unsigned long long seed, size_t idx,
+                              float inv_alpha, float one_minus_alpha_div_alpha)
 {
     if (alpha == 1.0f)
     {
-        return simulate_alpha_one(start_position, duration, time_step, seed, idx);
+        return displacement_alpha_one(start_position, duration, time_step, seed, idx);
     }
     else
     {
-        return simulate_alpha(alpha, start_position, duration, time_step, seed, idx,
-                              inv_alpha, one_minus_alpha_div_alpha);
+        return displacement_alpha(alpha, start_position, duration, time_step, seed, idx,
+                                  inv_alpha, one_minus_alpha_div_alpha);
     }
 }
 
@@ -162,61 +288,8 @@ extern "C" __global__ void mean(float *out, float alpha, float start_position,
 
     if (idx < particles)
     {
-        val = simulate(alpha, start_position, duration, time_step, seed, idx,
-                       inv_alpha, one_minus_alpha_div_alpha);
-    }
-
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
-
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
-
-    if (tid == 0)
-    {
-        atomicAdd(out, sdata[0]);
-    }
-}
-
-/**
- * @brief Computes the specified fractional raw moment of Brownian motion
- *
- * This kernel simulates multiple independent Brownian motion paths and computes
- * their raw moment of specified fractional order at the end of the simulation.
- * The fractional raw moment is calculated as E[X^r] where r is a real number.
- *
- * @param out Pointer to output value (accumulated sum of fractional raw
- * moments, should be divided by particles count in host)
- * @param start_position Initial position for all particles
- * @param diffusivity Diffusion coefficient (D)
- * @param order Fractional order of the raw moment to compute
- * @param duration Total simulation time
- * @param time_step Time step size for the simulation
- * @param particles Number of particles to simulate
- * @param seed Random seed for CURAND
- */
-extern "C" __global__ void raw_moment(float *out, float alpha, float start_position, int order,
-                                      float duration, float time_step, float inv_alpha,
-                                      float one_minus_alpha_div_alpha, size_t particles,
-                                      unsigned long long seed)
-{
-    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
-
-    float val = 0.0f;
-
-    if (idx < particles)
-    {
-        float end = simulate(alpha, start_position, duration, time_step, seed, idx,
-                             inv_alpha, one_minus_alpha_div_alpha);
-        val = powf(end, order);
+        val = displacement(alpha, start_position, duration, time_step, seed, idx,
+                           inv_alpha, one_minus_alpha_div_alpha);
     }
 
     __shared__ float sdata[256];
@@ -242,9 +315,62 @@ extern "C" __global__ void raw_moment(float *out, float alpha, float start_posit
 /**
  * @brief Computes the specified raw moment of Levy process
  *
- * This kernel simulates multiple independent Brownian motion paths and computes
+ * This kernel simulates multiple independent Levy process paths and computes
+ * their raw moment of specified order at the end of the simulation.
+ * The raw moment is calculated as E[X^r] where r is an integer.
+ *
+ * @param out Pointer to output value (accumulated sum of raw
+ * moments, should be divided by particles count in host)
+ * @param start_position Initial position for all particles
+ * @param diffusivity Diffusion coefficient (D)
+ * @param order Fractional order of the raw moment to compute
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param particles Number of particles to simulate
+ * @param seed Random seed for CURAND
+ */
+extern "C" __global__ void raw_moment(float *out, float alpha, float start_position, int order,
+                                      float duration, float time_step, float inv_alpha,
+                                      float one_minus_alpha_div_alpha, size_t particles,
+                                      unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float val = 0.0f;
+
+    if (idx < particles)
+    {
+        float end = displacement(alpha, start_position, duration, time_step, seed, idx,
+                                 inv_alpha, one_minus_alpha_div_alpha);
+        val = powf(end, order);
+    }
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = val;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
+}
+
+/**
+ * @brief Computes the specified fractional raw moment of Levy process
+ *
+ * This kernel simulates multiple independent Levy process paths and computes
  * their raw moment of specified fractional order at the end of the simulation.
- * The fractional raw moment is calculated as E[X^r] where r is a real number.
+ * The fractional raw moment is calculated as E[|X|^r] where r is a real number.
  *
  * @param out Pointer to output value (accumulated sum of fractional raw
  * moments, should be divided by particles count in host)
@@ -268,8 +394,8 @@ frac_raw_moment(float *out, float alpha, float start_position, float order,
 
     if (idx < particles)
     {
-        float end = simulate(alpha, start_position, duration, time_step, seed, idx,
-                             inv_alpha, one_minus_alpha_div_alpha);
+        float end = displacement(alpha, start_position, duration, time_step, seed, idx,
+                                 inv_alpha, one_minus_alpha_div_alpha);
         val = powf(fabsf(end), order);
     }
 
@@ -294,11 +420,11 @@ frac_raw_moment(float *out, float alpha, float start_position, float order,
 }
 
 /**
- * @brief Computes the specified fractional central moment of Brownian motion
+ * @brief Computes the specified fractional central moment of Levy process
  *
- * This kernel simulates multiple independent Brownian motion paths and computes
+ * This kernel simulates multiple independent Levy process paths and computes
  * their central moment of specified fractional order at the end of the
- * simulation. The fractional central moment is calculated as E[(X-μ)^r] where r
+ * simulation. The fractional central moment is calculated as E[|X-μ|^r] where r
  * is a real number.
  *
  * @param out Pointer to output value (accumulated sum of fractional central
@@ -324,8 +450,8 @@ frac_central_moment(float *out, float mean, float alpha, float start_position,
 
     if (idx < particles)
     {
-        float end = simulate(alpha, start_position, duration, time_step, seed, idx,
-                             inv_alpha, one_minus_alpha_div_alpha);
+        float end = displacement(alpha, start_position, duration, time_step, seed, idx,
+                                 inv_alpha, one_minus_alpha_div_alpha);
         val = powf(fabsf(end - mean), order);
     }
 
