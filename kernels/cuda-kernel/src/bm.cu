@@ -10,7 +10,50 @@
 #include <curand_kernel.h>
 
 /**
- * @brief Simulates Brownian motion for a single particle
+ * @brief Simulates the Brownian motion for a single particle
+ *
+ * @param t Pointer to output array for time points
+ * @param x Pointer to output array for particle positions
+ * @param start_position Initial position of the particle
+ * @param diffusivity Diffusion coefficient (D) controlling the rate of diffusion
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param seed Random seed for CURAND
+ * @param idx Index of the particle
+ */
+QUALIFIERS void simulate(float *t, float *x, float start_position, float diffusivity, float duration, float time_step, unsigned long long seed, size_t idx)
+{
+    float current_x = start_position;
+    float current_t = 0.0f;
+
+    t[0] = current_t;
+    x[0] = current_x;
+
+    float sigma = sqrtf(2.0f * diffusivity * time_step);
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+
+    curandState state;
+    curand_init(seed, idx, 0, &state);
+
+    for (size_t i = 0; i < num_steps - 1; ++i)
+    {
+        float xi = curand_normal(&state);
+        current_x += xi * sigma;
+        current_t += time_step;
+        t[i + 1] = current_t;
+        x[i + 1] = current_x;
+    }
+
+    float last_step = duration - current_t;
+    float xi = curand_normal(&state);
+    current_x += xi * sqrtf(2.0f * diffusivity * last_step);
+
+    t[num_steps] = duration;
+    x[num_steps] = current_x;
+}
+
+/**
+ * @brief Simulates the displacement of Brownian motion for a single particle
  *
  * @param start_position Initial position of the particle
  * @param diffusivity Diffusion coefficient (D) controlling the rate of diffusion
@@ -19,7 +62,7 @@
  * @param seed Random seed for CURAND
  * @param idx Index of the particle
  */
-QUALIFIERS float simulate(float start_position, float diffusivity, float duration, float time_step, unsigned long long seed, size_t idx)
+QUALIFIERS float displacement(float start_position, float diffusivity, float duration, float time_step, unsigned long long seed, size_t idx)
 {
     float current_x = start_position;
 
@@ -67,7 +110,7 @@ extern "C" __global__ void mean(float *out,
 
     if (idx < particles)
     {
-        val = simulate(start_position, diffusivity, duration, time_step, seed, idx);
+        val = displacement(start_position, diffusivity, duration, time_step, seed, idx);
     }
 
     __shared__ float sdata[256];
@@ -114,7 +157,7 @@ extern "C" __global__ void msd(float *out, float start_position,
 
     if (idx < particles)
     {
-        float end = simulate(0.0f, diffusivity, duration, time_step, seed, idx);
+        float end = displacement(0.0f, diffusivity, duration, time_step, seed, idx);
         val = (end - start_position) * (end - start_position);
     }
 
@@ -167,7 +210,7 @@ extern "C" __global__ void raw_moment(float *out,
 
     if (idx < particles)
     {
-        float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
+        float end = displacement(start_position, diffusivity, duration, time_step, seed, idx);
         val = pow(end, order);
     }
 
@@ -221,7 +264,7 @@ extern "C" __global__ void central_moment(float *out,
 
     if (idx < particles)
     {
-        float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
+        float end = displacement(start_position, diffusivity, duration, time_step, seed, idx);
         val = pow(end - mean, order);
     }
 
@@ -250,7 +293,7 @@ extern "C" __global__ void central_moment(float *out,
  *
  * This kernel simulates multiple independent Brownian motion paths and computes
  * their raw moment of specified fractional order at the end of the simulation.
- * The fractional raw moment is calculated as E[X^r] where r is a real number.
+ * The fractional raw moment is calculated as E[|X|^r] where r is a real number.
  *
  * @param out Pointer to output value (accumulated sum of fractional raw moments, should be divided by particles count in host)
  * @param start_position Initial position for all particles
@@ -274,7 +317,7 @@ extern "C" __global__ void frac_raw_moment(float *out,
 
     if (idx < particles)
     {
-        float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
+        float end = displacement(start_position, diffusivity, duration, time_step, seed, idx);
         val = powf(fabsf(end), order);
     }
 
@@ -303,7 +346,7 @@ extern "C" __global__ void frac_raw_moment(float *out,
  *
  * This kernel simulates multiple independent Brownian motion paths and computes
  * their central moment of specified fractional order at the end of the simulation.
- * The fractional central moment is calculated as E[(X-μ)^r] where r is a real number.
+ * The fractional central moment is calculated as E[|X-μ|^r] where r is a real number.
  *
  * @param out Pointer to output value (accumulated sum of fractional central moments, should be divided by particles count in host)
  * @param mean Pre-computed mean of the process
@@ -330,7 +373,7 @@ extern "C" __global__ void frac_central_moment(float *out,
 
     if (idx < particles)
     {
-        float end = simulate(start_position, diffusivity, duration, time_step, seed, idx);
+        float end = displacement(start_position, diffusivity, duration, time_step, seed, idx);
         val = powf(fabsf(end - mean), order);
     }
 
