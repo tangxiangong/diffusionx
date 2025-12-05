@@ -3,7 +3,6 @@ use crate::{
     simulation::prelude::{FirstPassageTime, Moment, OccupationTime, TAMSD},
 };
 use num_traits::Float;
-use rayon::prelude::*;
 use std::fmt::Debug;
 
 /// Continuous process trait
@@ -52,7 +51,7 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
         T: Debug + Send + Sync + std::iter::Sum,
     {
         let traj = self.duration(duration)?;
-        traj.raw_moment(1, particles, time_step)
+        traj.mean(particles, time_step)
     }
 
     /// Get the mean square displacement of the continuous process
@@ -67,31 +66,8 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
         T: Debug + Send + Sync + std::iter::Sum,
         Self: ContinuousTrajectoryTrait<T>,
     {
-        if particles == 0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {particles}"
-            ))
-            .into());
-        }
-
-        if time_step <= T::zero() {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step:?}`"
-            ))
-            .into());
-        }
-
-        let values: T = (0..particles)
-            .into_par_iter()
-            .map(|_| {
-                let displacement = match self.displacement(duration, time_step) {
-                    Ok(displacement) => displacement,
-                    Err(e) => panic!("{}", e),
-                };
-                displacement * displacement
-            })
-            .sum();
-        Ok(values / (T::from(particles).unwrap()))
+        let traj = self.duration(duration)?;
+        traj.msd(particles, time_step)
     }
 
     /// Get the raw moment of the continuous process
@@ -126,6 +102,46 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     {
         let traj = self.duration(duration)?;
         traj.central_moment(order, particles, time_step)
+    }
+
+    /// Get the fractional raw moment of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the continuous process.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the continuous process.
+    fn frac_raw_moment(&self, duration: T, order: T, particles: usize, time_step: T) -> XResult<T>
+    where
+        Self: ContinuousTrajectoryTrait<T>,
+        T: Debug + Send + Sync + std::iter::Sum,
+    {
+        let traj = self.duration(duration)?;
+        traj.frac_raw_moment(order, particles, time_step)
+    }
+
+    /// Get the fractional central moment of the continuous process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the continuous process.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    /// * `time_step` - The time step of the continuous process.
+    fn frac_central_moment(
+        &self,
+        duration: T,
+        order: T,
+        particles: usize,
+        time_step: T,
+    ) -> XResult<T>
+    where
+        Self: ContinuousTrajectoryTrait<T>,
+        T: Debug + Send + Sync + std::iter::Sum,
+    {
+        let traj = self.duration(duration)?;
+        traj.frac_central_moment(order, particles, time_step)
     }
 
     /// Get the first passage time of the continuous process
