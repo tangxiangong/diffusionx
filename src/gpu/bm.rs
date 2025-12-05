@@ -1,8 +1,12 @@
-use super::{CUDA_CTX, config, load_kernel};
-use crate::{XResult, gpu::GPUMoment, simulation::continuous::Bm, subscribe_gpu_function};
+use crate::{
+    XResult,
+    gpu::{CUDA_CTX, GPUMoment},
+    simulation::continuous::Bm,
+    subscribe_gpu_function,
+};
 use cuda_kernel::BM_PTX;
 use cudarc::{
-    driver::{CudaModule, PushKernelArg},
+    driver::{CudaFunction, CudaModule},
     nvrtc::Ptx,
 };
 use num_traits::Float;
@@ -17,17 +21,53 @@ static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
     Ok(module)
 });
 
-subscribe_gpu_function!(MODULE, mean, "mean", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32));
+static MEAN_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("mean")?;
+    Ok(kernel)
+});
 
-subscribe_gpu_function!(MODULE, msd, "msd", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32));
+static MSD_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("msd")?;
+    Ok(kernel)
+});
 
-subscribe_gpu_function!(MODULE, raw_moment, "raw_moment", (start_position: f32, diffusivity: f32, order: i32, duration: f32, time_step: f32));
+static RAW_MOMENT_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("raw_moment")?;
+    Ok(kernel)
+});
 
-subscribe_gpu_function!(MODULE, frac_raw_moment, "frac_raw_moment", (start_position: f32, diffusivity: f32, order: f32, duration: f32, time_step: f32));
+static FRAC_RAW_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("frac_raw_moment")?;
+    Ok(kernel)
+});
 
-subscribe_central_moment_gpu_function!(MODULE, central_moment, "central_moment", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32), i32);
+static CENTRAL_MOMENT_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("central_moment")?;
+    Ok(kernel)
+});
 
-subscribe_central_moment_gpu_function!(MODULE, frac_central_moment, "frac_central_moment", (start_position: f32, diffusivity: f32, duration: f32, time_step: f32), f32);
+static FRAC_CENTRAL_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("frac_central_moment")?;
+    Ok(kernel)
+});
+
+subscribe_gpu_function!(MODULE, mean, MEAN_KERNEL, (start_position: f32, diffusivity: f32, duration: f32, time_step: f32));
+
+subscribe_gpu_function!(MODULE, msd, MSD_KERNEL, (start_position: f32, diffusivity: f32, duration: f32, time_step: f32));
+
+subscribe_gpu_function!(MODULE, raw_moment, RAW_MOMENT_KERNEL, (start_position: f32, diffusivity: f32, order: i32, duration: f32, time_step: f32));
+
+subscribe_gpu_function!(MODULE, frac_raw_moment, FRAC_RAW_KERNEL, (start_position: f32, diffusivity: f32, order: f32, duration: f32, time_step: f32));
+
+subscribe_central_moment_gpu_function!(MODULE, central_moment, CENTRAL_MOMENT_KERNEL, (start_position: f32, diffusivity: f32, duration: f32, time_step: f32), i32);
+
+subscribe_central_moment_gpu_function!(MODULE, frac_central_moment, FRAC_CENTRAL_KERNEL, (start_position: f32, diffusivity: f32, duration: f32, time_step: f32), f32);
 
 impl<T: Float + Debug> GPUMoment for Bm<T> {
     fn central_moment_gpu(

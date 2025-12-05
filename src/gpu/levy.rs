@@ -1,13 +1,12 @@
-use super::{CUDA_CTX, config, load_kernel};
 use crate::{
     XError, XResult,
-    gpu::GPUMoment,
+    gpu::{CUDA_CTX, GPUMoment},
     simulation::continuous::{Bm, Levy},
     subscribe_gpu_function,
 };
 use cuda_kernel::LEVY_PTX;
 use cudarc::{
-    driver::{CudaModule, PushKernelArg},
+    driver::{CudaFunction, CudaModule},
     nvrtc::Ptx,
 };
 use std::sync::{Arc, LazyLock};
@@ -18,13 +17,37 @@ static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
     Ok(module)
 });
 
-subscribe_gpu_function!(MODULE, mean, "mean", (alpha: f32, start_position: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32));
+static MEAN_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("mean")?;
+    Ok(kernel)
+});
 
-subscribe_gpu_function!(MODULE, raw_moment, "raw_moment", (alpha: f32, start_position: f32, order: i32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32));
+static RAW_MOMENT_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("raw_moment")?;
+    Ok(kernel)
+});
 
-subscribe_gpu_function!(MODULE, frac_raw_moment, "frac_raw_moment", (alpha: f32, start_position: f32, order: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32));
+static FRAC_RAW_MOMENT_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("frac_raw_moment")?;
+    Ok(kernel)
+});
 
-subscribe_central_moment_gpu_function!(MODULE, frac_central_moment, "frac_central_moment", (alpha: f32, start_position: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32), f32);
+static FRAC_CENTRAL_MOMENT_KERNEL: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("frac_central_moment")?;
+    Ok(kernel)
+});
+
+subscribe_gpu_function!(MODULE, mean, MEAN_KERNEL, (alpha: f32, start_position: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32));
+
+subscribe_gpu_function!(MODULE, raw_moment, RAW_MOMENT_KERNEL, (alpha: f32, start_position: f32, order: i32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32));
+
+subscribe_gpu_function!(MODULE, frac_raw_moment, FRAC_RAW_MOMENT_KERNEL, (alpha: f32, start_position: f32, order: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32));
+
+subscribe_central_moment_gpu_function!(MODULE, frac_central_moment, FRAC_CENTRAL_MOMENT_KERNEL, (alpha: f32, start_position: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32), f32);
 
 impl GPUMoment for Levy {
     fn central_moment_gpu(

@@ -1,20 +1,14 @@
 use crate::XResult;
-use cudarc::driver::{CudaContext, CudaFunction, CudaModule, CudaStream, LaunchConfig};
+use cudarc::driver::{CudaContext, CudaStream, LaunchConfig};
 use std::sync::{Arc, LazyLock};
 
-static CUDA_CTX: LazyLock<XResult<Arc<CudaContext>>> = LazyLock::new(|| Ok(CudaContext::new(0)?));
+pub(crate) static CUDA_CTX: LazyLock<XResult<Arc<CudaContext>>> =
+    LazyLock::new(|| Ok(CudaContext::new(0)?));
 
-pub(crate) fn load_kernel(
-    cuda_module: &LazyLock<XResult<Arc<CudaModule>>>,
-    kernel_name: &str,
-) -> XResult<(Arc<CudaStream>, CudaFunction)> {
-    let ctx = CUDA_CTX.as_ref()?;
-    let stream = ctx.default_stream();
-    let module = cuda_module.as_ref()?;
-    let kernel = module.load_function(kernel_name)?;
-    Ok((stream, kernel))
-}
+pub(crate) static CUDA_STREAM: LazyLock<XResult<Arc<CudaStream>>> =
+    LazyLock::new(|| Ok(CUDA_CTX.as_ref()?.default_stream()));
 
+#[inline]
 pub(crate) fn config(particles: usize) -> LaunchConfig {
     let block_size = 256;
     let grid_size = particles.div_ceil(block_size);
@@ -118,13 +112,15 @@ macro_rules! subscribe_gpu_function {
             )+
             particles: usize,
         ) -> XResult<f32> {
-            let (stream, kernel) = load_kernel(&$module, $kernel_name)?;
+            let stream = $crate::gpu::CUDA_STREAM.as_ref()?;
+            let kernel = $kernel_name.as_ref()?;
             let mut device_out = stream.alloc_zeros::<f32>(1)?;
-            let cfg = config(particles);
+            let cfg = $crate::gpu::config(particles);
 
             let seed = std::time::SystemTime::now().elapsed()?.as_secs();
 
-            let mut builder = stream.launch_builder(&kernel);
+            let mut builder = stream.launch_builder(kernel);
+            use cudarc::driver::PushKernelArg;
             builder.arg(&mut device_out);
 
             $(
@@ -157,14 +153,16 @@ macro_rules! subscribe_central_moment_gpu_function {
             order: $order_type,
             particles: usize,
         ) -> XResult<f32> {
-            let (stream, kernel) = load_kernel(&$module, $kernel_name)?;
+            let stream = $crate::gpu::CUDA_STREAM.as_ref()?;
+            let kernel = $kernel_name.as_ref()?;
             let mut device_out = stream.alloc_zeros::<f32>(1)?;
-            let cfg = config(particles);
+            let cfg = $crate::gpu::config(particles);
 
             let seed = std::time::SystemTime::now().elapsed()?.as_secs();
             let mean = mean($($param_name,)+ particles)?;
 
-            let mut builder = stream.launch_builder(&kernel);
+            let mut builder = stream.launch_builder(kernel);
+            use cudarc::driver::PushKernelArg;
             builder.arg(&mut device_out);
             builder.arg(&mean);
             builder.arg(&order);

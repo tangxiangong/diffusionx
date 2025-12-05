@@ -1,8 +1,10 @@
-use super::{CUDA_CTX, config, load_kernel};
-use crate::XResult;
+use crate::{
+    XResult,
+    gpu::{CUDA_CTX, CUDA_STREAM, config},
+};
 use cuda_kernel::STABLE_PTX;
 use cudarc::{
-    driver::{CudaModule, PushKernelArg},
+    driver::{CudaFunction, CudaModule, PushKernelArg},
     nvrtc::Ptx,
 };
 use std::sync::{Arc, LazyLock};
@@ -13,8 +15,15 @@ static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
     Ok(module)
 });
 
+static STD_STABLE_RNG: LazyLock<XResult<CudaFunction>> = LazyLock::new(|| {
+    let module = MODULE.as_ref()?;
+    let kernel = module.load_function("standard_stable_rand")?;
+    Ok(kernel)
+});
+
 pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f32>> {
-    let (stream, kernel) = load_kernel(&MODULE, "standard_stable_rand")?;
+    let stream = CUDA_STREAM.as_ref()?;
+    let kernel = STD_STABLE_RNG.as_ref()?;
     let mut device_out = stream.alloc_zeros::<f32>(len)?;
     let cfg = config(len);
 
@@ -31,7 +40,7 @@ pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f
         (inv_alpha, one_minus_alpha_div_alpha, b, s)
     };
 
-    let mut builder = stream.launch_builder(&kernel);
+    let mut builder = stream.launch_builder(kernel);
     builder.arg(&mut device_out);
     builder.arg(&alpha);
     builder.arg(&beta);
