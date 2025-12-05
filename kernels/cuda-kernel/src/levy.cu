@@ -58,9 +58,11 @@ QUALIFIERS void simulate_alpha_one(float *t, float *x, float start_position, flo
     curandStatePhilox4_32_10_t state;
     curand_init(seed, idx, 0, &state);
 
+    float xi;
+
     for (size_t i = 0; i < num_steps - 1; ++i)
     {
-        float xi = sample_symmetric_standard_alpha_one(&state);
+        xi = sample_symmetric_standard_alpha_one(&state);
         current_x += xi * sigma;
         current_t += time_step;
         t[i + 1] = current_t;
@@ -68,7 +70,7 @@ QUALIFIERS void simulate_alpha_one(float *t, float *x, float start_position, flo
     }
 
     float last_step = duration - current_t;
-    float xi = sample_symmetric_standard_alpha_one(&state);
+    xi = sample_symmetric_standard_alpha_one(&state);
     sigma = last_step;
     current_x += xi * last_step;
 
@@ -108,9 +110,11 @@ QUALIFIERS void simulate_alpha(float *t, float *x, float alpha, float start_posi
     curandStatePhilox4_32_10_t state;
     curand_init(seed, idx, 0, &state);
 
+    float xi;
+
     for (size_t i = 0; i < num_steps - 1; ++i)
     {
-        float xi = sample_symmetric_standard_alpha_with_constants(
+        xi = sample_symmetric_standard_alpha_with_constants(
             alpha, inv_alpha, one_minus_alpha_div_alpha, &state);
         current_x += xi * sigma;
         current_t += time_step;
@@ -119,7 +123,7 @@ QUALIFIERS void simulate_alpha(float *t, float *x, float alpha, float start_posi
     }
 
     float last_step = duration - current_t;
-    float xi = sample_symmetric_standard_alpha_with_constants(
+    xi = sample_symmetric_standard_alpha_with_constants(
         alpha, inv_alpha, one_minus_alpha_div_alpha, &state);
     sigma = powf(last_step, inv_alpha);
     current_x += xi * sigma;
@@ -129,7 +133,7 @@ QUALIFIERS void simulate_alpha(float *t, float *x, float alpha, float start_posi
 }
 
 /**
- * @brief Simulates the displacement of α stable Levy process for a single particle
+ * @brief Simulates the α stable Levy process for a single particle
  *
  * @param t Pointer to array of time points
  * @param x Pointer to array of positions
@@ -158,7 +162,7 @@ QUALIFIERS void simulate(float *t, float *x, float alpha, float start_position, 
 }
 
 /**
- * @brief Simulates the displacement of α stable Levy process for a single particle when α = 1
+ * @brief Simulates the end position of α stable Levy process for a single particle when α = 1
  *
  * @param start_position Initial position of the particle
  * @param duration Total simulation time
@@ -166,12 +170,12 @@ QUALIFIERS void simulate(float *t, float *x, float alpha, float start_position, 
  * @param seed Random seed for CURAND
  * @param idx Index of the particle
  */
-QUALIFIERS float displacement_alpha_one(float start_position, float duration,
-                                        float time_step, unsigned long long seed,
-                                        size_t idx)
+QUALIFIERS float end_alpha_one(float start_position, float duration,
+                               float time_step, unsigned long long seed,
+                               size_t idx)
 {
     float current_x = start_position;
-
+    float xi;
     float sigma = time_step;
     size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
 
@@ -180,19 +184,19 @@ QUALIFIERS float displacement_alpha_one(float start_position, float duration,
 
     for (size_t i = 0; i < num_steps - 1; ++i)
     {
-        float xi = sample_symmetric_standard_alpha_one(&state);
+        xi = sample_symmetric_standard_alpha_one(&state);
         current_x += xi * sigma;
     }
 
     float last_step = duration - (num_steps - 1) * time_step;
-    float xi = sample_symmetric_standard_alpha_one(&state);
+    xi = sample_symmetric_standard_alpha_one(&state);
     sigma = last_step;
     current_x += xi * last_step;
     return current_x;
 }
 
 /**
- * @brief Simulates the displacement of α stable Levy process for a single particle when α != 1
+ * @brief Simulates the end position of α stable Levy process for a single particle when α != 1
  *
  * @param start_position Initial position of the particle
  * @param alpha Stability parameter (0 < α ≤ 2, α ≠ 1)
@@ -203,14 +207,14 @@ QUALIFIERS float displacement_alpha_one(float start_position, float duration,
  * @param inv_alpha Precomputed value of 1/α
  * @param one_minus_alpha_div_alpha Precomputed value of (1-α)/α
  */
-QUALIFIERS float displacement_alpha(float alpha, float start_position,
-                                    float duration, float time_step,
-                                    unsigned long long seed, size_t idx,
-                                    float inv_alpha,
-                                    float one_minus_alpha_div_alpha)
+QUALIFIERS float end_alpha(float alpha, float start_position,
+                           float duration, float time_step,
+                           unsigned long long seed, size_t idx,
+                           float inv_alpha,
+                           float one_minus_alpha_div_alpha)
 {
     float current_x = start_position;
-
+    float xi;
     float sigma = powf(time_step, inv_alpha);
     size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
 
@@ -219,13 +223,13 @@ QUALIFIERS float displacement_alpha(float alpha, float start_position,
 
     for (size_t i = 0; i < num_steps - 1; ++i)
     {
-        float xi = sample_symmetric_standard_alpha_with_constants(
+        xi = sample_symmetric_standard_alpha_with_constants(
             alpha, inv_alpha, one_minus_alpha_div_alpha, &state);
         current_x += xi * sigma;
     }
 
     float last_step = duration - (num_steps - 1) * time_step;
-    float xi = sample_symmetric_standard_alpha_with_constants(
+    xi = sample_symmetric_standard_alpha_with_constants(
         alpha, inv_alpha, one_minus_alpha_div_alpha, &state);
     sigma = powf(last_step, inv_alpha);
     current_x += xi * sigma;
@@ -233,7 +237,7 @@ QUALIFIERS float displacement_alpha(float alpha, float start_position,
 }
 
 /**
- * @brief Simulates the displacement of α stable Levy process for a single particle
+ * @brief Simulates the end position of α stable Levy process for a single particle
  *
  * @param alpha Stability parameter (0 < α ≤ 2)
  * @param start_position Initial position of the particle
@@ -244,18 +248,18 @@ QUALIFIERS float displacement_alpha(float alpha, float start_position,
  * @param inv_alpha Precomputed value of 1/α
  * @param one_minus_alpha_div_alpha Precomputed value of (1-α)/α
  */
-QUALIFIERS float displacement(float alpha, float start_position, float duration,
-                              float time_step, unsigned long long seed, size_t idx,
-                              float inv_alpha, float one_minus_alpha_div_alpha)
+QUALIFIERS float end(float alpha, float start_position, float duration,
+                     float time_step, unsigned long long seed, size_t idx,
+                     float inv_alpha, float one_minus_alpha_div_alpha)
 {
     if (alpha == 1.0f)
     {
-        return displacement_alpha_one(start_position, duration, time_step, seed, idx);
+        return end_alpha_one(start_position, duration, time_step, seed, idx);
     }
     else
     {
-        return displacement_alpha(alpha, start_position, duration, time_step, seed, idx,
-                                  inv_alpha, one_minus_alpha_div_alpha);
+        return end_alpha(alpha, start_position, duration, time_step, seed, idx,
+                         inv_alpha, one_minus_alpha_div_alpha);
     }
 }
 
@@ -288,8 +292,8 @@ extern "C" __global__ void mean(float *out, float alpha, float start_position,
 
     if (idx < particles)
     {
-        val = displacement(alpha, start_position, duration, time_step, seed, idx,
-                           inv_alpha, one_minus_alpha_div_alpha);
+        val = end(alpha, start_position, duration, time_step, seed, idx,
+                  inv_alpha, one_minus_alpha_div_alpha);
     }
 
     __shared__ float sdata[256];
@@ -340,9 +344,9 @@ extern "C" __global__ void raw_moment(float *out, float alpha, float start_posit
 
     if (idx < particles)
     {
-        float end = displacement(alpha, start_position, duration, time_step, seed, idx,
+        float end_position = end(alpha, start_position, duration, time_step, seed, idx,
                                  inv_alpha, one_minus_alpha_div_alpha);
-        val = powf(end, order);
+        val = powf(end_position, order);
     }
 
     __shared__ float sdata[256];
@@ -394,9 +398,9 @@ frac_raw_moment(float *out, float alpha, float start_position, float order,
 
     if (idx < particles)
     {
-        float end = displacement(alpha, start_position, duration, time_step, seed, idx,
+        float end_position = end(alpha, start_position, duration, time_step, seed, idx,
                                  inv_alpha, one_minus_alpha_div_alpha);
-        val = powf(fabsf(end), order);
+        val = powf(fabsf(end_position), order);
     }
 
     __shared__ float sdata[256];
@@ -450,9 +454,9 @@ frac_central_moment(float *out, float mean, float alpha, float start_position,
 
     if (idx < particles)
     {
-        float end = displacement(alpha, start_position, duration, time_step, seed, idx,
+        float end_position = end(alpha, start_position, duration, time_step, seed, idx,
                                  inv_alpha, one_minus_alpha_div_alpha);
-        val = powf(fabsf(end - mean), order);
+        val = powf(fabsf(end_position - mean), order);
     }
 
     __shared__ float sdata[256];

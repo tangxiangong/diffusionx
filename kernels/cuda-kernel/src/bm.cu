@@ -35,9 +35,11 @@ QUALIFIERS void simulate(float *t, float *x, float start_position, float diffusi
     curandState state;
     curand_init(seed, idx, 0, &state);
 
+    float xi;
+
     for (size_t i = 0; i < num_steps - 1; ++i)
     {
-        float xi = curand_normal(&state);
+        xi = curand_normal(&state);
         current_x += xi * sigma;
         current_t += time_step;
         t[i + 1] = current_t;
@@ -45,7 +47,7 @@ QUALIFIERS void simulate(float *t, float *x, float start_position, float diffusi
     }
 
     float last_step = duration - current_t;
-    float xi = curand_normal(&state);
+    xi = curand_normal(&state);
     current_x += xi * sqrtf(2.0f * diffusivity * last_step);
 
     t[num_steps] = duration;
@@ -53,7 +55,7 @@ QUALIFIERS void simulate(float *t, float *x, float start_position, float diffusi
 }
 
 /**
- * @brief Simulates the displacement of Brownian motion for a single particle
+ * @brief Simulates the end position of Brownian motion for a single particle
  *
  * @param start_position Initial position of the particle
  * @param diffusivity Diffusion coefficient (D) controlling the rate of diffusion
@@ -62,7 +64,7 @@ QUALIFIERS void simulate(float *t, float *x, float start_position, float diffusi
  * @param seed Random seed for CURAND
  * @param idx Index of the particle
  */
-QUALIFIERS float displacement(float start_position, float diffusivity, float duration, float time_step, unsigned long long seed, size_t idx)
+QUALIFIERS float end(float start_position, float diffusivity, float duration, float time_step, unsigned long long seed, size_t idx)
 {
     float current_x = start_position;
 
@@ -72,14 +74,16 @@ QUALIFIERS float displacement(float start_position, float diffusivity, float dur
     curandState state;
     curand_init(seed, idx, 0, &state);
 
+    float xi;
+
     for (size_t i = 0; i < num_steps - 1; ++i)
     {
-        float xi = curand_normal(&state);
+        xi = curand_normal(&state);
         current_x += xi * sigma;
     }
 
     float last_step = duration - (num_steps - 1) * time_step;
-    float xi = curand_normal(&state);
+    xi = curand_normal(&state);
     current_x += xi * sqrtf(2.0f * diffusivity * last_step);
     return current_x;
 }
@@ -110,7 +114,7 @@ extern "C" __global__ void mean(float *out,
 
     if (idx < particles)
     {
-        val = displacement(start_position, diffusivity, duration, time_step, seed, idx);
+        val = end(start_position, diffusivity, duration, time_step, seed, idx);
     }
 
     __shared__ float sdata[256];
@@ -157,8 +161,8 @@ extern "C" __global__ void msd(float *out, float start_position,
 
     if (idx < particles)
     {
-        float end = displacement(0.0f, diffusivity, duration, time_step, seed, idx);
-        val = (end - start_position) * (end - start_position);
+        float end_position = end(0.0f, diffusivity, duration, time_step, seed, idx);
+        val = (end_position - start_position) * (end_position - start_position);
     }
 
     __shared__ float sdata[256];
@@ -210,8 +214,8 @@ extern "C" __global__ void raw_moment(float *out,
 
     if (idx < particles)
     {
-        float end = displacement(start_position, diffusivity, duration, time_step, seed, idx);
-        val = pow(end, order);
+        float end_position = end(start_position, diffusivity, duration, time_step, seed, idx);
+        val = powf(end_position, order);
     }
 
     __shared__ float sdata[256];
@@ -264,8 +268,8 @@ extern "C" __global__ void central_moment(float *out,
 
     if (idx < particles)
     {
-        float end = displacement(start_position, diffusivity, duration, time_step, seed, idx);
-        val = pow(end - mean, order);
+        float end_position = end(start_position, diffusivity, duration, time_step, seed, idx);
+        val = powf(end_position - mean, order);
     }
 
     __shared__ float sdata[256];
@@ -317,8 +321,8 @@ extern "C" __global__ void frac_raw_moment(float *out,
 
     if (idx < particles)
     {
-        float end = displacement(start_position, diffusivity, duration, time_step, seed, idx);
-        val = powf(fabsf(end), order);
+        float end_position = end(start_position, diffusivity, duration, time_step, seed, idx);
+        val = powf(fabsf(end_position), order);
     }
 
     __shared__ float sdata[256];
@@ -373,8 +377,8 @@ extern "C" __global__ void frac_central_moment(float *out,
 
     if (idx < particles)
     {
-        float end = displacement(start_position, diffusivity, duration, time_step, seed, idx);
-        val = powf(fabsf(end - mean), order);
+        float end_position = end(start_position, diffusivity, duration, time_step, seed, idx);
+        val = powf(fabsf(end_position - mean), order);
     }
 
     __shared__ float sdata[256];
