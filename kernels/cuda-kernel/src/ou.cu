@@ -1,195 +1,442 @@
 /**
  * CUDA Kernel for Ornstein-Uhlenbeck Process Simulation
- * 
+ *
  * The OU process is described by the SDE:
- * dX_t = theta * (mu - X_t) dt + sigma * dW_t
- * 
+ * dX_t = -theta * X_t dt + sigma * dW_t
+ *
  * where:
  * - theta: mean reversion speed
- * - mu: long-term mean
  * - sigma: volatility
  * - W_t: Wiener process
  */
 
-#include <cuda_runtime.h>
 #include <curand_kernel.h>
 
-extern "C" {
-
 /**
- * Simulate Ornstein-Uhlenbeck process trajectories (single precision)
- * 
- * @param states cuRAND states for random number generation
- * @param positions Output array for particle positions [num_particles * (num_steps + 1)]
+ * Simulate Ornstein-Uhlenbeck process trajectories
+ *
+ * @param t Pointer to output array for time points
+ * @param x Pointer to output array for particle positions
  * @param start_position Initial position for all particles
  * @param theta Mean reversion speed
- * @param mu Long-term mean
  * @param sigma Volatility
- * @param time_step Time step (dt)
- * @param num_steps Number of time steps
- * @param num_particles Number of particles to simulate
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param seed Random seed for CURAND
+ * @param idx Index of the particle
  */
-__global__ void simulate_ou_process_f32(
-    curandState* states,
-    float* positions,
+QUALIFIERS void simulate(
+    float *t,
+    float *x,
     float start_position,
     float theta,
-    float mu,
     float sigma,
+    float duration,
     float time_step,
-    int num_steps,
-    int num_particles
-) {
-    int particle_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (particle_idx >= num_particles) return;
-    
-    curandState local_state = states[particle_idx];
-    
-    float position = start_position;
-    int offset = particle_idx * (num_steps + 1);
-    
-    // Store initial position
-    positions[offset] = position;
-    
-    float sqrt_dt = sqrtf(time_step);
-    
-    // Simulate trajectory using Euler-Maruyama method
-    for (int step = 0; step < num_steps; step++) {
-        float random_normal = curand_normal(&local_state);
-        
-        // Drift term: theta * (mu - X_t) * dt
-        float drift = theta * (mu - position) * time_step;
-        
-        // Diffusion term: sigma * sqrt(dt) * N(0,1)
-        float diffusion = sigma * sqrt_dt * random_normal;
-        
-        position += drift + diffusion;
-        positions[offset + step + 1] = position;
+    unsigned long long seed,
+    size_t idx)
+{
+    float current_x = start_position;
+    float current_t = 0.0f;
+
+    t[0] = current_t;
+    x[0] = current_x;
+
+    float scale = sqrtf(sigma * time_step);
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+
+    curandState state;
+    curand_init(seed, idx, 0, &state);
+
+    float mu;
+    float xi;
+
+    for (size_t i = 0; i < num_steps - 1; ++i)
+    {
+        mu = -theta * current_x;
+        xi = curand_normal(&state);
+        current_x += mu * time_step + scale * xi;
+        current_t += time_step;
+
+        t[i + 1] = current_t;
+        x[i + 1] = current_x;
     }
-    
-    states[particle_idx] = local_state;
+
+    float last_step = duration - current_t;
+    xi = curand_normal(&state);
+    mu = -theta * current_x;
+    current_x += mu * last_step + sqrtf(sigma * last_step) * xi;
+
+    t[num_steps] = duration;
+    x[num_steps] = current_x;
 }
 
 /**
- * Simulate Ornstein-Uhlenbeck process trajectories (double precision)
+ * Simulate the end position of Ornstein-Uhlenbeck process trajectories
+ *
+ * @param start_position Initial position for all particles
+ * @param theta Mean reversion speed
+ * @param sigma Volatility
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param seed Random seed for CURAND
+ * @param idx Index of the particle
  */
-__global__ void simulate_ou_process_f64(
-    curandState* states,
-    double* positions,
-    double start_position,
-    double theta,
-    double mu,
-    double sigma,
-    double time_step,
-    int num_steps,
-    int num_particles
-) {
-    int particle_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (particle_idx >= num_particles) return;
-    
-    curandState local_state = states[particle_idx];
-    
-    double position = start_position;
-    int offset = particle_idx * (num_steps + 1);
-    
-    positions[offset] = position;
-    
-    double sqrt_dt = sqrt(time_step);
-    
-    for (int step = 0; step < num_steps; step++) {
-        double random_normal = curand_normal_double(&local_state);
-        
-        double drift = theta * (mu - position) * time_step;
-        double diffusion = sigma * sqrt_dt * random_normal;
-        
-        position += drift + diffusion;
-        positions[offset + step + 1] = position;
-    }
-    
-    states[particle_idx] = local_state;
-}
-
-/**
- * Simulate OU process with analytical solution (more accurate)
- * 
- * Uses exact solution:
- * X(t+dt) = X(t) * exp(-theta*dt) + mu * (1 - exp(-theta*dt)) + sigma * sqrt((1-exp(-2*theta*dt))/(2*theta)) * N(0,1)
- */
-__global__ void simulate_ou_process_exact_f32(
-    curandState* states,
-    float* positions,
+QUALIFIERS float end(
     float start_position,
     float theta,
-    float mu,
     float sigma,
+    float duration,
     float time_step,
-    int num_steps,
-    int num_particles
-) {
-    int particle_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (particle_idx >= num_particles) return;
-    
-    curandState local_state = states[particle_idx];
-    
-    float position = start_position;
-    int offset = particle_idx * (num_steps + 1);
-    
-    positions[offset] = position;
-    
-    // Precompute constants
-    float exp_neg_theta_dt = expf(-theta * time_step);
-    float one_minus_exp = 1.0f - exp_neg_theta_dt;
-    float noise_scale = sigma * sqrtf((1.0f - expf(-2.0f * theta * time_step)) / (2.0f * theta));
-    
-    for (int step = 0; step < num_steps; step++) {
-        float random_normal = curand_normal(&local_state);
-        
-        // Exact solution
-        position = position * exp_neg_theta_dt + mu * one_minus_exp + noise_scale * random_normal;
-        
-        positions[offset + step + 1] = position;
+    unsigned long long seed,
+    size_t idx)
+{
+    float current_x = start_position;
+
+    float scale = sqrtf(sigma * time_step);
+    size_t num_steps = static_cast<size_t>(ceil(duration / time_step));
+
+    curandState state;
+    curand_init(seed, idx, 0, &state);
+
+    float mu;
+    float xi;
+
+    for (size_t i = 0; i < num_steps - 1; ++i)
+    {
+        mu = -theta * current_x;
+        xi = curand_normal(&state);
+        current_x += mu * time_step + scale * xi;
     }
-    
-    states[particle_idx] = local_state;
+
+    float last_step = duration - (num_steps - 1) * time_step;
+    xi = curand_normal(&state);
+    mu = -theta * current_x;
+    current_x += mu * last_step + sqrtf(sigma * last_step) * xi;
+
+    return current_x - start_position;
 }
 
 /**
- * Simulate OU process with analytical solution (double precision)
+ * @brief Simulates Ornstein-Uhlenbeck process and computes the mean position across all particles
+ *
+ * This kernel simulates multiple independent Ornstein-Uhlenbeck process paths and computes
+ * their mean position at the end of the simulation. Each thread handles one particle.
+ *
+ * @param out Pointer to output value (accumulated sum, should be divided by particles count in host)
+ * @param start_position Initial position for all particles
+ * @param theta Mean reversion speed
+ * @param sigma Volatility
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param particles Number of particles to simulate
+ * @param seed Random seed for CURAND
  */
-__global__ void simulate_ou_process_exact_f64(
-    curandState* states,
-    double* positions,
-    double start_position,
-    double theta,
-    double mu,
-    double sigma,
-    double time_step,
-    int num_steps,
-    int num_particles
-) {
-    int particle_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (particle_idx >= num_particles) return;
-    
-    curandState local_state = states[particle_idx];
-    
-    double position = start_position;
-    int offset = particle_idx * (num_steps + 1);
-    
-    positions[offset] = position;
-    
-    double exp_neg_theta_dt = exp(-theta * time_step);
-    double one_minus_exp = 1.0 - exp_neg_theta_dt;
-    double noise_scale = sigma * sqrt((1.0 - exp(-2.0 * theta * time_step)) / (2.0 * theta));
-    
-    for (int step = 0; step < num_steps; step++) {
-        double random_normal = curand_normal_double(&local_state);
-        
-        position = position * exp_neg_theta_dt + mu * one_minus_exp + noise_scale * random_normal;
-        
-        positions[offset + step + 1] = position;
+extern "C" __global__ void mean(float *out,
+                                float start_position, float theta,
+                                float sigma,
+                                float duration, float time_step,
+                                size_t particles,
+                                unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float val = 0.0f;
+
+    if (idx < particles)
+    {
+        val = end(start_position, theta, sigma, duration, time_step, seed, idx);
     }
-    
-    states[particle_idx] = local_state;
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = val;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
 }
 
-} // extern "C"
+/**
+ * @brief Computes the mean squared displacement (MSD) of Ornstein-Uhlenbeck process
+ *
+ * This kernel simulates multiple independent Ornstein-Uhlenbeck process paths and computes
+ * their mean squared displacement at the end of the simulation.
+ *
+ * @param out Pointer to output value (accumulated sum of squared displacements, should be divided by particles count in host)
+ * @param start_position Initial position for all particles
+ * @param theta Mean reversion speed
+ * @param sigma Volatility
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param particles Number of particles to simulate
+ * @param seed Random seed for CURAND
+ */
+extern "C" __global__ void msd(float *out, float start_position,
+                               float theta, float sigma,
+                               float duration, float time_step,
+                               size_t particles,
+                               unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float val = 0.0f;
+
+    if (idx < particles)
+    {
+        float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
+        val = (end_position - start_position) * (end_position - start_position);
+    }
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = val;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
+}
+
+/**
+ * @brief Computes the specified raw moment of Ornstein-Uhlenbeck process
+ *
+ * This kernel simulates multiple independent Ornstein-Uhlenbeck process paths and computes
+ * their raw moment of specified integer order at the end of the simulation.
+ * The raw moment is calculated as E[X^n].
+ *
+ * @param out Pointer to output value (accumulated sum of raw moments, should be divided by particles count in host)
+ * @param start_position Initial position for all particles
+ * @param theta Mean reversion speed
+ * @param sigma Volatility
+ * @param order Integer order of the raw moment to compute
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param particles Number of particles to simulate
+ * @param seed Random seed for CURAND
+ */
+extern "C" __global__ void raw_moment(float *out,
+                                      float start_position,
+                                      float theta, float sigma, int order,
+                                      float duration, float time_step,
+                                      size_t particles,
+                                      unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float val = 0.0f;
+
+    if (idx < particles)
+    {
+        float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
+        val = pow(end_position, order);
+    }
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = val;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
+}
+
+/**
+ * @brief Computes the specified central moment of Ornstein-Uhlenbeck process
+ *
+ * This kernel simulates multiple independent Ornstein-Uhlenbeck process paths and computes
+ * their central moment of specified integer order at the end of the simulation.
+ * The central moment is calculated as E[(X-μ)^n] where μ is the mean.
+ *
+ * @param out Pointer to output value (accumulated sum of central moments, should be divided by particles count in host)
+ * @param order Integer order of the central moment to compute
+ * @param mean Pre-computed mean of the process
+ * @param start_position Initial position for all particles
+ * @param theta Mean reversion speed
+ * @param sigma Volatility
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param particles Number of particles to simulate
+ * @param seed Random seed for CURAND
+ */
+extern "C" __global__ void central_moment(float *out,
+                                          int order, float mean, float start_position,
+                                          float theta, float sigma,
+                                          float duration, float time_step,
+                                          size_t particles,
+                                          unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float val = 0.0f;
+
+    if (idx < particles)
+    {
+        float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
+        val = pow(end_position - mean, order);
+    }
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = val;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
+}
+
+/**
+ * @brief Computes the specified fractional raw moment of Ornstein-Uhlenbeck process
+ *
+ * This kernel simulates multiple independent Ornstein-Uhlenbeck process paths and computes
+ * their raw moment of specified fractional order at the end of the simulation.
+ * The fractional raw moment is calculated as E[|X|^r] where r is a real number.
+ *
+ * @param out Pointer to output value (accumulated sum of fractional raw moments, should be divided by particles count in host)
+ * @param start_position Initial position for all particles
+ * @param theta Mean reversion speed
+ * @param sigma Volatility
+ * @param order Fractional order of the raw moment to compute
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param particles Number of particles to simulate
+ * @param seed Random seed for CURAND
+ */
+extern "C" __global__ void frac_raw_moment(float *out,
+                                           float start_position,
+                                           float theta, float sigma, float order,
+                                           float duration, float time_step,
+                                           size_t particles,
+                                           unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float val = 0.0f;
+
+    if (idx < particles)
+    {
+        float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
+        val = powf(fabsf(end_position), order);
+    }
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = val;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
+}
+
+/**
+ * @brief Computes the specified fractional central moment of Ornstein-Uhlenbeck process
+ *
+ * This kernel simulates multiple independent Ornstein-Uhlenbeck process paths and computes
+ * their central moment of specified fractional order at the end of the simulation.
+ * The fractional central moment is calculated as E[|X-μ|^r] where r is a real number.
+ *
+ * @param out Pointer to output value (accumulated sum of fractional central moments, should be divided by particles count in host)
+ * @param mean Pre-computed mean of the process
+ * @param order Fractional order of the central moment to compute
+ * @param start_position Initial position for all particles
+ * @param theta Mean reversion speed
+ * @param sigma Volatility
+ * @param theta Mean reversion speed
+ * @param sigma Volatility
+ * @param duration Total simulation time
+ * @param time_step Time step size for the simulation
+ * @param particles Number of particles to simulate
+ * @param seed Random seed for CURAND
+ */
+extern "C" __global__ void frac_central_moment(float *out,
+                                               float mean,
+                                               float order,
+                                               float start_position,
+                                               float theta, float sigma,
+                                               float duration, float time_step,
+                                               size_t particles,
+                                               unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+    float val = 0.0f;
+
+    if (idx < particles)
+    {
+        float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
+        val = powf(fabsf(end_position - mean), order);
+    }
+
+    __shared__ float sdata[256];
+    unsigned int tid = threadIdx.x;
+    sdata[tid] = val;
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    {
+        if (tid < s)
+        {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0)
+    {
+        atomicAdd(out, sdata[0]);
+    }
+}
