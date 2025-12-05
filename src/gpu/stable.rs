@@ -7,6 +7,7 @@ use cudarc::{
     driver::{CudaFunction, CudaModule, PushKernelArg},
     nvrtc::Ptx,
 };
+use rand::Rng;
 use std::sync::{Arc, LazyLock};
 
 static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
@@ -27,7 +28,8 @@ pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f
     let mut device_out = stream.alloc_zeros::<f32>(len)?;
     let cfg = config(len);
 
-    let seed = std::time::SystemTime::now().elapsed()?.as_secs();
+    let mut rng = rand::rng();
+    let seed: u64 = rng.random();
 
     let (inv_alpha, one_minus_alpha_div_alpha, b, s) = if (alpha - 1.0).abs() < 1e-3 {
         (0.0, 0.0, 0.0, 0.0)

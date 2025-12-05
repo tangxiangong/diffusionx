@@ -117,7 +117,9 @@ macro_rules! subscribe_gpu_function {
             let mut device_out = stream.alloc_zeros::<f32>(1)?;
             let cfg = $crate::gpu::config(particles);
 
-            let seed = std::time::SystemTime::now().elapsed()?.as_secs();
+            let mut rng = rand::rng();
+            use rand::Rng;
+            let seed: u64 = rng.random();
 
             let mut builder = stream.launch_builder(kernel);
             use cudarc::driver::PushKernelArg;
@@ -158,7 +160,10 @@ macro_rules! subscribe_central_moment_gpu_function {
             let mut device_out = stream.alloc_zeros::<f32>(1)?;
             let cfg = $crate::gpu::config(particles);
 
-            let seed = std::time::SystemTime::now().elapsed()?.as_secs();
+            let mut rng = rand::rng();
+            use rand::Rng;
+            let seed: u64 = rng.random();
+
             let mean = mean($($param_name,)+ particles)?;
 
             let mut builder = stream.launch_builder(kernel);
