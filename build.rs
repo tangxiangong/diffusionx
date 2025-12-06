@@ -1,7 +1,10 @@
-use std::env;
-use std::path::PathBuf;
-use std::process::Command;
+#[cfg(feature = "cuda")]
+use std::{env, path::PathBuf, process::Command};
 
+#[cfg(not(feature = "cuda"))]
+fn main() {}
+
+#[cfg(feature = "cuda")]
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
