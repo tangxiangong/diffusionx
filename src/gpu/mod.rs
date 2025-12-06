@@ -192,4 +192,5 @@ macro_rules! subscribe_central_moment_gpu_function {
 
 pub mod bm;
 pub mod levy;
+pub mod ou;
 pub mod stable;
