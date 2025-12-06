@@ -106,7 +106,11 @@ codegen-units = 1
 panic = "abort"
 
 [[bench]]
-name = "moment"
+name = "bm"
+harness = false
+
+[[bench]]
+name = "ou"
 harness = false
 
 [[bench]]
