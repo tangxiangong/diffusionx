@@ -364,6 +364,24 @@ EATAMSD: 0.6085042089895467
 > diffusionx = { version = "*", features = ["cuda"] }
 > ```
 
+#### `GPUMoment` Trait
+
+`gpu::GPUMoment` trait 提供 GPU 加速的统计矩计算。已实现该 trait 的类型：
+- `Bm<T>` - 布朗运动
+- `OrnsteinUhlenbeck<T>` - Ornstein-Uhlenbeck 过程
+- `Levy<T>` - 莱维过程
+
+| 方法 | 描述 |
+|------|------|
+| `mean_gpu(duration, particles, time_step)` | 计算均值（一阶原点矩） |
+| `msd_gpu(duration, particles, time_step)` | 计算均方位移（二阶中心矩） |
+| `raw_moment_gpu(duration, order, particles, time_step)` | 计算整数阶原点矩 |
+| `central_moment_gpu(duration, order, particles, time_step)` | 计算整数阶中心矩 |
+| `frac_raw_moment_gpu(duration, order, particles, time_step)` | 计算分数阶原点矩 |
+| `frac_central_moment_gpu(duration, order, particles, time_step)` | 计算分数阶中心矩 |
+
+**示例：**
+
 ```rust
 use diffusionx::{
     simulation::continuous::Bm,
@@ -387,7 +405,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-GPU 加速的稳定分布随机数生成：
+#### `gpu::stable` 模块
+
+GPU 加速的稳定分布随机数生成。
+
+| 函数 | 描述 |
+|------|------|
+| `standard_stable_rands(alpha, beta, len)` | 生成 `len` 个标准稳定分布随机数，稳定性指数 `alpha` ∈ (0, 2]，偏斜参数 `beta` ∈ [-1, 1] |
+
+**示例：**
 
 ```rust
 use diffusionx::gpu::stable::standard_stable_rands;

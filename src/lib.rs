@@ -1,15 +1,8 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
-//!
-//! ## 简体中文
-//!
-//! 中文版本可见[这里](https://github.com/tangxiangong/diffusionx/blob/stable/README-zh.md).
-//!
-
-use mimalloc::MiMalloc;
 
 #[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 mod error;
 pub use error::*;
@@ -30,5 +23,4 @@ pub mod visualize;
 
 /// GPU acceleration module
 #[cfg(feature = "cuda")]
-#[cfg_attr(docsrs, doc(cfg(feature = "cuda")))]
 pub mod gpu;

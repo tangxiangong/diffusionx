@@ -364,6 +364,24 @@ EATAMSD: 0.6085042089895467
 > diffusionx = { version = "*", features = ["cuda"] }
 > ```
 
+#### `GPUMoment` Trait
+
+The `gpu::GPUMoment` trait provides GPU-accelerated statistical moment calculations. It is implemented for:
+- `Bm<T>` - Brownian Motion
+- `OrnsteinUhlenbeck<T>` - Ornstein-Uhlenbeck Process
+- `Levy<T>` - Lévy Process
+
+| Method | Description |
+|--------|-------------|
+| `mean_gpu(duration, particles, time_step)` | Calculate mean (first raw moment) |
+| `msd_gpu(duration, particles, time_step)` | Calculate mean squared displacement (second central moment) |
+| `raw_moment_gpu(duration, order, particles, time_step)` | Calculate raw moment of integer order |
+| `central_moment_gpu(duration, order, particles, time_step)` | Calculate central moment of integer order |
+| `frac_raw_moment_gpu(duration, order, particles, time_step)` | Calculate raw moment of fractional order |
+| `frac_central_moment_gpu(duration, order, particles, time_step)` | Calculate central moment of fractional order |
+
+**Example:**
+
 ```rust
 use diffusionx::{
     simulation::continuous::Bm,
@@ -387,7 +405,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-GPU-accelerated stable random number generation:
+#### `gpu::stable` Module
+
+GPU-accelerated stable distribution random number generation.
+
+| Function | Description |
+|----------|-------------|
+| `standard_stable_rands(alpha, beta, len)` | Generate `len` standard stable random numbers with stability `alpha` ∈ (0, 2] and skewness `beta` ∈ [-1, 1] |
+
+**Example:**
 
 ```rust
 use diffusionx::gpu::stable::standard_stable_rands;
@@ -401,7 +427,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## Benchmark
 
 Performance benchmark tests compare the Rust, C++, Julia, and Python implementations, which can be found [here](https://github.com/tangxiangong/diffusionx-benches).
-
 
 ## License
 

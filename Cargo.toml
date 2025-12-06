@@ -12,7 +12,7 @@ readme = "README.md"
 rust-version = "1.87"
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["visualize", "io"]
 rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "./docs-header.html"]
 
 [lib]
@@ -20,6 +20,7 @@ name = "diffusionx"
 doctest = false
 
 [features]
+default = ["visualize", "io", "cuda"]
 visualize = [
     "dep:plotters",
     "dep:derive_builder",
