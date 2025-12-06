@@ -20,6 +20,16 @@ pub struct OrnsteinUhlenbeck<T: Float = f64> {
     start_position: T,
 }
 
+impl<T: Float> Default for OrnsteinUhlenbeck<T> {
+    fn default() -> Self {
+        Self {
+            theta: T::one(),
+            sigma: T::one(),
+            start_position: T::zero(),
+        }
+    }
+}
+
 impl<T: Float + Debug> OrnsteinUhlenbeck<T> {
     /// Create a new `OrnsteinUhlenbeck`
     ///
