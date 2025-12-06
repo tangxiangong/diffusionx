@@ -4,11 +4,11 @@ use crate::{
     simulation::continuous::{Bm, Levy},
     subscribe_gpu_function,
 };
-use cuda_kernel::LEVY_PTX;
 use cudarc::{
     driver::{CudaFunction, CudaModule},
     nvrtc::Ptx,
 };
+use diffusionx_cuda_kernel::LEVY_PTX;
 use num_traits::Float;
 use std::{
     fmt::Debug,

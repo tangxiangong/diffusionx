@@ -4,11 +4,11 @@ use crate::{
     simulation::continuous::OrnsteinUhlenbeck as OU,
     subscribe_gpu_function,
 };
-use cuda_kernel::OU_PTX;
 use cudarc::{
     driver::{CudaFunction, CudaModule},
     nvrtc::Ptx,
 };
+use diffusionx_cuda_kernel::OU_PTX;
 use num_traits::Float;
 use std::{
     fmt::Debug,

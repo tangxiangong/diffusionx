@@ -2,11 +2,11 @@ use crate::{
     XResult,
     gpu::{CUDA_CTX, CUDA_STREAM, config},
 };
-use cuda_kernel::STABLE_PTX;
 use cudarc::{
     driver::{CudaFunction, CudaModule, PushKernelArg},
     nvrtc::Ptx,
 };
+use diffusionx_cuda_kernel::STABLE_PTX;
 use rand::Rng;
 use std::sync::{Arc, LazyLock};
 
