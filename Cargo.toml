@@ -1,26 +1,14 @@
-[workspace]
-members = [".", "kernels/*"]
-resolver = "3"
-
-[workspace.package]
+[package]
+name = "diffusionx"
 authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 categories = ["science", "mathematics"]
 keywords = ["stochastic-process", "simulation", "Monte-Carlo", "gpu"]
-
-[package]
-name = "diffusionx"
-authors.workspace = true
-edition.workspace = true
 version = "0.9.0"
 description = "A multi-threaded crate for random number generation and stochastic process simulation, with optional CUDA GPU acceleration."
-license.workspace = true
-repository.workspace = true
 readme = "README.md"
-categories.workspace = true
-keywords.workspace = true
 rust-version = "1.87"
 
 [package.metadata.docs.rs]
@@ -39,12 +27,11 @@ visualize = [
     "dep:either",
 ]
 io = ["dep:csv"]
-cuda = ["dep:cudarc", "dep:diffusionx-cuda-kernel"]
+cuda = ["dep:cudarc"]
 
 
 [dependencies]
 csv = { version = "1.4", optional = true }
-diffusionx-cuda-kernel = { version = "0.1.0", path = "./kernels/cuda-kernel", optional = true }
 cudarc = { version = "0.18", optional = true, features = [
     "std",
     "cuda-version-from-build-system",

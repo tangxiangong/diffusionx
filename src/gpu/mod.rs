@@ -8,6 +8,11 @@ pub(crate) static CUDA_CTX: LazyLock<XResult<Arc<CudaContext>>> =
 pub(crate) static CUDA_STREAM: LazyLock<XResult<Arc<CudaStream>>> =
     LazyLock::new(|| Ok(CUDA_CTX.as_ref()?.default_stream()));
 
+pub(crate) const BM_PTX: &str = include_str!(env!("BM_KERNEL_PTX"));
+pub(crate) const STABLE_PTX: &str = include_str!(env!("STABLE_KERNEL_PTX"));
+pub(crate) const LEVY_PTX: &str = include_str!(env!("LEVY_KERNEL_PTX"));
+pub(crate) const OU_PTX: &str = include_str!(env!("OU_KERNEL_PTX"));
+
 #[inline]
 pub(crate) fn config(particles: usize) -> LaunchConfig {
     let block_size = 256;

@@ -1,6 +1,6 @@
 use crate::{
     XError, XResult,
-    gpu::{CUDA_CTX, GPUMoment},
+    gpu::{CUDA_CTX, GPUMoment, LEVY_PTX},
     simulation::continuous::{Bm, Levy},
     subscribe_gpu_function,
 };
@@ -8,7 +8,6 @@ use cudarc::{
     driver::{CudaFunction, CudaModule},
     nvrtc::Ptx,
 };
-use diffusionx_cuda_kernel::LEVY_PTX;
 use num_traits::Float;
 use std::{
     fmt::Debug,

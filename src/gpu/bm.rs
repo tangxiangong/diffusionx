@@ -1,6 +1,6 @@
 use crate::{
     XResult,
-    gpu::{CUDA_CTX, GPUMoment},
+    gpu::{BM_PTX, CUDA_CTX, GPUMoment},
     simulation::continuous::Bm,
     subscribe_gpu_function,
 };
@@ -8,7 +8,6 @@ use cudarc::{
     driver::{CudaFunction, CudaModule},
     nvrtc::Ptx,
 };
-use diffusionx_cuda_kernel::BM_PTX;
 use num_traits::Float;
 use std::{
     fmt::Debug,
