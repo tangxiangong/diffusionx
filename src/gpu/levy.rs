@@ -9,7 +9,11 @@ use cudarc::{
     driver::{CudaFunction, CudaModule},
     nvrtc::Ptx,
 };
-use std::sync::{Arc, LazyLock};
+use num_traits::Float;
+use std::{
+    fmt::Debug,
+    sync::{Arc, LazyLock},
+};
 
 static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
     let ctx = CUDA_CTX.as_ref()?;
@@ -49,7 +53,7 @@ subscribe_gpu_function!(MODULE, frac_raw_moment, FRAC_RAW_MOMENT_KERNEL, (alpha:
 
 subscribe_central_moment_gpu_function!(MODULE, frac_central_moment, FRAC_CENTRAL_MOMENT_KERNEL, (alpha: f32, start_position: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32), f32);
 
-impl GPUMoment for Levy {
+impl<T: Float + Debug> GPUMoment for Levy<T> {
     fn central_moment_gpu(
         &self,
         duration: f32,
@@ -57,7 +61,7 @@ impl GPUMoment for Levy {
         particles: usize,
         time_step: f32,
     ) -> XResult<f32> {
-        let alpha = self.get_alpha() as f32;
+        let alpha = self.get_alpha().to_f32().unwrap();
         if (alpha - 2.0).abs() <= f32::EPSILON {
             let bm = Bm::<f32>::default();
             return bm.central_moment_gpu(duration, order, particles, time_step);
@@ -75,7 +79,7 @@ impl GPUMoment for Levy {
         particles: usize,
         time_step: f32,
     ) -> XResult<f32> {
-        let alpha = self.get_alpha() as f32;
+        let alpha = self.get_alpha().to_f32().unwrap();
         if (alpha - 2.0).abs() < f32::EPSILON {
             let bm = Bm::<f32>::default();
             return bm.raw_moment_gpu(duration, order, particles, time_step);
@@ -91,7 +95,7 @@ impl GPUMoment for Levy {
         if order == 1 {
             mean(
                 alpha,
-                self.get_start_position() as f32,
+                self.get_start_position().to_f32().unwrap(),
                 duration,
                 time_step,
                 inv_alpha,
@@ -103,7 +107,7 @@ impl GPUMoment for Levy {
         } else {
             raw_moment(
                 alpha,
-                self.get_start_position() as f32,
+                self.get_start_position().to_f32().unwrap(),
                 order,
                 duration,
                 time_step,
@@ -115,7 +119,7 @@ impl GPUMoment for Levy {
     }
 
     fn msd_gpu(&self, duration: f32, particles: usize, time_step: f32) -> XResult<f32> {
-        let alpha = self.get_alpha() as f32;
+        let alpha = self.get_alpha().to_f32().unwrap();
         if (alpha - 2.0).abs() < f32::EPSILON {
             let bm = Bm::<f32>::default();
             bm.msd_gpu(duration, particles, time_step)
@@ -125,7 +129,7 @@ impl GPUMoment for Levy {
     }
 
     fn mean_gpu(&self, duration: f32, particles: usize, time_step: f32) -> XResult<f32> {
-        let alpha = self.get_alpha() as f32;
+        let alpha = self.get_alpha().to_f32().unwrap();
         if (alpha - 2.0).abs() < f32::EPSILON {
             let bm = Bm::<f32>::default();
             return bm.mean_gpu(duration, particles, time_step);
@@ -139,7 +143,7 @@ impl GPUMoment for Levy {
         let one_minus_alpha_div_alpha = (1.0 - alpha) / alpha;
         mean(
             alpha,
-            self.get_start_position() as f32,
+            self.get_start_position().to_f32().unwrap(),
             duration,
             time_step,
             inv_alpha,
@@ -155,7 +159,7 @@ impl GPUMoment for Levy {
         particles: usize,
         time_step: f32,
     ) -> XResult<f32> {
-        let alpha = self.get_alpha() as f32;
+        let alpha = self.get_alpha().to_f32().unwrap();
         if (alpha - 2.0).abs() < f32::EPSILON {
             let bm = Bm::<f32>::default();
             return bm.frac_central_moment_gpu(duration, order, particles, time_step);
@@ -167,7 +171,7 @@ impl GPUMoment for Levy {
         let one_minus_alpha_div_alpha = (1.0 - alpha) / alpha;
         frac_central_moment(
             alpha,
-            self.get_start_position() as f32,
+            self.get_start_position().to_f32().unwrap(),
             duration,
             time_step,
             inv_alpha,
@@ -184,7 +188,7 @@ impl GPUMoment for Levy {
         particles: usize,
         time_step: f32,
     ) -> XResult<f32> {
-        let alpha = self.get_alpha() as f32;
+        let alpha = self.get_alpha().to_f32().unwrap();
         if (alpha - 2.0).abs() < f32::EPSILON {
             let bm = Bm::<f32>::default();
             return bm.frac_raw_moment_gpu(duration, order, particles, time_step);
@@ -196,7 +200,7 @@ impl GPUMoment for Levy {
         let one_minus_alpha_div_alpha = (1.0 - alpha) / alpha;
         frac_raw_moment(
             alpha,
-            self.get_start_position() as f32,
+            self.get_start_position().to_f32().unwrap(),
             order,
             duration,
             time_step,
