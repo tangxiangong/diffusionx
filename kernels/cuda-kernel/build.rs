@@ -5,7 +5,7 @@ use std::process::Command;
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
-    let kernels = ["bm", "stable", "levy"];
+    let kernels = ["bm", "stable", "levy", "ou"];
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
