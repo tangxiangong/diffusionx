@@ -1,7 +1,10 @@
-use std::env;
-use std::path::PathBuf;
-use std::process::Command;
+#[cfg(feature = "cuda")]
+use std::{env, path::PathBuf, process::Command};
 
+#[cfg(not(feature = "cuda"))]
+fn main() {}
+
+#[cfg(feature = "cuda")]
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
@@ -10,10 +13,10 @@ fn main() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
     for kernel in kernels {
-        let kernel_file = format!("src/{kernel}.cu");
+        let kernel_file = format!("kernels/cuda-kernel/{kernel}.cu");
         println!("cargo:rerun-if-changed={kernel_file}");
 
-        let ptx_path = out_dir.join(&format!("{kernel}.ptx"));
+        let ptx_path = out_dir.join(format!("{kernel}.ptx"));
 
         let status = Command::new("nvcc")
             .args([

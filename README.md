@@ -3,7 +3,7 @@
 DiffusionX
 </h1>
 <p align="center">
-A multi-threaded high-performance Rust library for random number generation and stochastic process simulation.
+A multi-threaded high-performance Rust library for random number generation and stochastic process simulation, with optional CUDA GPU acceleration.
 </p>
 <p align="center">
 English | <a href="README-zh.md">简体中文</a>
@@ -25,6 +25,13 @@ English | <a href="README-zh.md">简体中文</a>
 - [x] Exponential distribution
 - [x] Poisson distribution
 - [x] $\alpha$-stable distribution
+
+### GPU Acceleration (CUDA)
+
+- [x] Brownian motion moment calculations
+- [x] $\alpha$-stable Lévy process moment calculations
+- [x] Ornstein-Uhlenbeck process moment calculations
+- [x] $\alpha$-stable random number generation
 
 > [!NOTE]
 > DiffusionX uses the high-quality [Xoshiro256++](https://prng.di.unimi.it/) random number generator as the common entropy source across all distributions.
@@ -347,6 +354,50 @@ EATAMSD: 0.6085042089895467
 ```
 <img src="https://raw.githubusercontent.com/tangxiangong/diffusionx/dev/assets/CIR.svg" alt="CIR"/>
 
+### GPU Acceleration
+
+> [!NOTE]
+> GPU acceleration requires the `cuda` feature and a CUDA-capable GPU.
+> ```toml
+> # In your Cargo.toml
+> [dependencies]
+> diffusionx = { version = "*", features = ["cuda"] }
+> ```
+
+```rust
+use diffusionx::{
+    simulation::continuous::Bm,
+    gpu::GPUMoment,
+};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let bm = Bm::<f32>::default();
+
+    // GPU-accelerated moment calculations
+    let mean = bm.mean_gpu(1.0, 100_000, 0.01)?;
+    let msd = bm.msd_gpu(1.0, 100_000, 0.01)?;
+    let raw_moment = bm.raw_moment_gpu(1.0, 2, 100_000, 0.01)?;
+    let central_moment = bm.central_moment_gpu(1.0, 2, 100_000, 0.01)?;
+
+    // Fractional moments are also supported
+    let frac_raw = bm.frac_raw_moment_gpu(1.0, 1.5, 100_000, 0.01)?;
+    let frac_central = bm.frac_central_moment_gpu(1.0, 1.5, 100_000, 0.01)?;
+
+    println!("Mean: {mean}, MSD: {msd}");
+    Ok(())
+}
+```
+
+GPU-accelerated stable random number generation:
+
+```rust
+use diffusionx::gpu::stable::standard_stable_rands;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Generate 1 million stable random numbers on GPU
+    let samples = standard_stable_rands(1.5, 0.5, 1_000_000)?;
+    Ok(())
+}
+```
+
 ## Benchmark
 
 Performance benchmark tests compare the Rust, C++, Julia, and Python implementations, which can be found [here](https://github.com/tangxiangong/diffusionx-benches).
@@ -369,4 +420,4 @@ additional terms or conditions.
 
 ---
 
-Dedicated to my brief yet unforgettable years in Lanzhou and to that XX.
+Dedicated to my brief yet unforgettable years in Lanzhou and to XX.

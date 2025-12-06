@@ -1,10 +1,9 @@
 use crate::{
     XResult,
-    gpu::{CUDA_CTX, GPUMoment},
+    gpu::{CUDA_CTX, GPUMoment, OU_PTX},
     simulation::continuous::OrnsteinUhlenbeck as OU,
     subscribe_gpu_function,
 };
-use cuda_kernel::OU_PTX;
 use cudarc::{
     driver::{CudaFunction, CudaModule},
     nvrtc::Ptx,

@@ -1,8 +1,7 @@
 use crate::{
     XResult,
-    gpu::{CUDA_CTX, CUDA_STREAM, config},
+    gpu::{CUDA_CTX, CUDA_STREAM, STABLE_PTX, config},
 };
-use cuda_kernel::STABLE_PTX;
 use cudarc::{
     driver::{CudaFunction, CudaModule, PushKernelArg},
     nvrtc::Ptx,

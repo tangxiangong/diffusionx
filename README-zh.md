@@ -3,7 +3,7 @@
 DiffusionX
 </h1>
 <p align="center">
-一个多线程高性能的 Rust 随机数生成和随机过程模拟库
+一个多线程高性能的 Rust 随机数生成和随机过程模拟库，支持可选的 CUDA GPU 加速
 </p>
 <p align="center">
 <a href="README.md">English</a> | 简体中文
@@ -25,6 +25,13 @@ DiffusionX
 - [x] 指数分布
 - [x] 泊松分布
 - [x] $\alpha$-稳定分布
+
+### GPU 加速 (CUDA)
+
+- [x] 布朗运动矩计算
+- [x] $\alpha$-稳定莱维过程矩计算
+- [x] Ornstein-Uhlenbeck 过程矩计算
+- [x] $\alpha$-稳定分布随机数生成
 
 > [!NOTE]
 > DiffusionX 在随机数生成模块中统一采用高质量的 [Xoshiro256++](https://prng.di.unimi.it/) 随机数发生器。
@@ -346,6 +353,50 @@ EATAMSD: 0.6085042089895467
 ```
 <img src="https://raw.githubusercontent.com/tangxiangong/diffusionx/dev/assets/CIR.svg" alt="CIR"/>
 
+
+### GPU 加速
+
+> [!NOTE]
+> GPU 加速需要开启 `cuda` 特性，并且需要支持 CUDA 的 GPU。
+> ```toml
+> # 在您的 Cargo.toml 中
+> [dependencies]
+> diffusionx = { version = "*", features = ["cuda"] }
+> ```
+
+```rust
+use diffusionx::{
+    simulation::continuous::Bm,
+    gpu::GPUMoment,
+};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let bm = Bm::<f32>::default();
+
+    // GPU 加速的矩计算
+    let mean = bm.mean_gpu(1.0, 100_000, 0.01)?;
+    let msd = bm.msd_gpu(1.0, 100_000, 0.01)?;
+    let raw_moment = bm.raw_moment_gpu(1.0, 2, 100_000, 0.01)?;
+    let central_moment = bm.central_moment_gpu(1.0, 2, 100_000, 0.01)?;
+
+    // 支持分数阶矩
+    let frac_raw = bm.frac_raw_moment_gpu(1.0, 1.5, 100_000, 0.01)?;
+    let frac_central = bm.frac_central_moment_gpu(1.0, 1.5, 100_000, 0.01)?;
+
+    println!("Mean: {mean}, MSD: {msd}");
+    Ok(())
+}
+```
+
+GPU 加速的稳定分布随机数生成：
+
+```rust
+use diffusionx::gpu::stable::standard_stable_rands;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 在 GPU 上生成 100 万个稳定分布随机数
+    let samples = standard_stable_rands(1.5, 0.5, 1_000_000)?;
+    Ok(())
+}
+```
 
 ## 基准测试
 
