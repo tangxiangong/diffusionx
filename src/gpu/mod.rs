@@ -9,7 +9,7 @@ pub(crate) static CUDA_STREAM: LazyLock<XResult<Arc<CudaStream>>> =
     LazyLock::new(|| Ok(CUDA_CTX.as_ref()?.default_stream()));
 
 pub(crate) const BM_PTX: &str = include_str!(env!("BM_KERNEL_PTX"));
-pub(crate) const STABLE_PTX: &str = include_str!(env!("STABLE_KERNEL_PTX"));
+pub(crate) const RANDOM_PTX: &str = include_str!(env!("RANDOM_KERNEL_PTX"));
 pub(crate) const LEVY_PTX: &str = include_str!(env!("LEVY_KERNEL_PTX"));
 pub(crate) const OU_PTX: &str = include_str!(env!("OU_KERNEL_PTX"));
 
@@ -198,4 +198,4 @@ macro_rules! subscribe_central_moment_gpu_function {
 pub mod bm;
 pub mod levy;
 pub mod ou;
-pub mod stable;
+pub mod random;

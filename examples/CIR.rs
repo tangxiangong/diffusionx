@@ -1,77 +1,156 @@
+use std::ops::AddAssign;
+
 #[cfg(feature = "io")]
 use diffusionx::utils::write_csv;
-use diffusionx::{
-    XError, XResult, check_duration_time_step,
-    random::normal,
-    simulation::prelude::*,
-    utils::{diff, linspace},
-};
+use diffusionx::{XError, XResult, random::normal, simulation::prelude::*};
+use num_traits::Float;
+use rand_distr::{Distribution, StandardNormal};
 
-/// CIR
+/// Cox-Ingersoll-Ross (CIR) process
+///
+/// $$ dX_t = \kappa (\theta - X_t) dt + \sigma \sqrt{X_t} dW_t $$
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone)]
-struct CIR {
-    speed: f64,
-    mean: f64,
-    volatility: f64,
-    start_position: f64,
+struct CIR<T: Float = f64> {
+    /// speed of mean reversion
+    kappa: T,
+    /// long-term mean
+    theta: T,
+    /// volatility
+    sigma: T,
+    /// initial position
+    init: T,
 }
 
-impl CIR {
-    fn new(
-        speed: impl Into<f64>,
-        mean: impl Into<f64>,
-        volatility: impl Into<f64>,
-        start_position: impl Into<f64>,
-    ) -> XResult<Self> {
-        let speed: f64 = speed.into();
-        if speed <= 0.0 {
+impl<T: Float> CIR<T> {
+    fn new(kappa: T, theta: T, sigma: T, init: T) -> XResult<Self>
+    where
+        T: std::fmt::Debug,
+    {
+        if kappa <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "speed must be greater than 0, but got {speed}"
+                "The parameter `kappa` must be positive, but got {kappa:?}"
             )));
         }
         Ok(Self {
-            speed,
-            mean: mean.into(),
-            volatility: volatility.into(),
-            start_position: start_position.into(),
+            kappa,
+            theta,
+            sigma,
+            init,
         })
     }
 }
 
-impl ContinuousProcess for CIR {
-    fn start(&self) -> f64 {
-        self.start_position
+impl<T: std::fmt::Debug + Float + Send + Sync + AddAssign<T>> ContinuousProcess<T> for CIR<T>
+where
+    StandardNormal: Distribution<T>,
+{
+    fn start(&self) -> T {
+        self.init
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        check_duration_time_step(duration, time_step)?;
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
+        if duration <= T::zero() {
+            return Err(XError::InvalidParameters(format!(
+                "The `duration` must be positive, got {duration:?}"
+            )));
+        }
+        if time_step <= T::zero() {
+            return Err(XError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step:?}`"
+            )));
+        }
+        if duration < time_step {
+            return Err(XError::InvalidParameters(format!(
+                "The `duration` must be larger than `time_step`, got duration: {duration:?}, time_step: {time_step:?}"
+            )));
+        }
 
-        let t = linspace(0.0, duration, time_step);
-        let num_steps = t.len() - 1;
-        let initial_x = self.start_position.max(0.0);
-        let noises = normal::standard_rands::<f64>(num_steps);
-        let delta = diff(&t);
+        let num_steps = ((duration / time_step).ceil()).to_usize().unwrap();
 
-        let x = std::iter::once(initial_x)
-            .chain(
-                noises
-                    .iter()
-                    .zip(delta)
-                    .scan(initial_x, |state, (&xi, delta_t)| {
-                        let current_x = *state;
-                        let drift = self.speed * (self.mean - current_x);
-                        let diffusion = self.volatility * current_x.sqrt().max(0.0);
+        let mut t = Vec::with_capacity(num_steps + 1);
+        let mut x = Vec::with_capacity(num_steps + 1);
 
-                        let next_x = current_x + drift * delta_t + diffusion * xi * delta_t.sqrt();
-                        *state = next_x.max(0.0);
+        let noises = normal::standard_rands::<T>(num_steps - 1);
 
-                        Some(*state)
-                    }),
-            )
-            .collect();
+        let mut current_t = T::zero();
+        let mut current_x = self.init.max(T::zero());
+
+        t.push(current_t);
+        x.push(current_x);
+
+        let mut drift;
+        let mut diffusivity;
+        let mut scale = self.sigma * time_step.sqrt();
+
+        for xi in noises {
+            drift = self.kappa * (self.theta - current_x);
+            diffusivity = scale * current_x.sqrt();
+            current_x += drift * time_step + diffusivity * xi;
+            current_x = current_x.max(T::zero());
+            current_t += time_step;
+
+            t.push(current_t);
+            x.push(current_x);
+        }
+
+        let last_step = duration - current_t;
+        scale = self.sigma * last_step.sqrt();
+        drift = self.kappa * (self.theta - current_x);
+        diffusivity = scale * current_x.sqrt();
+        current_x += drift * last_step + diffusivity * normal::standard_rand::<T>();
+        current_x = current_x.max(T::zero());
+
+        t.push(duration);
+        x.push(current_x);
 
         Ok((t, x))
+    }
+
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
+        if duration <= T::zero() {
+            return Err(XError::InvalidParameters(format!(
+                "The `duration` must be positive, got {duration:?}"
+            )));
+        }
+        if time_step <= T::zero() {
+            return Err(XError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step:?}`"
+            )));
+        }
+        if duration < time_step {
+            return Err(XError::InvalidParameters(format!(
+                "The `duration` must be larger than `time_step`, got duration: {duration:?}, time_step: {time_step:?}"
+            )));
+        }
+
+        let num_steps = ((duration / time_step).ceil()).to_usize().unwrap();
+
+        let noises = normal::standard_rands::<T>(num_steps - 1);
+
+        let mut current_t = T::zero();
+        let mut current_x = self.init.max(T::zero());
+
+        let mut drift;
+        let mut diffusivity;
+        let mut scale = self.sigma * time_step.sqrt();
+
+        for xi in noises {
+            drift = self.kappa * (self.theta - current_x);
+            diffusivity = scale * current_x.sqrt();
+            current_x += drift * time_step + diffusivity * xi;
+            current_x = current_x.max(T::zero());
+            current_t += time_step;
+        }
+
+        let last_step = duration - current_t;
+        scale = self.sigma * last_step.sqrt();
+        drift = self.kappa * (self.theta - current_x);
+        diffusivity = scale * current_x.sqrt();
+        current_x += drift * last_step + diffusivity * normal::standard_rand::<T>();
+        current_x = current_x.max(T::zero());
+
+        Ok(current_x - self.init)
     }
 }
 
@@ -79,7 +158,7 @@ fn main() -> XResult<()> {
     let duration = 10.0;
     let particles = 10_000;
     let time_step = 0.01;
-    let cir = CIR::new(1, 1, 1, 0.5)?;
+    let cir = CIR::new(1.0, 1.0, 1.0, 0.5)?;
 
     #[allow(unused)]
     let (t, x) = cir.simulate(duration, time_step)?;

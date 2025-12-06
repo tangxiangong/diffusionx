@@ -79,6 +79,9 @@ pub enum XError {
     #[cfg(feature = "cuda")]
     #[error(transparent)]
     SystemTimeError(#[from] std::time::SystemTimeError),
+    #[cfg(feature = "cuda")]
+    #[error(transparent)]
+    CURANDError(#[from] cudarc::curand::result::CurandError),
     /// Other errors
     #[error("Error: {0}")]
     Other(String),
@@ -199,7 +202,7 @@ impl From<&XError> for XError {
 
 #[inline]
 /// Check the duration and time step
-pub fn check_duration_time_step<T: Float + Debug>(duration: T, time_step: T) -> XResult<()> {
+pub(crate) fn check_duration_time_step<T: Float + Debug>(duration: T, time_step: T) -> XResult<()> {
     if duration <= T::zero() {
         return Err(SimulationError::InvalidParameters(format!(
             "The `duration` must be positive, got {duration:?}"

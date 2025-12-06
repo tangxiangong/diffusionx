@@ -1,6 +1,19 @@
 #include <curand_kernel.h>
 #include <math_constants.h>
 
+extern "C" __global__ void randexp(float *out, size_t len, unsigned long long seed)
+{
+    size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (idx < len)
+    {
+        curandState state;
+        curand_init(seed, idx, 0, &state);
+        float u = curand_uniform(&state);
+        out[idx] = -logf(u);
+    }
+}
+
 QUALIFIERS float sample_standard_alpha_one(float alpha, float beta,
                                            curandStatePhilox4_32_10_t *state)
 {
@@ -26,9 +39,10 @@ QUALIFIERS float sample_standard_alpha_with_constants(
 }
 
 extern "C" __global__ void
-standard_stable_rand(float *out, float alpha, float beta, size_t len,
-                     unsigned long long seed, float inv_alpha,
-                     float one_minus_alpha_div_alpha, float b, float s)
+standard_stable_rand(float *out, float alpha, float beta,
+                     float inv_alpha,
+                     float one_minus_alpha_div_alpha, float b, float s, size_t len,
+                     unsigned long long seed)
 {
     size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
 
