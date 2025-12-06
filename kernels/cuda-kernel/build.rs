@@ -13,7 +13,7 @@ fn main() {
         let kernel_file = format!("src/{kernel}.cu");
         println!("cargo:rerun-if-changed={kernel_file}");
 
-        let ptx_path = out_dir.join(&format!("{kernel}.ptx"));
+        let ptx_path = out_dir.join(format!("{kernel}.ptx"));
 
         let status = Command::new("nvcc")
             .args([
