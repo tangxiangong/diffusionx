@@ -7,7 +7,7 @@ const N: usize = 10_000_000;
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("uniform distribution", |b| {
         b.iter(|| {
-            let _ = uniform::standard_rands(black_box(N));
+            let _ = uniform::standard_rands::<f64>(black_box(N));
         })
     });
 
@@ -23,9 +23,27 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("stable distribution", |b| {
+    c.bench_function("stable distribution f64", |b| {
         b.iter(|| {
             let _ = stable::sym_standard_rands(black_box(0.7), black_box(N)).unwrap();
+        })
+    });
+
+    c.bench_function("stable distribution f32", |b| {
+        b.iter(|| {
+            let _ = stable::sym_standard_rands(black_box(0.7f32), black_box(N)).unwrap();
+        })
+    });
+
+    #[cfg(feature = "cuda")]
+    c.bench_function("stable distribution f32 (cuda)", |b| {
+        b.iter(|| {
+            let _ = diffusionx::gpu::stable::standard_stable_rands(
+                black_box(0.7),
+                black_box(0.0),
+                black_box(N),
+            )
+            .unwrap();
         })
     });
 }

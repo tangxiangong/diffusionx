@@ -3,7 +3,6 @@ use crate::{
     SimulationError, XResult,
     simulation::prelude::{FirstPassageTime, OccupationTime},
 };
-use rayon::prelude::*;
 use std::sync::Arc;
 
 /// Point process trait
@@ -105,26 +104,8 @@ pub trait PointProcess: Send + Sync {
     where
         Self: Sized + Clone + PointTrajectoryTrait,
     {
-        if particles == 0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {particles}"
-            ))
-            .into());
-        }
-
-        let values = (0..particles)
-            .into_par_iter()
-            .map(|_| {
-                let displacement = match self.displacement(duration) {
-                    Ok(displacement) => displacement,
-                    Err(e) => panic!("{}", e),
-                };
-                displacement * displacement
-            })
-            .sum::<f64>();
-
-        let result = values / (particles as f64);
-        Ok(result)
+        let traj = self.duration(duration)?;
+        traj.msd(particles, 0.1)
     }
 
     /// Get the raw moment of the point process
@@ -155,6 +136,36 @@ pub trait PointProcess: Send + Sync {
     {
         let traj = self.duration(duration)?;
         traj.central_moment(order, particles, 0.1)
+    }
+
+    /// Get the fractional raw moment of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    fn frac_raw_moment(&self, duration: f64, order: f64, particles: usize) -> XResult<f64>
+    where
+        Self: Sized + Clone + PointTrajectoryTrait,
+    {
+        let traj = self.duration(duration)?;
+        traj.frac_raw_moment(order, particles, 0.1)
+    }
+
+    /// Get the fractional central moment of the point process
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    fn frac_central_moment(&self, duration: f64, order: f64, particles: usize) -> XResult<f64>
+    where
+        Self: Sized + Clone + PointTrajectoryTrait,
+    {
+        let traj = self.duration(duration)?;
+        traj.frac_central_moment(order, particles, 0.1)
     }
 
     /// Get the first passage time of the point process

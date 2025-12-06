@@ -1,6 +1,5 @@
 use super::{DiscretePair, Moment};
 use crate::{SimulationError, XResult};
-use rayon::prelude::*;
 
 /// Discrete process trait
 pub trait DiscreteProcess: Send + Sync {
@@ -58,26 +57,8 @@ pub trait DiscreteProcess: Send + Sync {
     where
         Self: DiscreteTrajectoryTrait,
     {
-        if particles == 0 {
-            return Err(SimulationError::InvalidParameters(format!(
-                "The `particles` must be positive, got {particles}"
-            ))
-            .into());
-        }
-
-        let values = (0..particles)
-            .into_par_iter()
-            .map(|_| {
-                let displacement = match self.displacement(num_step) {
-                    Ok(displacement) => displacement,
-                    Err(e) => panic!("{}", e),
-                };
-                displacement * displacement
-            })
-            .sum::<f64>();
-
-        let result = values / (particles as f64);
-        Ok(result)
+        let traj = self.step(num_step)?;
+        traj.msd(particles, 0.1)
     }
 
     /// Get the raw moment of the discrete process
@@ -108,6 +89,36 @@ pub trait DiscreteProcess: Send + Sync {
     {
         let traj = self.step(num_step)?;
         traj.central_moment(order, particles, 0.1)
+    }
+
+    /// Get the fractional raw moment of the discrete process
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    fn frac_raw_moment(&self, num_step: usize, order: f64, particles: usize) -> XResult<f64>
+    where
+        Self: DiscreteTrajectoryTrait,
+    {
+        let traj = self.step(num_step)?;
+        traj.frac_raw_moment(order, particles, 0.1)
+    }
+
+    /// Get the fractional central moment of the discrete process
+    ///
+    /// # Arguments
+    ///
+    /// * `num_step` - The number of steps.
+    /// * `order` - The order of the moment.
+    /// * `particles` - The number of particles.
+    fn frac_central_moment(&self, num_step: usize, order: f64, particles: usize) -> XResult<f64>
+    where
+        Self: DiscreteTrajectoryTrait,
+    {
+        let traj = self.step(num_step)?;
+        traj.frac_central_moment(order, particles, 0.1)
     }
 }
 

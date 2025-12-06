@@ -7,18 +7,20 @@ use crate::{
     SimulationError, XResult,
     simulation::prelude::{ContinuousProcess, PointProcess},
 };
+use num_traits::Float;
 use rayon::prelude::*;
+use std::fmt::Debug;
 
 /// First passage time
 #[derive(Debug, Clone)]
-pub struct FirstPassageTime<'a, SP> {
+pub struct FirstPassageTime<'a, SP, T: Float = f64> {
     /// The stochastic process
     sp: &'a SP,
     /// The domain that the first passage time is interested in
-    domain: (f64, f64),
+    domain: (T, T),
 }
 
-impl<'a, SP: Send + Sync> FirstPassageTime<'a, SP> {
+impl<'a, SP: Send + Sync, T: Float> FirstPassageTime<'a, SP, T> {
     /// Create a new first passage time
     ///
     /// # Arguments
@@ -35,8 +37,10 @@ impl<'a, SP: Send + Sync> FirstPassageTime<'a, SP> {
     /// let sp = Bm::default();
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
     /// ```
-    pub fn new(sp: &'a SP, domain: (impl Into<f64>, impl Into<f64>)) -> XResult<Self> {
-        let domain = (domain.0.into(), domain.1.into());
+    pub fn new(sp: &'a SP, domain: (T, T)) -> XResult<Self>
+    where
+        T: Debug,
+    {
         if domain.0 >= domain.1 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{domain:?}`"
@@ -47,7 +51,7 @@ impl<'a, SP: Send + Sync> FirstPassageTime<'a, SP> {
     }
 }
 
-impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
+impl<'a, SP: ContinuousProcess<T>, T: Float> FirstPassageTime<'a, SP, T> {
     /// Simulate the first passage time
     ///
     /// # Arguments
@@ -65,17 +69,19 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
     /// let result = fpt.simulate(1000.0, 0.1).unwrap();
     /// ```
-    pub fn simulate(&self, max_duration: impl Into<f64>, time_step: f64) -> XResult<Option<f64>> {
-        let max_duration = max_duration.into();
+    pub fn simulate(&self, max_duration: T, time_step: T) -> XResult<Option<T>> {
+        let ten = T::from(10).unwrap();
+        let two = T::from(2).unwrap();
+
         let (a, b) = self.domain;
-        let find = |x: &[f64]| x.iter().position(|&pos| pos <= a || pos >= b);
-        let mut duration = (max_duration / 10.0).min(10.0);
+        let find = |x: &[T]| x.iter().position(|&pos| pos <= a || pos >= b);
+        let mut duration = (max_duration / ten).min(ten);
         loop {
             let (t, x) = self.sp.simulate(duration, time_step)?;
             if let Some(index) = find(&x) {
                 return Ok(Some(t[index]));
             }
-            duration *= 2.0;
+            duration = duration * two;
             if duration > max_duration {
                 duration = max_duration;
                 let (t, x) = self.sp.simulate(duration, time_step)?;
@@ -111,9 +117,12 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
         &self,
         order: i32,
         particles: usize,
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
+        max_duration: T,
+        time_step: T,
+    ) -> XResult<Option<T>>
+    where
+        T: Debug + Send + Sync + std::iter::Sum,
+    {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got `{particles}`"
@@ -121,18 +130,17 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             .into());
         }
         if order == 0 {
-            return Ok(Some(1.0));
+            return Ok(Some(T::one()));
         }
-        if time_step <= 0.0 {
+        if time_step <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
+                "The `time_step` must be positive, got `{time_step:?}`"
             ))
             .into());
         }
-        let max_duration = max_duration.into();
-        if max_duration <= 0.0 {
+        if max_duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{max_duration}`"
+                "The `max_duration` must be positive, got `{max_duration:?}`"
             ))
             .into());
         }
@@ -148,7 +156,7 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             .filter_map(|x| x)
             .collect::<Vec<_>>();
 
-        Ok(average(&valid_values))
+        Ok(average(valid_values))
     }
 
     /// Get the central moment of the first passage time
@@ -174,16 +182,19 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
         &self,
         order: i32,
         particles: usize,
-        max_duration: impl Into<f64>,
-        time_step: f64,
-    ) -> XResult<Option<f64>> {
+        max_duration: T,
+        time_step: T,
+    ) -> XResult<Option<T>>
+    where
+        T: Debug + Send + Sync + std::iter::Sum,
+    {
         if order == 0 {
-            return Ok(Some(1.0));
+            return Ok(Some(T::one()));
         }
-        let max_duration = max_duration.into();
-        if max_duration <= 0.0 {
+
+        if max_duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{max_duration}`"
+                "The `max_duration` must be positive, got `{max_duration:?}`"
             ))
             .into());
         }
@@ -202,22 +213,22 @@ impl<'a, SP: ContinuousProcess> FirstPassageTime<'a, SP> {
             .filter_map(|x| x)
             .collect::<Vec<_>>();
 
-        Ok(average(&valid_values))
+        Ok(average(valid_values))
     }
 }
 
 /// Occupation time
 #[derive(Debug, Clone)]
-pub struct OccupationTime<'a, SP> {
+pub struct OccupationTime<'a, SP, T: Float = f64> {
     /// The stochastic process
     sp: &'a SP,
     /// The domain that the occupation time is interested in
-    domain: (f64, f64),
+    domain: (T, T),
     /// The duration of the simulation
-    duration: f64,
+    duration: T,
 }
 
-impl<'a, SP: Send + Sync> OccupationTime<'a, SP> {
+impl<'a, SP: Send + Sync, T: Float + Debug> OccupationTime<'a, SP, T> {
     /// Create a new occupation time
     ///
     /// # Arguments
@@ -235,22 +246,16 @@ impl<'a, SP: Send + Sync> OccupationTime<'a, SP> {
     /// let sp = Bm::default();
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// ```
-    pub fn new(
-        sp: &'a SP,
-        domain: (impl Into<f64>, impl Into<f64>),
-        duration: impl Into<f64>,
-    ) -> XResult<Self> {
-        let domain = (domain.0.into(), domain.1.into());
-        let duration = duration.into();
+    pub fn new(sp: &'a SP, domain: (T, T), duration: T) -> XResult<Self> {
         if domain.0 >= domain.1 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{domain:?}`"
             ))
             .into());
         }
-        if duration <= 0.0 {
+        if duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got `{duration}`"
+                "The `duration` must be positive, got `{duration:?}`"
             ))
             .into());
         }
@@ -262,7 +267,7 @@ impl<'a, SP: Send + Sync> OccupationTime<'a, SP> {
     }
 }
 
-impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
+impl<'a, SP: ContinuousProcess<T>, T: Float + Debug> OccupationTime<'a, SP, T> {
     /// Simulate the occupation time
     ///
     /// # Arguments
@@ -279,10 +284,13 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// let result = ot.simulate(0.1).unwrap();
     /// ```
-    pub fn simulate(&self, time_step: f64) -> XResult<f64> {
-        if time_step <= 0.0 {
+    pub fn simulate(&self, time_step: T) -> XResult<T>
+    where
+        T: std::iter::Sum,
+    {
+        if time_step <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
+                "The `time_step` must be positive, got `{time_step:?}`"
             ))
             .into());
         }
@@ -312,7 +320,10 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// let result = ot.raw_moment(1, 1000, 0.1).unwrap();
     /// ```
-    pub fn raw_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
+    pub fn raw_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T>
+    where
+        T: Send + Sync + std::iter::Sum,
+    {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got `{particles}`"
@@ -320,11 +331,11 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
             .into());
         }
         if order == 0 {
-            return Ok(1.0);
+            return Ok(T::one());
         }
-        if time_step <= 0.0 {
+        if time_step <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
+                "The `time_step` must be positive, got `{time_step:?}`"
             ))
             .into());
         }
@@ -335,8 +346,8 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
                 let occupation_time = self.simulate(time_step).unwrap();
                 occupation_time.powi(order)
             })
-            .sum::<f64>()
-            / particles as f64;
+            .sum::<T>()
+            / T::from(particles).unwrap();
         Ok(result)
     }
 
@@ -358,13 +369,16 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// let result = ot.central_moment(1, 1000, 0.1).unwrap();
     /// ```
-    pub fn central_moment(&self, order: i32, particles: usize, time_step: f64) -> XResult<f64> {
+    pub fn central_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T>
+    where
+        T: Send + Sync + std::iter::Sum,
+    {
         if order == 0 {
-            return Ok(1.0);
+            return Ok(T::one());
         }
-        if time_step <= 0.0 {
+        if time_step <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
+                "The `time_step` must be positive, got `{time_step:?}`"
             ))
             .into());
         }
@@ -381,8 +395,8 @@ impl<'a, SP: ContinuousProcess> OccupationTime<'a, SP> {
                 let occupation_time = self.simulate(time_step).unwrap();
                 (occupation_time - mean).powi(order)
             })
-            .sum::<f64>()
-            / particles as f64;
+            .sum::<T>()
+            / T::from(particles).unwrap();
         Ok(result)
     }
 }
@@ -462,7 +476,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
             })
             .filter_map(|x| x)
             .collect::<Vec<_>>();
-        Ok(average(&valid_values))
+        Ok(average(valid_values))
     }
 
     /// Get the central moment of the first passage time
@@ -509,7 +523,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
             .filter_map(|x| x)
             .collect::<Vec<_>>();
 
-        Ok(average(&valid_values))
+        Ok(average(valid_values))
     }
 }
 
@@ -580,17 +594,17 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
     }
 }
 
-fn average(values: &[f64]) -> Option<f64> {
+fn average<T: Float + Send + Sync + std::iter::Sum>(values: Vec<T>) -> Option<T> {
     if values.is_empty() {
         None
     } else {
         let count = values.len();
-        let sum = values.into_par_iter().sum::<f64>();
-        Some(sum / count as f64)
+        let sum = values.into_par_iter().sum::<T>();
+        Some(sum / T::from(count).unwrap())
     }
 }
 
-fn oc(t: &[f64], x: &[f64], a: f64, b: f64) -> f64 {
+fn oc<T: Float + std::iter::Sum>(t: &[T], x: &[T], a: T, b: T) -> T {
     x.windows(2)
         .zip(t.windows(2))
         .map(|(x_pair, t_pair)| {
@@ -598,7 +612,7 @@ fn oc(t: &[f64], x: &[f64], a: f64, b: f64) -> f64 {
             if in_domain {
                 t_pair[1] - t_pair[0]
             } else {
-                0.0
+                T::zero()
             }
         })
         .sum()

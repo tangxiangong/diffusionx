@@ -27,3 +27,8 @@ pub mod utils;
 #[cfg(feature = "visualize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "visualize")))]
 pub mod visualize;
+
+/// GPU acceleration module
+#[cfg(feature = "cuda")]
+#[cfg_attr(docsrs, doc(cfg(feature = "cuda")))]
+pub mod gpu;
