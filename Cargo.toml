@@ -20,7 +20,6 @@ name = "diffusionx"
 doctest = false
 
 [features]
-default = ["visualize", "io", "cuda"]
 visualize = [
     "dep:plotters",
     "dep:derive_builder",
