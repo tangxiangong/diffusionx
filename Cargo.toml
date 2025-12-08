@@ -116,3 +116,7 @@ harness = false
 [[bench]]
 name = "random"
 harness = false
+
+[[bench]]
+name = "levy"
+harness = false
