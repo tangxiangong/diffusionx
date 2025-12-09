@@ -9,6 +9,7 @@
 
 #include <curand_kernel.h>
 #include <math_constants.h>
+#include "utils.cu"
 
 QUALIFIERS float
 sample_symmetric_standard_alpha_one(curandStatePhilox4_32_10_t *state)
@@ -296,23 +297,13 @@ extern "C" __global__ void mean(float *out, float alpha, float start_position,
                   inv_alpha, one_minus_alpha_div_alpha);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }
 
@@ -349,23 +340,13 @@ extern "C" __global__ void raw_moment(float *out, float alpha, float start_posit
         val = powf(end_position, order);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }
 
@@ -403,23 +384,13 @@ frac_raw_moment(float *out, float alpha, float start_position, float order,
         val = powf(fabsf(end_position), order);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }
 
@@ -459,22 +430,12 @@ frac_central_moment(float *out, float mean, float alpha, float start_position,
         val = powf(fabsf(end_position - mean), order);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }

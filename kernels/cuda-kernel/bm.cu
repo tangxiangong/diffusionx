@@ -8,6 +8,7 @@
  */
 
 #include <curand_kernel.h>
+#include "utils.cu"
 
 /**
  * @brief Simulates the Brownian motion for a single particle
@@ -117,23 +118,13 @@ extern "C" __global__ void mean(float *out,
         val = end(start_position, diffusivity, duration, time_step, seed, idx);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }
 
@@ -165,23 +156,13 @@ extern "C" __global__ void msd(float *out, float start_position,
         val = (end_position - start_position) * (end_position - start_position);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }
 
@@ -218,23 +199,13 @@ extern "C" __global__ void raw_moment(float *out,
         val = powf(end_position, order);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }
 
@@ -272,23 +243,13 @@ extern "C" __global__ void central_moment(float *out,
         val = powf(end_position - mean, order);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }
 
@@ -325,23 +286,13 @@ extern "C" __global__ void frac_raw_moment(float *out,
         val = powf(fabsf(end_position), order);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }
 
@@ -381,22 +332,12 @@ extern "C" __global__ void frac_central_moment(float *out,
         val = powf(fabsf(end_position - mean), order);
     }
 
-    __shared__ float sdata[256];
-    unsigned int tid = threadIdx.x;
-    sdata[tid] = val;
-    __syncthreads();
+    __shared__ float warp_sums[32];
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
-    {
-        if (tid < s)
-        {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
+    float block_sum = block_reduce_sum(val, warp_sums);
 
-    if (tid == 0)
+    if (threadIdx.x == 0)
     {
-        atomicAdd(out, sdata[0]);
+        atomicAdd(out, block_sum);
     }
 }
