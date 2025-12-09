@@ -55,8 +55,8 @@ pub enum XError {
     #[error("Circulant embedding matrix is not positive definite, eigenvalue: {0}")]
     NotPositiveDefinite(f64),
     /// Error for FFT planner lock
-    #[error("FFT planner lock error")]
-    FFTPlannerLock,
+    #[error("{0}")]
+    FFTError(String),
     #[cfg(feature = "io")]
     /// Error for CSV files
     #[error("CSV IO Error: {0}")]
@@ -90,6 +90,12 @@ pub enum XError {
 impl From<GaussLegendreError> for XError {
     fn from(value: GaussLegendreError) -> Self {
         XError::GaussLegendreError(value.to_string())
+    }
+}
+
+impl From<realfft::FftError> for XError {
+    fn from(value: realfft::FftError) -> Self {
+        XError::FFTError(value.to_string())
     }
 }
 

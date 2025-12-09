@@ -3,7 +3,7 @@
 use crate::{
     SimulationError, XResult, check_duration_time_step,
     simulation::{continuous::Bm, prelude::*},
-    utils::{CirculantEmbedding, cumsum, fbm_correlation},
+    utils::{CirculantEmbedding, cumsum},
 };
 
 /// Fractional Brownian motion
@@ -145,6 +145,20 @@ pub fn simulate_fbm(
     let x = cumsum(start_position, &noise);
 
     Ok((t, x))
+}
+
+/// Fractional Brownian motion correlation function
+fn fbm_correlation(hurst: f64, time_step: f64) -> impl Fn(f64) -> f64 {
+    move |r: f64| {
+        let r_abs = r.abs();
+        if r_abs < 1e-10 {
+            return 1.0;
+        }
+
+        let h2 = 2.0 * hurst;
+        0.5 * time_step.powf(h2)
+            * ((r_abs + 1.0).powf(h2) - 2.0 * r_abs.powf(h2) + (r_abs - 1.0).abs().powf(h2))
+    }
 }
 
 #[cfg(test)]
