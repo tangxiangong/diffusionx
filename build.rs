@@ -1,8 +1,13 @@
 #[cfg(feature = "cuda")]
 use std::{env, path::PathBuf, process::Command};
 
-#[cfg(not(feature = "cuda"))]
+#[cfg(not(any(feature = "cuda", feature = "metal")))]
 fn main() {}
+
+#[cfg(all(feature = "cuda", feature = "metal"))]
+fn main() {
+    panic!("Cannot enable both CUDA and Metal features");
+}
 
 #[cfg(feature = "cuda")]
 fn main() {
