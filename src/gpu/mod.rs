@@ -1,7 +1,14 @@
+use crate::XResult;
+
 #[cfg(feature = "cuda")]
 mod cuda;
 #[cfg(feature = "cuda")]
 pub use cuda::*;
+
+#[cfg(feature = "metal")]
+pub mod metal;
+#[cfg(feature = "metal")]
+pub use metal::*;
 
 pub trait GPUMoment {
     /// Get the raw moment of the simulation (GPU version)
