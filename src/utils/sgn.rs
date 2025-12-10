@@ -1,21 +1,25 @@
-use crate::{XError, XResult, random::normal};
+use crate::{XResult, random::normal};
 use num_traits::Float;
 use rand_distr::{Distribution, StandardNormal};
 use rayon::prelude::*;
 use realfft::{FftNum, RealFftPlanner, num_complex::Complex};
-use std::{marker::PhantomData, ops::MulAssign};
+use std::ops::MulAssign;
 
 /// Circulant embedding method for generating stationary Gaussian random fields with given correlation functions
-pub struct CirculantEmbedding<F: Fn(T) -> T, T: Float = f64> {
+pub struct CirculantEmbedding<F: Fn(usize) -> T, T: Float + FftNum = f64> {
     /// Number of grid points
     size: usize,
     /// Correlation function, takes distance as input and returns correlation
     correlation_fn: F,
-    /// Phantom data
-    _phantom: PhantomData<T>,
+    /// fft planner
+    planner: RealFftPlanner<T>,
+    /// embedding size
+    embedding_size: usize,
+    /// sqrt eigenvalues
+    sqrt_eigenvalues: Option<Vec<T>>,
 }
 
-impl<F: Fn(T) -> T + Send + Sync, T: Float + Send + Sync> CirculantEmbedding<F, T> {
+impl<F: Fn(usize) -> T + Send + Sync, T: Float + FftNum + Send + Sync> CirculantEmbedding<F, T> {
     /// Create a new `CirculantEmbedding`
     ///
     /// # Arguments
@@ -34,72 +38,97 @@ impl<F: Fn(T) -> T + Send + Sync, T: Float + Send + Sync> CirculantEmbedding<F, 
         CirculantEmbedding {
             size,
             correlation_fn,
-            _phantom: PhantomData,
+            planner: RealFftPlanner::new(),
+            embedding_size: next_power_of_2(2 * size),
+            sqrt_eigenvalues: None,
+        }
+    }
+
+    fn embed(&mut self) -> XResult<()> {
+        let mut first_row = (0..self.embedding_size)
+            .into_par_iter()
+            .map(|i| {
+                let dist = if i < self.size {
+                    i
+                } else {
+                    self.embedding_size - i
+                };
+                (self.correlation_fn)(dist)
+            })
+            .collect::<Vec<_>>();
+
+        let fft = self.planner.plan_fft_forward(self.embedding_size);
+        let mut eigenvalues = fft.make_output_vec();
+
+        fft.process(&mut first_row, &mut eigenvalues)?;
+
+        if eigenvalues.iter().any(|val| val.re < T::zero()) {
+            self.embedding_size *= 2;
+            self.embed()
+        } else {
+            self.sqrt_eigenvalues =
+                Some(eigenvalues.into_iter().map(|val| val.re.sqrt()).collect());
+            Ok(())
         }
     }
 
     /// Generate a one-dimensional stationary Gaussian random field
-    pub fn generate(&self) -> XResult<Vec<T>>
+    pub fn generate(&mut self) -> XResult<Vec<T>>
     where
         T: FftNum + MulAssign<T>,
         StandardNormal: Distribution<T>,
     {
-        let n = self.size;
-        let m = 2 * n;
+        if self.sqrt_eigenvalues.is_none() {
+            self.embed()?;
+        }
 
-        let spectrum_len = m / 2 + 1;
+        let ifft = self.planner.plan_fft_inverse(self.embedding_size);
 
-        let mut first_row: Vec<_> = (0..m)
-            .into_par_iter()
-            .map(|i| {
-                let dist = if i <= m / 2 {
-                    T::from(i).unwrap()
-                } else {
-                    T::from(m - i).unwrap()
-                };
-                (self.correlation_fn)(dist)
+        let mut modified_z = self
+            .sqrt_eigenvalues
+            .as_ref()
+            .unwrap()
+            .par_iter()
+            .map(|&sqrt_lambda| {
+                let re = sqrt_lambda * normal::standard_rand();
+                let im = sqrt_lambda * normal::standard_rand();
+                Complex::new(re, im)
             })
-            .collect();
-
-        let mut planner = RealFftPlanner::new();
-
-        let fft = planner.plan_fft_forward(m);
-        let mut eigenvalues = fft.make_output_vec();
-        fft.process(&mut first_row, &mut eigenvalues)?;
-
-        let sqrt_eigenvalues = eigenvalues
-            .iter()
-            .map(|val| {
-                if val.re < T::zero() {
-                    return Err(XError::NotPositiveDefinite(val.re.to_f64().unwrap()));
-                }
-                Ok(Complex::new(val.re.sqrt(), T::zero()))
-            })
-            .collect::<XResult<Vec<Complex<_>>>>()?;
-
-        let ifft = planner.plan_fft_inverse(m);
-
-        let z_real = normal::standard_rands::<T>(spectrum_len);
-        let z_imag = normal::standard_rands::<T>(spectrum_len);
-
-        let mut spectrum: Vec<Complex<_>> = (0..spectrum_len)
-            .map(|i| {
-                let sqrt_lambda = sqrt_eigenvalues[i].re;
-                if i == 0 || (i == m / 2 && m.is_multiple_of(2)) {
-                    // DC and Nyquist components must be real
-                    Complex::new(sqrt_lambda * z_real[i], T::zero())
-                } else {
-                    Complex::new(sqrt_lambda * z_real[i], sqrt_lambda * z_imag[i])
-                }
-            })
-            .collect();
+            .collect::<Vec<_>>();
 
         let mut result = ifft.make_output_vec();
-        ifft.process(&mut spectrum, &mut result)?;
-        let scale = T::one() / T::from(m).unwrap();
+        ifft.process(&mut modified_z, &mut result)?;
+        let scale = T::one() / T::from(self.embedding_size).unwrap();
         result.iter_mut().for_each(|x| *x *= scale);
-        result.truncate(n);
+        result.truncate(self.size);
 
         Ok(result)
+    }
+}
+
+fn next_power_of_2(mut n: usize) -> usize {
+    if n == 0 {
+        return 1;
+    }
+    n -= 1;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    if size_of::<usize>() == 8 {
+        n |= n >> 32;
+    }
+    n + 1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_next_power_of_2() {
+        assert_eq!(next_power_of_2(8), 8);
+        assert_eq!(next_power_of_2(11), 16);
     }
 }

@@ -80,7 +80,7 @@ impl ContinuousProcess for FBm {
         let dt = duration / num_steps as f64;
 
         // Fractional Gaussian noise with covariance determined by dt and H
-        let circulant =
+        let mut circulant =
             CirculantEmbedding::new(num_steps, fbm_correlation(self.hurst_exponent, dt));
         let noise = circulant.generate()?;
         let x = noise.into_iter().sum::<f64>();
@@ -138,7 +138,7 @@ pub fn simulate_fbm(
     }
 
     // Fractional Gaussian noise with covariance determined by dt and H
-    let circulant = CirculantEmbedding::new(num_steps, fbm_correlation(hurst_exponent, dt));
+    let mut circulant = CirculantEmbedding::new(num_steps, fbm_correlation(hurst_exponent, dt));
     let noise = circulant.generate()?;
 
     // Calculate the cumulative sum to obtain fBm
@@ -148,16 +148,12 @@ pub fn simulate_fbm(
 }
 
 /// Fractional Brownian motion correlation function
-fn fbm_correlation(hurst: f64, time_step: f64) -> impl Fn(f64) -> f64 {
-    move |r: f64| {
-        let r_abs = r.abs();
-        if r_abs < 1e-10 {
-            return 1.0;
-        }
-
+fn fbm_correlation(hurst: f64, time_step: f64) -> impl Fn(usize) -> f64 {
+    move |k: usize| {
         let h2 = 2.0 * hurst;
         0.5 * time_step.powf(h2)
-            * ((r_abs + 1.0).powf(h2) - 2.0 * r_abs.powf(h2) + (r_abs - 1.0).abs().powf(h2))
+            * (((k + 1) as f64).powf(h2) - 2.0 * (k as f64).powf(h2)
+                + (k as f64 - 1.0).abs().powf(h2))
     }
 }
 
