@@ -1,11 +1,9 @@
 //! Brownian motion simulation
 
-use std::{fmt::Debug, ops::AddAssign};
-
 use crate::{
-    SimulationError, XResult, check_duration_time_step, random::normal, simulation::prelude::*,
+    FloatExt, SimulationError, XResult, check_duration_time_step, random::normal,
+    simulation::prelude::*,
 };
-use num_traits::Float;
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -13,14 +11,14 @@ use rayon::prelude::*;
 
 /// Brownian motion
 #[derive(Debug, Clone)]
-pub struct Bm<T: Float = f64> {
+pub struct Bm<T: FloatExt = f64> {
     /// The starting position
     start_position: T,
     /// The diffusion coefficient
     diffusion_coefficient: T,
 }
 
-impl<T: Float> Default for Bm<T> {
+impl<T: FloatExt> Default for Bm<T> {
     fn default() -> Self {
         Self {
             start_position: T::zero(),
@@ -29,7 +27,7 @@ impl<T: Float> Default for Bm<T> {
     }
 }
 
-impl<T: Float + Debug> Bm<T> {
+impl<T: FloatExt> Bm<T> {
     /// Create a new `Bm`
     ///
     /// # Arguments
@@ -60,7 +58,7 @@ impl<T: Float + Debug> Bm<T> {
     }
 }
 
-impl<T: Float + Debug + Send + Sync + std::iter::Sum + AddAssign<T>> ContinuousProcess<T> for Bm<T>
+impl<T: FloatExt> ContinuousProcess<T> for Bm<T>
 where
     StandardNormal: Distribution<T>,
 {
@@ -117,7 +115,7 @@ where
 /// let duration = 1.0;
 /// let (t, x) = simulate_bm(start_position, diffusion_coefficient, duration, time_step).unwrap();
 /// ```
-pub fn simulate_bm<T: Float + Debug + Send + Sync + AddAssign<T>>(
+pub fn simulate_bm<T: FloatExt>(
     start_position: T,
     diffusion_coefficient: T,
     duration: T,

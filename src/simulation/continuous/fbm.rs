@@ -1,26 +1,23 @@
 //! Fractional Brownian motion simulation
 
-use num_traits::Float;
-use rand_distr::{Distribution, StandardNormal};
-use realfft::FftNum;
-use std::ops::{AddAssign, MulAssign};
-
 use crate::{
-    SimulationError, XResult, check_duration_time_step,
+    FloatExt, SimulationError, XResult, check_duration_time_step,
     simulation::{continuous::Bm, prelude::*},
     utils::{CirculantEmbedding, cumsum},
 };
+use rand_distr::{Distribution, StandardNormal};
+use realfft::FftNum;
 
 /// Fractional Brownian motion
 #[derive(Debug, Clone)]
-pub struct FBm<T: Float = f64> {
+pub struct FBm<T: FloatExt = f64> {
     /// The starting position
     start_position: T,
     /// The Hurst exponent
     hurst_exponent: T,
 }
 
-impl<T: Float + std::fmt::Debug> FBm<T> {
+impl<T: FloatExt> FBm<T> {
     /// Create a new `FBm`
     ///
     /// # Arguments
@@ -59,9 +56,7 @@ impl<T: Float + std::fmt::Debug> FBm<T> {
     }
 }
 
-impl<
-    T: Float + std::fmt::Debug + Send + Sync + std::iter::Sum + AddAssign<T> + MulAssign<T> + FftNum,
-> ContinuousProcess<T> for FBm<T>
+impl<T: FloatExt + FftNum> ContinuousProcess<T> for FBm<T>
 where
     StandardNormal: Distribution<T>,
 {
@@ -117,9 +112,7 @@ where
 /// let time_step = 0.1;
 /// let (t, x) = simulate_fbm(start_position, hurst_exponent, duration, time_step).unwrap();
 /// ```
-pub fn simulate_fbm<
-    T: Float + FftNum + std::fmt::Debug + Send + Sync + AddAssign<T> + MulAssign<T>,
->(
+pub fn simulate_fbm<T: FloatExt + FftNum>(
     start_position: T,
     hurst_exponent: T,
     duration: T,
@@ -161,7 +154,7 @@ where
 }
 
 /// Fractional Brownian motion correlation function
-fn fbm_correlation<T: Float>(hurst: T, time_step: T) -> impl Fn(usize) -> T {
+fn fbm_correlation<T: FloatExt>(hurst: T, time_step: T) -> impl Fn(usize) -> T {
     move |k: usize| {
         let two = T::from(2.0).unwrap();
         let h2 = two * hurst;

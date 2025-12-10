@@ -3,20 +3,19 @@
 //! The Lévy process is a process with independent and stationary increments.
 
 use crate::{
-    SimulationError, XResult, check_duration_time_step,
+    FloatExt, SimulationError, XResult, check_duration_time_step,
     random::stable::{self, sample_standard_alpha, sample_standard_alpha_one},
     simulation::prelude::*,
 };
-use num_traits::{Float, FloatConst};
+use num_traits::FloatConst;
 use rand::prelude::*;
 use rand_distr::{Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
-use std::{fmt::Debug, ops::AddAssign};
 
 /// Asymmetric Lévy process
 #[derive(Debug, Clone)]
-pub struct AsymmetricLevy<T: Float = f64> {
+pub struct AsymmetricLevy<T: FloatExt = f64> {
     /// The starting position
     start_position: T,
     /// The stability index
@@ -25,7 +24,7 @@ pub struct AsymmetricLevy<T: Float = f64> {
     beta: T,
 }
 
-impl<T: Float + Debug> AsymmetricLevy<T> {
+impl<T: FloatExt> AsymmetricLevy<T> {
     /// Create a new `AsymmetricLevy`
     ///
     /// # Arguments
@@ -77,8 +76,7 @@ impl<T: Float + Debug> AsymmetricLevy<T> {
     }
 }
 
-impl<T: Float + FloatConst + SampleUniform + Debug + Send + Sync + std::iter::Sum + AddAssign<T>>
-    ContinuousProcess<T> for AsymmetricLevy<T>
+impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for AsymmetricLevy<T>
 where
     Exp1: Distribution<T>,
 {
@@ -143,9 +141,7 @@ where
 /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
 /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
 /// ```
-pub fn simulate_asymmetric_levy<
-    T: Float + Debug + FloatConst + SampleUniform + Send + Sync + AddAssign<T>,
->(
+pub fn simulate_asymmetric_levy<T: FloatExt + FloatConst + SampleUniform>(
     start_position: T,
     alpha: T,
     beta: T,
@@ -188,14 +184,14 @@ where
 
 /// Lévy process
 #[derive(Debug, Clone)]
-pub struct Levy<T: Float = f64> {
+pub struct Levy<T: FloatExt = f64> {
     /// The starting position
     start_position: T,
     /// The stability index
     alpha: T,
 }
 
-impl<T: Float + Debug> Levy<T> {
+impl<T: FloatExt> Levy<T> {
     /// Create a new `Levy`
     ///
     /// # Arguments
@@ -234,8 +230,7 @@ impl<T: Float + Debug> Levy<T> {
     }
 }
 
-impl<T: Float + Debug + FloatConst + SampleUniform + Send + Sync + AddAssign<T> + std::iter::Sum>
-    ContinuousProcess<T> for Levy<T>
+impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for Levy<T>
 where
     Exp1: Distribution<T>,
 {
@@ -293,9 +288,7 @@ where
 ///
 /// let (t, x) = simulate_levy(0.0, 1.5, 1.0, 0.1).unwrap();
 /// ```
-pub fn simulate_levy<
-    T: Float + Debug + FloatConst + SampleUniform + Send + Sync + AddAssign<T> + std::iter::Sum,
->(
+pub fn simulate_levy<T: FloatExt + FloatConst + SampleUniform>(
     start_position: T,
     alpha: T,
     duration: T,

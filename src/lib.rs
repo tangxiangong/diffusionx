@@ -4,6 +4,28 @@
 #[cfg_attr(feature = "mimalloc", global_allocator)]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+pub trait FloatExt:
+    num_traits::Float
+    + std::fmt::Debug
+    + Send
+    + Sync
+    + std::ops::AddAssign<Self>
+    + std::ops::MulAssign<Self>
+    + std::iter::Sum
+{
+}
+
+impl<T> FloatExt for T where
+    T: num_traits::Float
+        + std::fmt::Debug
+        + Send
+        + Sync
+        + std::ops::AddAssign<Self>
+        + std::ops::MulAssign<Self>
+        + std::iter::Sum
+{
+}
+
 mod error;
 pub use error::*;
 

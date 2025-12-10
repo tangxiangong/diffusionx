@@ -1,5 +1,5 @@
 use crate::{
-    XResult,
+    FloatExt, XResult,
     gpu::{BM_PTX, CUDA_CTX, GPUMoment},
     simulation::continuous::Bm,
     subscribe_gpu_function,
@@ -8,11 +8,7 @@ use cudarc::{
     driver::{CudaFunction, CudaModule},
     nvrtc::Ptx,
 };
-use num_traits::Float;
-use std::{
-    fmt::Debug,
-    sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
 static MODULE: LazyLock<XResult<Arc<CudaModule>>> = LazyLock::new(|| {
     let ctx = CUDA_CTX.as_ref()?;
@@ -68,7 +64,7 @@ subscribe_central_moment_gpu_function!(MODULE, central_moment, CENTRAL_MOMENT_KE
 
 subscribe_central_moment_gpu_function!(MODULE, frac_central_moment, FRAC_CENTRAL_KERNEL, (start_position: f32, diffusivity: f32, duration: f32, time_step: f32), f32);
 
-impl<T: Float + Debug> GPUMoment for Bm<T> {
+impl<T: FloatExt> GPUMoment for Bm<T> {
     fn central_moment_gpu(
         &self,
         duration: f32,

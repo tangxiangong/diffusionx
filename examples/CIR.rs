@@ -1,9 +1,6 @@
-use std::ops::AddAssign;
-
 #[cfg(feature = "io")]
 use diffusionx::utils::write_csv;
-use diffusionx::{XError, XResult, random::normal, simulation::prelude::*};
-use num_traits::Float;
+use diffusionx::{FloatExt, XError, XResult, random::normal, simulation::prelude::*};
 use rand_distr::{Distribution, StandardNormal};
 
 /// Cox-Ingersoll-Ross (CIR) process
@@ -11,7 +8,7 @@ use rand_distr::{Distribution, StandardNormal};
 /// $$ dX_t = \kappa (\theta - X_t) dt + \sigma \sqrt{X_t} dW_t $$
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone)]
-struct CIR<T: Float = f64> {
+struct CIR<T: FloatExt = f64> {
     /// speed of mean reversion
     kappa: T,
     /// long-term mean
@@ -22,7 +19,7 @@ struct CIR<T: Float = f64> {
     init: T,
 }
 
-impl<T: Float> CIR<T> {
+impl<T: FloatExt> CIR<T> {
     fn new(kappa: T, theta: T, sigma: T, init: T) -> XResult<Self>
     where
         T: std::fmt::Debug,
@@ -41,7 +38,7 @@ impl<T: Float> CIR<T> {
     }
 }
 
-impl<T: std::fmt::Debug + Float + Send + Sync + AddAssign<T>> ContinuousProcess<T> for CIR<T>
+impl<T: FloatExt> ContinuousProcess<T> for CIR<T>
 where
     StandardNormal: Distribution<T>,
 {

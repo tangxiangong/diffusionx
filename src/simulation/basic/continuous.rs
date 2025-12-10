@@ -1,12 +1,10 @@
 use crate::{
-    SimulationError, XResult,
+    FloatExt, SimulationError, XResult,
     simulation::prelude::{FirstPassageTime, Moment, OccupationTime, TAMSD},
 };
-use num_traits::Float;
-use std::fmt::Debug;
 
 /// Continuous process trait
-pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
+pub trait ContinuousProcess<T: FloatExt = f64>: Send + Sync {
     /// Simulate the continuous process
     ///
     /// # Arguments
@@ -48,7 +46,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     fn mean(&self, duration: T, particles: usize, time_step: T) -> XResult<T>
     where
         Self: ContinuousTrajectoryTrait<T>,
-        T: Debug + Send + Sync + std::iter::Sum,
     {
         let traj = self.duration(duration)?;
         traj.mean(particles, time_step)
@@ -63,7 +60,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     /// * `time_step` - The time step of the simulation.
     fn msd(&self, duration: T, particles: usize, time_step: T) -> XResult<T>
     where
-        T: Debug + Send + Sync + std::iter::Sum,
         Self: ContinuousTrajectoryTrait<T>,
     {
         let traj = self.duration(duration)?;
@@ -81,7 +77,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     fn raw_moment(&self, duration: T, order: i32, particles: usize, time_step: T) -> XResult<T>
     where
         Self: ContinuousTrajectoryTrait<T>,
-        T: Debug + Send + Sync + std::iter::Sum,
     {
         let traj = self.duration(duration)?;
         traj.raw_moment(order, particles, time_step)
@@ -98,7 +93,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     fn central_moment(&self, duration: T, order: i32, particles: usize, time_step: T) -> XResult<T>
     where
         Self: ContinuousTrajectoryTrait<T>,
-        T: Debug + Send + Sync + std::iter::Sum,
     {
         let traj = self.duration(duration)?;
         traj.central_moment(order, particles, time_step)
@@ -115,7 +109,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     fn frac_raw_moment(&self, duration: T, order: T, particles: usize, time_step: T) -> XResult<T>
     where
         Self: ContinuousTrajectoryTrait<T>,
-        T: Debug + Send + Sync + std::iter::Sum,
     {
         let traj = self.duration(duration)?;
         traj.frac_raw_moment(order, particles, time_step)
@@ -138,7 +131,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     ) -> XResult<T>
     where
         Self: ContinuousTrajectoryTrait<T>,
-        T: Debug + Send + Sync + std::iter::Sum,
     {
         let traj = self.duration(duration)?;
         traj.frac_central_moment(order, particles, time_step)
@@ -154,7 +146,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     fn fpt(&self, domain: (T, T), max_duration: T, time_step: T) -> XResult<Option<T>>
     where
         Self: Sized,
-        T: Debug,
     {
         let fpt = FirstPassageTime::new(self, domain)?;
         fpt.simulate(max_duration, time_step)
@@ -169,7 +160,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     /// * `time_step` - The time step of the simulation.
     fn occupation_time(&self, domain: (T, T), duration: T, time_step: T) -> XResult<T>
     where
-        T: Debug + std::iter::Sum,
         Self: Sized,
     {
         let ot = OccupationTime::new(self, domain, duration)?;
@@ -187,7 +177,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     fn tamsd(&self, duration: T, delta: T, time_step: T, quad_order: usize) -> XResult<T>
     where
         Self: Sized,
-        T: Send + Sync + std::iter::Sum + Debug,
     {
         let tamsd = TAMSD::new(self, duration, delta)?;
         tamsd.simulate(time_step, quad_order)
@@ -212,7 +201,6 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
     ) -> XResult<T>
     where
         Self: Sized,
-        T: Send + Sync + std::iter::Sum + Debug,
     {
         let tamsd = TAMSD::new(self, duration, delta)?;
         tamsd.mean(particles, time_step, quad_order)
@@ -221,7 +209,7 @@ pub trait ContinuousProcess<T: Float = f64>: Send + Sync {
 
 /// Continuous trajectory
 #[derive(Debug, Clone)]
-pub struct ContinuousTrajectory<SP, T: Float = f64>
+pub struct ContinuousTrajectory<SP, T: FloatExt = f64>
 where
     SP: ContinuousProcess<T> + Clone,
 {
@@ -231,26 +219,23 @@ where
     pub(crate) duration: T,
 }
 
-pub trait ContinuousTrajectoryTrait<T: Float + Debug>: ContinuousProcess<T> + Clone {
+pub trait ContinuousTrajectoryTrait<T: FloatExt>: ContinuousProcess<T> + Clone {
     fn duration(&self, duration_arg: T) -> XResult<ContinuousTrajectory<Self, T>> {
         let traj = ContinuousTrajectory::new(self.clone(), duration_arg)?;
         Ok(traj)
     }
 }
 
-impl<T: Float + Debug, SP: ContinuousProcess<T> + Clone> ContinuousTrajectoryTrait<T> for SP {}
+impl<T: FloatExt, SP: ContinuousProcess<T> + Clone> ContinuousTrajectoryTrait<T> for SP {}
 
-impl<T: Float, SP: ContinuousProcess<T> + Clone> ContinuousTrajectory<SP, T> {
+impl<T: FloatExt, SP: ContinuousProcess<T> + Clone> ContinuousTrajectory<SP, T> {
     /// Create a new `ContinuousTrajectory` with given `ContinuousProcess` and duration.
     ///
     /// # Arguments
     ///
     /// * `sp` - The continuous process.
     /// * `duration` - The duration of the simulation.
-    pub fn new(sp: SP, duration: T) -> XResult<Self>
-    where
-        T: Debug,
-    {
+    pub fn new(sp: SP, duration: T) -> XResult<Self> {
         if duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got {duration:?}"

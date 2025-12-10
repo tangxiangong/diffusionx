@@ -1,14 +1,8 @@
-use super::{
-    ContinuousProcess, ContinuousTrajectory, DiscreteProcess, DiscreteTrajectory, PointProcess,
-    PointTrajectory,
-};
-use crate::{SimulationError, XResult};
-use num_traits::Float;
+use crate::{FloatExt, SimulationError, XResult, simulation::prelude::*};
 use rayon::prelude::*;
-use std::fmt::Debug;
 
 /// Moment trait
-pub trait Moment<T: Float + Send + Sync = f64> {
+pub trait Moment<T: FloatExt = f64> {
     /// Get the raw moment of the simulation
     ///
     /// # Arguments
@@ -39,9 +33,7 @@ pub trait Moment<T: Float + Send + Sync = f64> {
     fn frac_central_moment(&self, order: T, particles: usize, time_step: T) -> XResult<T>;
 }
 
-impl<T: Float + Send + Sync + Debug + std::iter::Sum, SP: ContinuousProcess<T> + Clone> Moment<T>
-    for ContinuousTrajectory<SP, T>
-{
+impl<T: FloatExt, SP: ContinuousProcess<T> + Clone> Moment<T> for ContinuousTrajectory<SP, T> {
     fn msd(&self, particles: usize, time_step: T) -> XResult<T> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(

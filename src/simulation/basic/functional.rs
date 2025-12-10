@@ -4,23 +4,21 @@
 //! - Occupation time [OccupationTime]
 
 use crate::{
-    SimulationError, XResult,
+    FloatExt, SimulationError, XResult,
     simulation::prelude::{ContinuousProcess, PointProcess},
 };
-use num_traits::Float;
 use rayon::prelude::*;
-use std::fmt::Debug;
 
 /// First passage time
 #[derive(Debug, Clone)]
-pub struct FirstPassageTime<'a, SP, T: Float = f64> {
+pub struct FirstPassageTime<'a, SP, T: FloatExt = f64> {
     /// The stochastic process
     sp: &'a SP,
     /// The domain that the first passage time is interested in
     domain: (T, T),
 }
 
-impl<'a, SP: Send + Sync, T: Float> FirstPassageTime<'a, SP, T> {
+impl<'a, SP: Send + Sync, T: FloatExt> FirstPassageTime<'a, SP, T> {
     /// Create a new first passage time
     ///
     /// # Arguments
@@ -37,10 +35,7 @@ impl<'a, SP: Send + Sync, T: Float> FirstPassageTime<'a, SP, T> {
     /// let sp = Bm::default();
     /// let fpt = FirstPassageTime::new(&sp, (0.0, 1.0)).unwrap();
     /// ```
-    pub fn new(sp: &'a SP, domain: (T, T)) -> XResult<Self>
-    where
-        T: Debug,
-    {
+    pub fn new(sp: &'a SP, domain: (T, T)) -> XResult<Self> {
         if domain.0 >= domain.1 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{domain:?}`"
@@ -51,7 +46,7 @@ impl<'a, SP: Send + Sync, T: Float> FirstPassageTime<'a, SP, T> {
     }
 }
 
-impl<'a, SP: ContinuousProcess<T>, T: Float> FirstPassageTime<'a, SP, T> {
+impl<'a, SP: ContinuousProcess<T>, T: FloatExt> FirstPassageTime<'a, SP, T> {
     /// Simulate the first passage time
     ///
     /// # Arguments
@@ -81,7 +76,7 @@ impl<'a, SP: ContinuousProcess<T>, T: Float> FirstPassageTime<'a, SP, T> {
             if let Some(index) = find(&x) {
                 return Ok(Some(t[index]));
             }
-            duration = duration * two;
+            duration *= two;
             if duration > max_duration {
                 duration = max_duration;
                 let (t, x) = self.sp.simulate(duration, time_step)?;
@@ -119,10 +114,7 @@ impl<'a, SP: ContinuousProcess<T>, T: Float> FirstPassageTime<'a, SP, T> {
         particles: usize,
         max_duration: T,
         time_step: T,
-    ) -> XResult<Option<T>>
-    where
-        T: Debug + Send + Sync + std::iter::Sum,
-    {
+    ) -> XResult<Option<T>> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got `{particles}`"
@@ -184,10 +176,7 @@ impl<'a, SP: ContinuousProcess<T>, T: Float> FirstPassageTime<'a, SP, T> {
         particles: usize,
         max_duration: T,
         time_step: T,
-    ) -> XResult<Option<T>>
-    where
-        T: Debug + Send + Sync + std::iter::Sum,
-    {
+    ) -> XResult<Option<T>> {
         if order == 0 {
             return Ok(Some(T::one()));
         }
@@ -219,7 +208,7 @@ impl<'a, SP: ContinuousProcess<T>, T: Float> FirstPassageTime<'a, SP, T> {
 
 /// Occupation time
 #[derive(Debug, Clone)]
-pub struct OccupationTime<'a, SP, T: Float = f64> {
+pub struct OccupationTime<'a, SP, T: FloatExt = f64> {
     /// The stochastic process
     sp: &'a SP,
     /// The domain that the occupation time is interested in
@@ -228,7 +217,7 @@ pub struct OccupationTime<'a, SP, T: Float = f64> {
     duration: T,
 }
 
-impl<'a, SP: Send + Sync, T: Float + Debug> OccupationTime<'a, SP, T> {
+impl<'a, SP: Send + Sync, T: FloatExt> OccupationTime<'a, SP, T> {
     /// Create a new occupation time
     ///
     /// # Arguments
@@ -267,7 +256,7 @@ impl<'a, SP: Send + Sync, T: Float + Debug> OccupationTime<'a, SP, T> {
     }
 }
 
-impl<'a, SP: ContinuousProcess<T>, T: Float + Debug> OccupationTime<'a, SP, T> {
+impl<'a, SP: ContinuousProcess<T>, T: FloatExt> OccupationTime<'a, SP, T> {
     /// Simulate the occupation time
     ///
     /// # Arguments
@@ -284,10 +273,7 @@ impl<'a, SP: ContinuousProcess<T>, T: Float + Debug> OccupationTime<'a, SP, T> {
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// let result = ot.simulate(0.1).unwrap();
     /// ```
-    pub fn simulate(&self, time_step: T) -> XResult<T>
-    where
-        T: std::iter::Sum,
-    {
+    pub fn simulate(&self, time_step: T) -> XResult<T> {
         if time_step <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `time_step` must be positive, got `{time_step:?}`"
@@ -320,10 +306,7 @@ impl<'a, SP: ContinuousProcess<T>, T: Float + Debug> OccupationTime<'a, SP, T> {
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// let result = ot.raw_moment(1, 1000, 0.1).unwrap();
     /// ```
-    pub fn raw_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T>
-    where
-        T: Send + Sync + std::iter::Sum,
-    {
+    pub fn raw_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got `{particles}`"
@@ -369,10 +352,7 @@ impl<'a, SP: ContinuousProcess<T>, T: Float + Debug> OccupationTime<'a, SP, T> {
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// let result = ot.central_moment(1, 1000, 0.1).unwrap();
     /// ```
-    pub fn central_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T>
-    where
-        T: Send + Sync + std::iter::Sum,
-    {
+    pub fn central_moment(&self, order: i32, particles: usize, time_step: T) -> XResult<T> {
         if order == 0 {
             return Ok(T::one());
         }
@@ -594,7 +574,7 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
     }
 }
 
-fn average<T: Float + Send + Sync + std::iter::Sum>(values: Vec<T>) -> Option<T> {
+fn average<T: FloatExt>(values: Vec<T>) -> Option<T> {
     if values.is_empty() {
         None
     } else {
@@ -604,7 +584,7 @@ fn average<T: Float + Send + Sync + std::iter::Sum>(values: Vec<T>) -> Option<T>
     }
 }
 
-fn oc<T: Float + std::iter::Sum>(t: &[T], x: &[T], a: T, b: T) -> T {
+fn oc<T: FloatExt>(t: &[T], x: &[T], a: T, b: T) -> T {
     x.windows(2)
         .zip(t.windows(2))
         .map(|(x_pair, t_pair)| {

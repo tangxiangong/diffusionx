@@ -1,12 +1,10 @@
-use crate::{XResult, random::normal};
-use num_traits::Float;
+use crate::{FloatExt, XResult, random::normal};
 use rand_distr::{Distribution, StandardNormal};
 use rayon::prelude::*;
 use realfft::{FftNum, RealFftPlanner, num_complex::Complex};
-use std::ops::MulAssign;
 
 /// Circulant embedding method for generating stationary Gaussian random fields with given correlation functions
-pub struct CirculantEmbedding<F: Fn(usize) -> T, T: Float + FftNum = f64> {
+pub struct CirculantEmbedding<F: Fn(usize) -> T, T: FloatExt + FftNum = f64> {
     /// Number of grid points
     size: usize,
     /// Correlation function, takes distance as input and returns correlation
@@ -17,7 +15,7 @@ pub struct CirculantEmbedding<F: Fn(usize) -> T, T: Float + FftNum = f64> {
     sqrt_eigenvalues: Option<Vec<T>>,
 }
 
-impl<F: Fn(usize) -> T + Send + Sync, T: Float + FftNum + Send + Sync> CirculantEmbedding<F, T> {
+impl<F: Fn(usize) -> T + Send + Sync, T: FloatExt + FftNum> CirculantEmbedding<F, T> {
     /// Create a new `CirculantEmbedding`
     ///
     /// # Arguments
@@ -73,7 +71,6 @@ impl<F: Fn(usize) -> T + Send + Sync, T: Float + FftNum + Send + Sync> Circulant
     /// Generate a one-dimensional stationary Gaussian random field
     pub fn generate(&mut self) -> XResult<Vec<T>>
     where
-        T: FftNum + MulAssign<T>,
         StandardNormal: Distribution<T>,
     {
         if self.sqrt_eigenvalues.is_none() {

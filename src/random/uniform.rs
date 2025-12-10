@@ -1,7 +1,6 @@
 //! Uniform random number generation
 
-use crate::{XError, XResult};
-use num_traits::float::Float;
+use crate::{FloatExt, XError, XResult};
 use rand::{
     distr::{
         StandardUniform,
@@ -23,7 +22,7 @@ use std::ops::{Range, RangeInclusive};
 /// let random = standard_rand();
 /// assert!((0.0..1.0).contains(&random));
 /// ```
-pub fn standard_rand<T: Float>() -> T
+pub fn standard_rand<T: FloatExt>() -> T
 where
     StandardUniform: Distribution<T>,
 {
@@ -42,9 +41,8 @@ where
 /// assert_eq!(randoms.len(), 10);
 /// assert!(randoms.iter().all(|x| (0.0..1.0).contains(x)));
 /// ```
-pub fn standard_rands<T>(n: usize) -> Vec<T>
+pub fn standard_rands<T: FloatExt>(n: usize) -> Vec<T>
 where
-    T: Send + Sync + Float,
     StandardUniform: Distribution<T>,
 {
     let dist = StandardUniform;

@@ -35,8 +35,8 @@
 //! SFB 649 Discussion Paper, No. 2005-008, Humboldt University of Berlin, Collaborative Research
 //! Center 649 - Economic Risk, Berlin](https://hdl.handle.net/10419/25027)
 
-use crate::{StableError, XResult};
-use num_traits::{FloatConst, float::Float};
+use crate::{FloatExt, StableError, XResult};
+use num_traits::FloatConst;
 use rand::{Rng, prelude::*};
 use rand_distr::{Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -44,7 +44,7 @@ use rayon::prelude::*;
 
 /// Precomputed constants for stable distribution sampling
 #[derive(Debug, Clone, Copy)]
-struct StableConstants<T: Float = f64> {
+struct StableConstants<T: FloatExt = f64> {
     /// 1.0 / alpha
     inv_alpha: T,
     /// (1.0 - alpha) / alpha
@@ -55,7 +55,7 @@ struct StableConstants<T: Float = f64> {
     s: T,
 }
 
-impl<T: Float + FloatConst> StableConstants<T> {
+impl<T: FloatExt + FloatConst> StableConstants<T> {
     #[inline]
     fn new(alpha: T, beta: T) -> Self {
         let inv_alpha = T::one() / alpha;
@@ -76,14 +76,14 @@ impl<T: Float + FloatConst> StableConstants<T> {
 ///
 /// i.e., with scale parameter 1 and location parameter 0
 #[derive(Debug, Clone)]
-pub struct StandardStable<T: Float = f64> {
+pub struct StandardStable<T: FloatExt = f64> {
     /// Index of stability
     alpha: T,
     /// Skewness parameter
     beta: T,
 }
 
-impl<T: Float> StandardStable<T> {
+impl<T: FloatExt> StandardStable<T> {
     /// Create a new standard Lévy stable distribution
     ///
     /// # Arguments
@@ -135,7 +135,7 @@ impl<T: Float> StandardStable<T> {
     /// ```
     pub fn samples(&self, n: usize) -> XResult<Vec<T>>
     where
-        T: FloatConst + SampleUniform + Send + Sync,
+        T: FloatConst + SampleUniform,
         Exp1: Distribution<T>,
     {
         standard_rands(self.alpha, self.beta, n)
@@ -143,7 +143,7 @@ impl<T: Float> StandardStable<T> {
 }
 
 /// Sample standard stable random number when alpha is not 1
-pub(crate) fn sample_standard_alpha<T: Float + FloatConst + SampleUniform, R: Rng + ?Sized>(
+pub(crate) fn sample_standard_alpha<T: FloatExt + FloatConst + SampleUniform, R: Rng + ?Sized>(
     alpha: T,
     beta: T,
     rng: &mut R,
@@ -163,7 +163,7 @@ fn sample_standard_alpha_with_constants<T, R: Rng + ?Sized>(
     rng: &mut R,
 ) -> T
 where
-    T: Float + FloatConst + SampleUniform,
+    T: FloatExt + FloatConst + SampleUniform,
     Exp1: Distribution<T>,
 {
     let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
@@ -181,7 +181,7 @@ where
 #[inline]
 pub(crate) fn sample_standard_alpha_one<T, R: Rng + ?Sized>(_alpha: T, beta: T, rng: &mut R) -> T
 where
-    T: Float + FloatConst + SampleUniform,
+    T: FloatExt + FloatConst + SampleUniform,
     Exp1: Distribution<T>,
 {
     let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
@@ -193,7 +193,7 @@ where
 }
 
 /// Sample from the standard Lévy stable distribution
-impl<T: Float + FloatConst + SampleUniform> Distribution<T> for StandardStable<T>
+impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for StandardStable<T>
 where
     Exp1: Distribution<T>,
 {
@@ -208,7 +208,7 @@ where
 
 /// Lévy stable distribution
 #[derive(Debug, Clone, Copy)]
-pub struct Stable<T: Float = f64> {
+pub struct Stable<T: FloatExt = f64> {
     /// Index of stability
     alpha: T,
     /// Skewness parameter
@@ -220,13 +220,13 @@ pub struct Stable<T: Float = f64> {
 }
 
 /// Convert a standard Lévy stable distribution to a Lévy stable distribution
-impl<T: Float> From<&Stable<T>> for StandardStable<T> {
+impl<T: FloatExt> From<&Stable<T>> for StandardStable<T> {
     fn from(stable: &Stable<T>) -> Self {
         StandardStable::new(stable.alpha, stable.beta).unwrap()
     }
 }
 
-impl<T: Float> Stable<T> {
+impl<T: FloatExt> Stable<T> {
     /// Create a new Lévy stable distribution
     ///
     /// # Arguments
@@ -301,7 +301,7 @@ impl<T: Float> Stable<T> {
     /// ```
     pub fn samples(&self, n: usize) -> XResult<Vec<T>>
     where
-        T: FloatConst + SampleUniform + Send + Sync,
+        T: FloatConst + SampleUniform,
         Exp1: Distribution<T>,
     {
         rands(self.alpha, self.beta, self.sigma, self.mu, n)
@@ -309,7 +309,7 @@ impl<T: Float> Stable<T> {
 }
 
 /// Sample from the Lévy stable distribution
-impl<T: Float + FloatConst + SampleUniform> Distribution<T> for Stable<T>
+impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for Stable<T>
 where
     Exp1: Distribution<T>,
 {
@@ -328,9 +328,9 @@ where
 
 /// Standard skew Lévy stable distribution
 #[derive(Debug, Clone, Copy)]
-pub struct StandardSkewStable<T: Float = f64>(pub T);
+pub struct StandardSkewStable<T: FloatExt = f64>(pub T);
 
-impl<T: Float> StandardSkewStable<T> {
+impl<T: FloatExt> StandardSkewStable<T> {
     /// Create a new standard skew Lévy stable distribution
     ///
     /// # Arguments
@@ -373,7 +373,7 @@ impl<T: Float> StandardSkewStable<T> {
     /// ```
     pub fn samples(&self, n: usize) -> XResult<Vec<T>>
     where
-        T: FloatConst + SampleUniform + Send + Sync,
+        T: FloatConst + SampleUniform,
         Exp1: Distribution<T>,
     {
         skew_rands(self.0, n)
@@ -385,7 +385,7 @@ impl<T: Float> StandardSkewStable<T> {
 /// # Panic
 ///
 /// if the skew index is invalid
-impl<T: Float + FloatConst + SampleUniform> Distribution<T> for StandardSkewStable<T>
+impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for StandardSkewStable<T>
 where
     Exp1: Distribution<T>,
 {
@@ -400,9 +400,9 @@ where
 
 /// Symmetric Lévy stable distribution
 #[derive(Debug, Clone, Copy)]
-pub struct SymmetricStandardStable<T: Float = f64>(pub T);
+pub struct SymmetricStandardStable<T: FloatExt = f64>(pub T);
 
-impl<T: Float> SymmetricStandardStable<T> {
+impl<T: FloatExt> SymmetricStandardStable<T> {
     /// Create a new symmetric standard Lévy stable distribution
     ///
     /// # Arguments
@@ -445,7 +445,7 @@ impl<T: Float> SymmetricStandardStable<T> {
     /// ```
     pub fn samples(&self, n: usize) -> XResult<Vec<T>>
     where
-        T: FloatConst + SampleUniform + Send + Sync,
+        T: FloatConst + SampleUniform,
         Exp1: Distribution<T>,
     {
         sym_standard_rands(self.0, n)
@@ -457,7 +457,7 @@ impl<T: Float> SymmetricStandardStable<T> {
 /// # Panic
 ///
 /// if the stability index is invalid
-impl<T: Float + FloatConst + SampleUniform> Distribution<T> for SymmetricStandardStable<T>
+impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for SymmetricStandardStable<T>
 where
     Exp1: Distribution<T>,
 {
@@ -487,7 +487,7 @@ where
 /// let r = standard_rand(alpha, beta).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn standard_rand<T: Float + FloatConst + SampleUniform>(alpha: T, beta: T) -> XResult<T>
+pub fn standard_rand<T: FloatExt + FloatConst + SampleUniform>(alpha: T, beta: T) -> XResult<T>
 where
     Exp1: Distribution<T>,
 {
@@ -517,7 +517,7 @@ where
 /// ```
 pub fn standard_rands<T>(alpha: T, beta: T, n: usize) -> XResult<Vec<T>>
 where
-    T: Float + FloatConst + SampleUniform + Send + Sync,
+    T: FloatExt + FloatConst + SampleUniform,
     Exp1: Distribution<T>,
 {
     if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
@@ -567,7 +567,12 @@ where
 /// let r = rand(alpha, beta, sigma, mu).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn rand<T: Float + FloatConst + SampleUniform>(alpha: T, beta: T, sigma: T, mu: T) -> XResult<T>
+pub fn rand<T: FloatExt + FloatConst + SampleUniform>(
+    alpha: T,
+    beta: T,
+    sigma: T,
+    mu: T,
+) -> XResult<T>
 where
     Exp1: Distribution<T>,
 {
@@ -600,7 +605,7 @@ where
 /// ```
 pub fn rands<T>(alpha: T, beta: T, sigma: T, mu: T, n: usize) -> XResult<Vec<T>>
 where
-    T: Float + FloatConst + SampleUniform + Send + Sync,
+    T: FloatExt + FloatConst + SampleUniform,
     Exp1: Distribution<T>,
 {
     let two = T::from(2).unwrap();
@@ -658,7 +663,7 @@ where
 /// let r = skew_rand(alpha).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn skew_rand<T: Float + FloatConst + SampleUniform>(alpha: T) -> XResult<T>
+pub fn skew_rand<T: FloatExt + FloatConst + SampleUniform>(alpha: T) -> XResult<T>
 where
     Exp1: Distribution<T>,
 {
@@ -685,7 +690,7 @@ where
 /// ```
 pub fn skew_rands<T>(alpha: T, n: usize) -> XResult<Vec<T>>
 where
-    T: Float + FloatConst + SampleUniform + Send + Sync,
+    T: FloatExt + FloatConst + SampleUniform,
     Exp1: Distribution<T>,
 {
     if alpha <= T::zero() || alpha >= T::one() || alpha.is_nan() {
@@ -716,7 +721,7 @@ where
 /// let r = sym_standard_rand(alpha).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn sym_standard_rand<T: Float + FloatConst + SampleUniform>(alpha: T) -> XResult<T>
+pub fn sym_standard_rand<T: FloatExt + FloatConst + SampleUniform>(alpha: T) -> XResult<T>
 where
     Exp1: Distribution<T>,
 {
@@ -744,7 +749,7 @@ where
 /// ```
 pub fn sym_standard_rands<T>(alpha: T, n: usize) -> XResult<Vec<T>>
 where
-    T: Float + FloatConst + SampleUniform + Send + Sync,
+    T: FloatExt + FloatConst + SampleUniform,
     Exp1: Distribution<T>,
 {
     if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
@@ -773,6 +778,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_traits::Float;
     use rand::rng;
 
     #[test]

@@ -1,13 +1,12 @@
-use super::{ContinuousProcess, PointProcess};
-use crate::{SimulationError, XResult, utils::flatten_interpolate};
+use crate::{
+    FloatExt, SimulationError, XResult, simulation::prelude::*, utils::flatten_interpolate,
+};
 use gauss_quad::GaussLegendre;
-use num_traits::Float;
 use rayon::prelude::*;
-use std::fmt::Debug;
 
 /// TAMSD (time-averaged mean-squared displacement)
 #[derive(Debug, Clone)]
-pub struct TAMSD<'a, SP, T: Float = f64> {
+pub struct TAMSD<'a, SP, T: FloatExt = f64> {
     /// The continuous process
     process: &'a SP,
     /// The duration
@@ -16,7 +15,7 @@ pub struct TAMSD<'a, SP, T: Float = f64> {
     delta: T,
 }
 
-impl<'a, SP, T: Float + Debug> TAMSD<'a, SP, T> {
+impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
     /// Create a new TAMSD
     ///
     /// # Arguments
@@ -67,17 +66,14 @@ impl<'a, SP, T: Float + Debug> TAMSD<'a, SP, T> {
     }
 }
 
-impl<'a, SP: ContinuousProcess<T>, T: Float + Debug> TAMSD<'a, SP, T> {
+impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
     /// Simulate the TAMSD
     ///
     /// # Arguments
     ///
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn simulate(&self, time_step: T, quad_order: usize) -> XResult<T>
-    where
-        T: Send + Sync + std::iter::Sum,
-    {
+    pub fn simulate(&self, time_step: T, quad_order: usize) -> XResult<T> {
         let legendre_quad = GaussLegendre::new(quad_order)?;
         let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
         let duration = self.duration;
@@ -114,10 +110,7 @@ impl<'a, SP: ContinuousProcess<T>, T: Float + Debug> TAMSD<'a, SP, T> {
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn mean(&self, particles: usize, time_step: T, quad_order: usize) -> XResult<T>
-    where
-        T: Send + Sync + std::iter::Sum,
-    {
+    pub fn mean(&self, particles: usize, time_step: T, quad_order: usize) -> XResult<T> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got {particles}"
@@ -152,10 +145,7 @@ impl<'a, SP: ContinuousProcess<T>, T: Float + Debug> TAMSD<'a, SP, T> {
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn variance(&self, particles: usize, time_step: T, quad_order: usize) -> XResult<T>
-    where
-        T: Send + Sync + std::iter::Sum,
-    {
+    pub fn variance(&self, particles: usize, time_step: T, quad_order: usize) -> XResult<T> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got {particles}"
@@ -302,7 +292,7 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
 /// * `a` - The lower bound of the interval.
 /// * `b` - The upper bound of the interval.
 /// * `pairs` - The nodes and weights pairs of the unit interval.
-fn nodes_weights_transform<T: Float>(a: T, b: T, pairs: Vec<(f64, f64)>) -> Vec<(T, T)> {
+fn nodes_weights_transform<T: FloatExt>(a: T, b: T, pairs: Vec<(f64, f64)>) -> Vec<(T, T)> {
     let two = T::from(2).unwrap();
     pairs
         .into_iter()

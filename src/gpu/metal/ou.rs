@@ -1,5 +1,5 @@
 use crate::{
-    XResult,
+    FloatExt, XResult,
     gpu::{
         GPUMoment,
         metal::{OU_METALLIB, load_library},
@@ -7,8 +7,7 @@ use crate::{
     simulation::continuous::OrnsteinUhlenbeck as OU,
     subscribe_metal_central_moment_gpu_function, subscribe_metal_gpu_function,
 };
-use num_traits::Float;
-use std::{fmt::Debug, sync::LazyLock};
+use std::sync::LazyLock;
 
 static LIBRARY: LazyLock<XResult<metal::Library>> = LazyLock::new(|| load_library(OU_METALLIB));
 
@@ -24,7 +23,7 @@ subscribe_metal_central_moment_gpu_function!(LIBRARY, central_moment, "central_m
 
 subscribe_metal_central_moment_gpu_function!(LIBRARY, frac_central_moment, "frac_central_moment", (start_position: f32, theta: f32, sigma: f32, duration: f32, time_step: f32), f32);
 
-impl<T: Float + Debug> GPUMoment for OU<T> {
+impl<T: FloatExt> GPUMoment for OU<T> {
     fn central_moment_gpu(
         &self,
         duration: f32,

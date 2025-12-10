@@ -1,9 +1,7 @@
 //! Ornstein-Uhlenbeck process simulation
 
-use crate::{XResult, check_duration_time_step, random::normal, simulation::prelude::*};
-use num_traits::Float;
+use crate::{FloatExt, XResult, check_duration_time_step, random::normal, simulation::prelude::*};
 use rand_distr::{Distribution, StandardNormal};
-use std::{fmt::Debug, ops::AddAssign};
 
 /// Ornstein–Uhlenbeck process
 ///
@@ -11,7 +9,7 @@ use std::{fmt::Debug, ops::AddAssign};
 ///
 /// where $W(t)$ is the Wiener process, also called Brownian motion.
 #[derive(Debug, Clone)]
-pub struct OrnsteinUhlenbeck<T: Float = f64> {
+pub struct OrnsteinUhlenbeck<T: FloatExt = f64> {
     /// The parameter controlling the strength of mean reversion.
     theta: T,
     /// The diffusion coefficient controlling the noise intensity.
@@ -20,7 +18,7 @@ pub struct OrnsteinUhlenbeck<T: Float = f64> {
     start_position: T,
 }
 
-impl<T: Float> Default for OrnsteinUhlenbeck<T> {
+impl<T: FloatExt> Default for OrnsteinUhlenbeck<T> {
     fn default() -> Self {
         Self {
             theta: T::one(),
@@ -30,7 +28,7 @@ impl<T: Float> Default for OrnsteinUhlenbeck<T> {
     }
 }
 
-impl<T: Float + Debug> OrnsteinUhlenbeck<T> {
+impl<T: FloatExt> OrnsteinUhlenbeck<T> {
     /// Create a new `OrnsteinUhlenbeck`
     ///
     /// # Arguments
@@ -70,8 +68,7 @@ impl<T: Float + Debug> OrnsteinUhlenbeck<T> {
     }
 }
 
-impl<T: Float + Debug + Send + Sync + std::iter::Sum + AddAssign<T>> ContinuousProcess<T>
-    for OrnsteinUhlenbeck<T>
+impl<T: FloatExt> ContinuousProcess<T> for OrnsteinUhlenbeck<T>
 where
     StandardNormal: Distribution<T>,
 {
@@ -138,7 +135,7 @@ where
 ///
 /// let (t, x) = simulate_ou(1.0, 1.0, 0.0, 1.0, 0.01).unwrap();
 /// ```
-pub fn simulate_ou<T: Float + Debug + Send + Sync + AddAssign<T>>(
+pub fn simulate_ou<T: FloatExt>(
     theta: T,
     sigma: T,
     start_position: T,

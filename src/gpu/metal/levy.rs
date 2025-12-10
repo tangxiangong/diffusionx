@@ -1,5 +1,5 @@
 use crate::{
-    XError, XResult,
+    FloatExt, XError, XResult,
     gpu::{
         GPUMoment,
         metal::{LEVY_METALLIB, load_library},
@@ -7,8 +7,7 @@ use crate::{
     simulation::continuous::{Bm, Levy},
     subscribe_metal_central_moment_gpu_function, subscribe_metal_gpu_function,
 };
-use num_traits::Float;
-use std::{fmt::Debug, sync::LazyLock};
+use std::sync::LazyLock;
 
 static LIBRARY: LazyLock<XResult<metal::Library>> = LazyLock::new(|| load_library(LEVY_METALLIB));
 
@@ -20,7 +19,7 @@ subscribe_metal_gpu_function!(LIBRARY, frac_raw_moment, "frac_raw_moment", (alph
 
 subscribe_metal_central_moment_gpu_function!(LIBRARY, frac_central_moment, "frac_central_moment", (alpha: f32, start_position: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32), f32);
 
-impl<T: Float + Debug> GPUMoment for Levy<T> {
+impl<T: FloatExt> GPUMoment for Levy<T> {
     fn central_moment_gpu(
         &self,
         duration: f32,

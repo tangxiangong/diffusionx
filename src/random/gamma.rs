@@ -13,8 +13,7 @@
 //! - $\theta > 0$: scale parameter
 //!
 
-use crate::{XError, XResult};
-use num_traits::float::Float;
+use crate::{FloatExt, XError, XResult};
 use rand::prelude::*;
 use rand_distr::{Exp1, Open01, StandardNormal};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -22,23 +21,23 @@ use rayon::prelude::*;
 
 /// Gamma distribution with shape parameter $\alpha$ and scale parameter $\theta$
 #[derive(Debug, Clone)]
-pub struct Gamma<T: Float + Send + Sync = f64> {
+pub struct Gamma<T: FloatExt = f64> {
     /// shape parameter
     shape: T,
     /// scale parameter
     scale: T,
 }
 
-impl Default for Gamma {
+impl<T: FloatExt> Default for Gamma<T> {
     fn default() -> Self {
         Self {
-            shape: 1.0,
-            scale: 1.0,
+            shape: T::one(),
+            scale: T::one(),
         }
     }
 }
 
-impl<T: Float + Send + Sync> Gamma<T> {
+impl<T: FloatExt> Gamma<T> {
     /// Create a new gamma distribution with a given shape and scale
     ///
     /// # Arguments
@@ -55,18 +54,15 @@ impl<T: Float + Send + Sync> Gamma<T> {
     /// let scale = 2.0;
     /// let gamma = Gamma::new(shape, scale).unwrap();
     /// ```
-    pub fn new(shape: T, scale: T) -> XResult<Self>
-    where
-        T: std::fmt::Display,
-    {
+    pub fn new(shape: T, scale: T) -> XResult<Self> {
         if shape <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "The shape parameter `shape` must be greater than 0, got {shape}"
+                "The shape parameter `shape` must be greater than 0, got {shape:?}"
             )));
         }
         if scale <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "The scale parameter `scale` must be greater than 0, got {scale}"
+                "The scale parameter `scale` must be greater than 0, got {scale:?}"
             )));
         }
         Ok(Self { shape, scale })
@@ -120,7 +116,7 @@ impl<T: Float + Send + Sync> Gamma<T> {
 ///
 /// let random = rand(1.0, 1.0).unwrap();
 /// ```
-pub fn rand<T: Float + Send + Sync>(shape: T, scale: T) -> XResult<T>
+pub fn rand<T: FloatExt>(shape: T, scale: T) -> XResult<T>
 where
     StandardNormal: Distribution<T>,
     Exp1: Distribution<T>,
@@ -147,7 +143,7 @@ where
 ///
 /// let randoms = rands(1.0, 1.0, 10).unwrap();
 /// ```
-pub fn rands<T: Float + Send + Sync>(shape: T, scale: T, n: usize) -> XResult<Vec<T>>
+pub fn rands<T: FloatExt>(shape: T, scale: T, n: usize) -> XResult<Vec<T>>
 where
     StandardNormal: Distribution<T>,
     Exp1: Distribution<T>,
@@ -168,6 +164,7 @@ where
 mod tests {
     use super::*;
     use crate::utils::calculate_stats;
+    use num_traits::Float;
 
     #[test]
     fn test_rand() {
