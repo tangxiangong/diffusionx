@@ -11,8 +11,6 @@ pub struct CirculantEmbedding<F: Fn(usize) -> T, T: Float + FftNum = f64> {
     size: usize,
     /// Correlation function, takes distance as input and returns correlation
     correlation_fn: F,
-    /// fft planner
-    planner: RealFftPlanner<T>,
     /// embedding size
     embedding_size: usize,
     /// sqrt eigenvalues
@@ -38,7 +36,6 @@ impl<F: Fn(usize) -> T + Send + Sync, T: Float + FftNum + Send + Sync> Circulant
         CirculantEmbedding {
             size,
             correlation_fn,
-            planner: RealFftPlanner::new(),
             embedding_size: next_power_of_2(2 * size),
             sqrt_eigenvalues: None,
         }
@@ -57,7 +54,8 @@ impl<F: Fn(usize) -> T + Send + Sync, T: Float + FftNum + Send + Sync> Circulant
             })
             .collect::<Vec<_>>();
 
-        let fft = self.planner.plan_fft_forward(self.embedding_size);
+        let mut planner = RealFftPlanner::new();
+        let fft = planner.plan_fft_forward(self.embedding_size);
         let mut eigenvalues = fft.make_output_vec();
 
         fft.process(&mut first_row, &mut eigenvalues)?;
@@ -82,7 +80,8 @@ impl<F: Fn(usize) -> T + Send + Sync, T: Float + FftNum + Send + Sync> Circulant
             self.embed()?;
         }
 
-        let ifft = self.planner.plan_fft_inverse(self.embedding_size);
+        let mut planner = RealFftPlanner::new();
+        let ifft = planner.plan_fft_inverse(self.embedding_size);
 
         let mut modified_z = self
             .sqrt_eigenvalues
