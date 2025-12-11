@@ -1,6 +1,6 @@
 use crate::XResult;
-use metal::{Device, MTLResourceOptions, MTLSize};
-use std::sync::{Arc, LazyLock};
+use metal::{Device, MTLSize};
+use std::sync::LazyLock;
 
 pub(crate) static METAL_DEVICE: LazyLock<XResult<Device>> = LazyLock::new(|| {
     Device::system_default().ok_or_else(|| crate::XError::Other("No Metal device found".into()))
