@@ -6,8 +6,8 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
 categories = ["science", "mathematics"]
 keywords = ["stochastic-process", "simulation", "Monte-Carlo", "gpu"]
-version = "0.9.4"
-description = "A multi-threaded crate for random number generation and stochastic process simulation, with optional CUDA GPU acceleration."
+version = "0.10.0"
+description = "A multi-threaded crate for random number generation and stochastic process simulation, with optional GPU acceleration."
 readme = "README.md"
 rust-version = "1.87"
 
@@ -20,7 +20,7 @@ name = "diffusionx"
 doctest = false
 
 [features]
-default = ["cuda", "mimalloc"]
+default = ["mimalloc"]
 visualize = [
     "dep:plotters",
     "dep:derive_builder",

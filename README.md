@@ -3,7 +3,10 @@
 DiffusionX
 </h1>
 <p align="center">
-A multi-threaded high-performance Rust library for random number generation and stochastic process simulation, with optional CUDA GPU acceleration.
+A multi-threaded high-performance Rust library for random number generation and stochastic process simulation, with optional GPU acceleration.
+</p>
+<p align="center">
+Dedicated to my brief yet unforgettable years in LZU and to XX.
 </p>
 <p align="center">
 English | <a href="README-zh.md">简体中文</a>
@@ -52,7 +55,7 @@ English | <a href="README-zh.md">简体中文</a>
 - Geometric Brownian motion
 - Brownian yet non-Gaussian process
 
-### GPU Acceleration (CUDA)
+### GPU Acceleration (CUDA/Metal)
 
 The acceleration includes moment calculation and random number generation.
 
@@ -154,6 +157,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+### GPU Acceleration
+
+> [!NOTE]
+> This requires the `metal` or `cuda` feature to be enabled.
+> ```toml
+> # In your Cargo.toml
+> [dependencies]
+> diffusionx = { version = "*", features = ["cuda"] }
+> ```
+
+```rust
+use diffusionx::{
+    simulation::continuous::Bm,
+    gpu::GPUMoment,
+};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let bm = Bm::<f32>::default();
+
+    // GPU-accelerated moment calculations
+    let mean = bm.mean_gpu(1.0, 100_000, 0.01)?;
+    let msd = bm.msd_gpu(1.0, 100_000, 0.01)?;
+    let raw_moment = bm.raw_moment_gpu(1.0, 2, 100_000, 0.01)?;
+    let central_moment = bm.central_moment_gpu(1.0, 2, 100_000, 0.01)?;
+
+    // Fractional moments are also supported
+    let frac_raw = bm.frac_raw_moment_gpu(1.0, 1.5, 100_000, 0.01)?;
+    let frac_central = bm.frac_central_moment_gpu(1.0, 1.5, 100_000, 0.01)?;
+
+    println!("Mean: {mean}, MSD: {msd}");
+    Ok(())
+}
+```
+
 ## Architecture and Extensibility
 
 DiffusionX is designed with a trait-based system for high extensibility and performance:
@@ -180,7 +216,6 @@ The `GPUMoment` trait provides GPU-accelerated statistical moment calculations. 
 | `central_moment_gpu(duration, order, particles, time_step)` | Calculate central moment of integer order |
 | `frac_raw_moment_gpu(duration, order, particles, time_step)` | Calculate raw moment of fractional order |
 | `frac_central_moment_gpu(duration, order, particles, time_step)` | Calculate central moment of fractional order |
-
 
 ### Extending with Custom Processes
 
@@ -211,39 +246,14 @@ The `GPUMoment` trait provides GPU-accelerated statistical moment calculations. 
 2. Implementing `ContinuousProcess` trait automatically provides
     - mean `mean`
     - msd `msd`
-    - raw moment `raw_moment`
-    - central moment `central_moment`
+    - (fractional) raw moment `raw_moment` (`frac_raw_moment`)
+    - (fractional) central moment `central_moment` (`frac_central_moment`)
     - first passage time `fpt`
     - occupation time `occupation_time`
     - TAMSD `tamsd`
     - visualization `plot`
 
 The full example implementing the CIR process is [here](./examples/CIR.rs).
-
-**Example:**
-
-```rust
-use diffusionx::{
-    simulation::continuous::Bm,
-    gpu::GPUMoment,
-};
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let bm = Bm::<f32>::default();
-
-    // GPU-accelerated moment calculations
-    let mean = bm.mean_gpu(1.0, 100_000, 0.01)?;
-    let msd = bm.msd_gpu(1.0, 100_000, 0.01)?;
-    let raw_moment = bm.raw_moment_gpu(1.0, 2, 100_000, 0.01)?;
-    let central_moment = bm.central_moment_gpu(1.0, 2, 100_000, 0.01)?;
-
-    // Fractional moments are also supported
-    let frac_raw = bm.frac_raw_moment_gpu(1.0, 1.5, 100_000, 0.01)?;
-    let frac_central = bm.frac_central_moment_gpu(1.0, 1.5, 100_000, 0.01)?;
-
-    println!("Mean: {mean}, MSD: {msd}");
-    Ok(())
-}
-```
 
 ## Benchmark
 
@@ -265,5 +275,3 @@ for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
 additional terms or conditions.
 
 ---
-
-Dedicated to my brief yet unforgettable years in Lanzhou and to XX.
