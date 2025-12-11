@@ -1,10 +1,7 @@
 //! Brownian yet non-Gaussian process simulation
 
-use crate::{
-    XResult, check_duration_time_step,
-    random::normal,
-    simulation::{continuous::simulate_ou, prelude::*},
-};
+use crate::{FloatExt, XResult, check_duration_time_step, random::normal, simulation::prelude::*};
+use rand_distr::{Distribution, StandardNormal};
 
 /// Brownian yet non-Gaussian process
 ///
@@ -16,14 +13,14 @@ use crate::{
 ///
 /// where $W_1(t)$ and $W_2(t)$ are two independent Wiener processes.
 #[derive(Debug, Clone)]
-pub struct BnG {
+pub struct BnG<T: FloatExt = f64> {
     /// The starting position.
-    start_position: f64,
+    start_position: T,
     /// The starting position of the OU process.
-    ou_start_position: f64,
+    ou_start_position: T,
 }
 
-impl BnG {
+impl<T: FloatExt> BnG<T> {
     /// Create a new `BnG`
     ///
     /// # Arguments
@@ -38,9 +35,7 @@ impl BnG {
     ///
     /// let bng = BnG::new(0.0, 1.0).unwrap();
     /// ```
-    pub fn new(start_position: impl Into<f64>, ou_start_position: impl Into<f64>) -> XResult<Self> {
-        let start_position = start_position.into();
-        let ou_start_position = ou_start_position.into();
+    pub fn new(start_position: T, ou_start_position: T) -> XResult<Self> {
         Ok(Self {
             start_position,
             ou_start_position,
@@ -48,22 +43,25 @@ impl BnG {
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
     /// Get the starting position of the OU process
-    pub fn get_ou_start_position(&self) -> f64 {
+    pub fn get_ou_start_position(&self) -> T {
         self.ou_start_position
     }
 }
 
-impl ContinuousProcess for BnG {
-    fn start(&self) -> f64 {
+impl<T: FloatExt> ContinuousProcess<T> for BnG<T>
+where
+    StandardNormal: Distribution<T>,
+{
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_bng(
             self.start_position,
             self.ou_start_position,
@@ -72,15 +70,34 @@ impl ContinuousProcess for BnG {
         )
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
-        let (_, y) = simulate_ou(1.0, 1.0, self.ou_start_position, duration, time_step)?;
-        let noise = normal::standard_rands::<f64>(y.len() - 1);
-        Ok(y.into_iter()
-            .skip(1)
-            .zip(noise)
-            .fold(0.0, |state, (yi, xi)| {
-                state + yi.abs() * (2.0 * time_step).sqrt() * xi
-            }))
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
+        check_duration_time_step(duration, time_step)?;
+
+        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+
+        let two = T::from(2).unwrap();
+        let mut scale_ou = time_step.sqrt();
+        let mut scale_bng = (two * time_step).sqrt();
+        let mut current_t = T::zero();
+        let mut current_x = self.start_position;
+        let mut current_y = self.ou_start_position;
+
+        let noises_ou = normal::standard_rands::<T>(num_steps - 1);
+        let noises_bng = normal::standard_rands::<T>(num_steps - 1);
+
+        for (xi_ou, xi_bng) in noises_ou.into_iter().zip(noises_bng) {
+            current_y += -current_x * time_step + xi_ou * scale_ou;
+            current_t += time_step;
+            current_x += current_y.abs() * scale_bng * xi_bng;
+        }
+
+        let last_step = duration - current_t;
+        scale_ou = last_step.sqrt();
+        scale_bng = (two * last_step).sqrt();
+        current_y += -current_x * last_step + normal::standard_rand::<T>() * scale_ou;
+        current_x += current_y.abs() * scale_bng * normal::standard_rand::<T>();
+
+        Ok(current_x - self.start_position)
     }
 }
 
@@ -110,31 +127,34 @@ impl ContinuousProcess for BnG {
 ///
 /// let (t, x) = simulate_bng(0.0, 1.0, 1.0, 0.01).unwrap();
 /// ```
-pub fn simulate_bng(
-    start_position: f64,
-    ou_start_position: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<Pair> {
+pub fn simulate_bng<T: FloatExt>(
+    start_position: T,
+    ou_start_position: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    StandardNormal: Distribution<T>,
+{
     check_duration_time_step(duration, time_step)?;
 
-    let num_steps = (duration / time_step).ceil() as usize;
+    let num_steps = (duration / time_step).ceil().to_usize().unwrap();
 
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
 
-    t.push(0.0);
+    t.push(T::zero());
     x.push(start_position);
 
+    let two = T::from(2).unwrap();
     let mut scale_ou = time_step.sqrt();
-    let mut scale_bng = (2.0 * time_step).sqrt();
-
-    let mut current_t = 0.0;
+    let mut scale_bng = (two * time_step).sqrt();
+    let mut current_t = T::zero();
     let mut current_x = start_position;
     let mut current_y = ou_start_position;
 
-    let noises_ou = normal::standard_rands::<f64>(num_steps - 1);
-    let noises_bng = normal::standard_rands::<f64>(num_steps - 1);
+    let noises_ou = normal::standard_rands::<T>(num_steps - 1);
+    let noises_bng = normal::standard_rands::<T>(num_steps - 1);
 
     for (xi_ou, xi_bng) in noises_ou.into_iter().zip(noises_bng) {
         current_y += -current_x * time_step + xi_ou * scale_ou;
@@ -146,9 +166,9 @@ pub fn simulate_bng(
 
     let last_step = duration - current_t;
     scale_ou = last_step.sqrt();
-    scale_bng = (2.0 * last_step).sqrt();
-    current_y += -current_x * last_step + normal::standard_rand::<f64>() * scale_ou;
-    current_x += current_y.abs() * scale_bng * normal::standard_rand::<f64>();
+    scale_bng = (two * last_step).sqrt();
+    current_y += -current_x * last_step + normal::standard_rand::<T>() * scale_ou;
+    current_x += current_y.abs() * scale_bng * normal::standard_rand::<T>();
     x.push(current_x);
     t.push(duration);
 

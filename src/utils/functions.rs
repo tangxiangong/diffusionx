@@ -14,7 +14,7 @@
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
 //!
 
-use crate::{XError, XResult};
+use crate::{FloatExt, XError, XResult};
 use num_traits::Num;
 #[cfg(feature = "visualize")]
 use std::path::Path;
@@ -71,15 +71,7 @@ where
 /// assert!(result);
 /// ```
 #[inline]
-pub fn approx_eq(a: f64, b: f64, tol: f64) -> bool {
-    // if !result {
-    //     println!("The left is {}", a);
-    //     println!("The right is {}", b);
-    //     println!(
-    //         "These two numbers are not approximately equal with tol {}",
-    //         tol
-    //     );
-    // }
+pub fn approx_eq<T: FloatExt>(a: T, b: T, tol: T) -> bool {
     if a.is_infinite() || b.is_infinite() {
         false
     } else {
@@ -114,8 +106,8 @@ pub(crate) fn ensure_output_dir(path: &Path) -> XResult<()> {
 /// assert!(result);
 /// ```
 #[inline]
-pub fn float_eq(a: f64, b: f64) -> bool {
-    approx_eq(a, b, f64::EPSILON)
+pub fn float_eq<T: FloatExt>(a: T, b: T) -> bool {
+    approx_eq(a, b, T::epsilon())
 }
 
 /// Evaluate a polynomial using the Horner method
@@ -137,11 +129,11 @@ pub fn eval_poly(x: f64, arr: &[f64]) -> f64 {
 }
 
 /// find max value and min value in a &\[f64\]
-pub fn minmax(arr: &[f64]) -> (f64, f64) {
+pub fn minmax<T: FloatExt>(arr: &[T]) -> (T, T) {
     arr.iter()
         .copied()
-        .fold((f64::MAX, f64::MIN), |(min, max), value| {
-            (f64::min(min, value), f64::max(max, value))
+        .fold((T::max_value(), T::min_value()), |(min, max), value| {
+            (T::min(min, value), T::max(max, value))
         })
 }
 
@@ -212,17 +204,17 @@ pub fn calculate_bool_mean(samples: &[bool]) -> f64 {
 /// let result = linspace(0.0, 1.0, 0.25);
 /// assert_eq!(result, vec![0.0, 0.25, 0.5, 0.75, 1.0]);
 /// ```
-pub fn linspace(start: f64, end: f64, step: f64) -> Vec<f64> {
-    if step <= 0.0 {
-        panic!("step must be positive, got {step}");
+pub fn linspace<T: FloatExt>(start: T, end: T, step: T) -> Vec<T> {
+    if step <= T::zero() {
+        panic!("step must be positive, got {step:?}");
     }
     if start > end {
-        panic!("start must be <= end, got start={start}, end={end}");
+        panic!("start must be <= end, got start={start:?}, end={end:?}");
     }
 
-    let len = ((end - start) / step).ceil() as usize + 1;
+    let len = ((end - start) / step).ceil().to_usize().unwrap() + 1;
     let mut result = (0..len)
-        .map(|i| start + i as f64 * step)
+        .map(|i| start + T::from(i).unwrap() * step)
         .collect::<Vec<_>>();
 
     let last = match result.last_mut() {
@@ -257,7 +249,7 @@ where
 /// # Returns
 ///
 /// `true` if the array is non-decreasing, `false` otherwise
-pub fn is_increasing(arr: &[f64]) -> bool {
+pub fn is_increasing<T: FloatExt>(arr: &[T]) -> bool {
     arr.windows(2).all(|w| w[0] < w[1])
 }
 
@@ -268,7 +260,7 @@ pub fn is_increasing(arr: &[f64]) -> bool {
 /// * `t` - The time points (must be strictly monotonically increasing)
 /// * `x` - The corresponding values
 /// * `step` - The step size for the output time sequence (must be positive)
-pub fn linear_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+pub fn linear_interpolate<T: FloatExt>(t: &[T], x: &[T], step: T) -> XResult<(Vec<T>, Vec<T>)> {
     if t.len() != x.len() {
         return Err(XError::Other(
             "t and x must have the same length".to_string(),
@@ -281,7 +273,7 @@ pub fn linear_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>,
         ));
     }
 
-    if step <= 0.0 {
+    if step <= T::zero() {
         return Err(XError::Other("step must be positive".to_string()));
     }
 

@@ -1,10 +1,12 @@
 use crate::{
-    SimulationError, XResult, check_duration_time_step,
+    FloatExt, SimulationError, XResult, check_duration_time_step,
     random::{exponential, stable},
     simulation::prelude::*,
     utils::{cumsum, linear_interpolate},
 };
+use num_traits::FloatConst;
 use rand::{prelude::*, rng};
+use rand_distr::{Exp1, uniform::SampleUniform};
 use rayon::prelude::*;
 
 /// Lévy walk
@@ -17,26 +19,26 @@ use rayon::prelude::*;
 /// with 0 < $\alpha$ < 1. The flight length is proportional to the flight time: $l = v\tau$,
 /// where $v$ is the constant velocity.
 #[derive(Clone, Debug)]
-pub struct LevyWalk {
+pub struct LevyWalk<T: FloatExt = f64> {
     /// The waiting time distribution exponent
-    alpha: f64,
+    alpha: T,
     /// The velocity
-    velocity: f64,
+    velocity: T,
     /// The starting position
-    start_position: f64,
+    start_position: T,
 }
 
-impl Default for LevyWalk {
+impl<T: FloatExt> Default for LevyWalk<T> {
     fn default() -> Self {
         Self {
-            alpha: 0.1,
-            velocity: 1.0,
-            start_position: 0.0,
+            alpha: T::one(),
+            velocity: T::one(),
+            start_position: T::zero(),
         }
     }
 }
 
-impl LevyWalk {
+impl<T: FloatExt> LevyWalk<T> {
     /// Create a new `LevyWalk`
     ///
     /// # Arguments
@@ -52,23 +54,16 @@ impl LevyWalk {
     ///
     /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
     /// ```
-    pub fn new(
-        alpha: impl Into<f64>,
-        velocity: impl Into<f64>,
-        start_position: impl Into<f64>,
-    ) -> XResult<Self> {
-        let alpha = alpha.into();
-        let velocity = velocity.into();
-        let start_position = start_position.into();
-        if alpha <= 0.0 || alpha > 1.0 {
+    pub fn new(alpha: T, velocity: T, start_position: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha > T::one() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be between 0 and 1, got {alpha}"
+                "The `alpha` must be between 0 and 1, got {alpha:?}"
             ))
             .into());
         }
-        if velocity <= 0.0 {
+        if velocity <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `velocity` must be positive, got {velocity}"
+                "The `velocity` must be positive, got {velocity:?}"
             ))
             .into());
         }
@@ -80,17 +75,17 @@ impl LevyWalk {
     }
 
     /// Get the waiting time distribution exponent
-    pub fn get_alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> T {
         self.alpha
     }
 
     /// Get the velocity
-    pub fn get_velocity(&self) -> f64 {
+    pub fn get_velocity(&self) -> T {
         self.velocity
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
@@ -109,29 +104,45 @@ impl LevyWalk {
     /// let levy_walk = LevyWalk::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = levy_walk.simulate(10.0, 0.1).unwrap();
     /// ```
-    pub fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
+    pub fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<T>, Vec<T>)>
+    where
+        T: FloatConst + SampleUniform,
+        Exp1: Distribution<T>,
+    {
         simulate_levy_walk_with_step(self.alpha, self.velocity, num_step, self.start_position)
     }
 
-    pub fn simulate_with_duration(&self, duration: impl Into<f64>) -> XResult<Pair> {
+    /// Simulate the Lévy walk with duration
+    ///
+    /// # Arguments
+    ///
+    /// * `duration` - The duration of the simulation.
+    pub fn simulate_with_duration(&self, duration: T) -> XResult<(Vec<T>, Vec<T>)>
+    where
+        T: FloatConst + SampleUniform,
+        Exp1: Distribution<T>,
+    {
         simulate_levy_walk_with_duration(self.alpha, self.velocity, duration, self.start_position)
     }
 }
 
-impl ContinuousProcess for LevyWalk {
-    fn start(&self) -> f64 {
+impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for LevyWalk<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         let (t, x) = self.simulate_with_duration(duration)?;
         linear_interpolate(&t, &x, time_step)
     }
 
-    fn displacement(&self, duration: f64, _time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, _time_step: T) -> XResult<T> {
         check_duration_time_step(duration, _time_step)?;
 
-        let mut num_step = duration.ceil() as usize;
+        let mut num_step = duration.ceil().to_usize().unwrap();
         let (t, x) = loop {
             let (t, x) = simulate_levy_walk_with_step(
                 self.alpha,
@@ -183,14 +194,17 @@ impl ContinuousProcess for LevyWalk {
 ///
 /// let (t, x) = simulate_levy_walk_with_step(0.5, 1.0, 1000, 0.0).unwrap();
 /// ```
-pub fn simulate_levy_walk_with_step(
-    alpha: f64,
-    velocity: f64,
+pub fn simulate_levy_walk_with_step<T: FloatExt + FloatConst + SampleUniform>(
+    alpha: T,
+    velocity: T,
     num_step: usize,
-    start_position: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let waiting_times = if alpha == 1.0 {
-        exponential::rands(1.0, num_step)?
+    start_position: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    Exp1: Distribution<T>,
+{
+    let waiting_times = if alpha == T::one() {
+        exponential::standard_rands(num_step)
     } else {
         stable::skew_rands(alpha, num_step)?
     };
@@ -207,9 +221,9 @@ pub fn simulate_levy_walk_with_step(
     let jump_lengths = waiting_times
         .par_iter()
         .zip(directions)
-        .map(|(waiting_time, direction)| waiting_time * direction)
+        .map(|(&waiting_time, direction)| waiting_time * direction)
         .collect::<Vec<_>>();
-    let t = cumsum(0.0, &waiting_times);
+    let t = cumsum(T::zero(), &waiting_times);
     let x = cumsum(start_position, &jump_lengths);
     Ok((t, x))
 }
@@ -230,17 +244,18 @@ pub fn simulate_levy_walk_with_step(
 ///
 /// let (t, x) = simulate_levy_walk_with_duration(0.5, 1.0, 10.0, 0.0).unwrap();
 /// ```
-pub fn simulate_levy_walk_with_duration(
-    alpha: f64,
-    velocity: f64,
-    duration: impl Into<f64>,
-    start_position: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
-    let duration = duration.into();
+pub fn simulate_levy_walk_with_duration<T: FloatExt + FloatConst + SampleUniform>(
+    alpha: T,
+    velocity: T,
+    duration: T,
+    start_position: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    Exp1: Distribution<T>,
+{
+    check_duration_time_step(duration, duration / T::from(2).unwrap())?;
 
-    check_duration_time_step(duration, 0.01)?;
-
-    let mut num_step = duration.ceil() as usize;
+    let mut num_step = duration.ceil().to_usize().unwrap();
     let (t, x) = loop {
         let (t, x) = simulate_levy_walk_with_step(alpha, velocity, num_step, start_position)?;
         if t.last().is_none() {
@@ -253,8 +268,8 @@ pub fn simulate_levy_walk_with_duration(
         num_step *= 2;
     };
     let index = t.iter().position(|&time| time >= duration).unwrap();
-    let mut t_ = vec![0.0; index + 1];
-    let mut x_ = vec![0.0; index + 1];
+    let mut t_ = vec![T::zero(); index + 1];
+    let mut x_ = vec![T::zero(); index + 1];
     t_[..index].copy_from_slice(&t[..index]);
     x_[..index].copy_from_slice(&x[..index]);
     if t[index] > duration {

@@ -2,8 +2,11 @@
 //!
 //! The Cauchy process is a Lévy process with alpha = 1.
 
+use num_traits::FloatConst;
+use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
+
 use crate::{
-    SimulationError, XResult,
+    FloatExt, SimulationError, XResult,
     simulation::{
         continuous::{AsymmetricLevy, Levy, simulate_asymmetric_levy, simulate_levy},
         prelude::*,
@@ -12,14 +15,14 @@ use crate::{
 
 /// Asymmetric Cauchy process
 #[derive(Debug, Clone)]
-pub struct AsymmetricCauchy {
+pub struct AsymmetricCauchy<T: FloatExt = f64> {
     /// The starting position
-    start_position: f64,
+    start_position: T,
     /// The asymmetry parameter
-    beta: f64,
+    beta: T,
 }
 
-impl AsymmetricCauchy {
+impl<T: FloatExt> AsymmetricCauchy<T> {
     /// Create a new `AsymmetricCauchy`
     ///
     /// # Arguments
@@ -34,12 +37,10 @@ impl AsymmetricCauchy {
     ///
     /// let cauchy = AsymmetricCauchy::new(0.0, 0.4).unwrap();
     /// ```
-    pub fn new(start_position: impl Into<f64>, beta: impl Into<f64>) -> XResult<Self> {
-        let start_position = start_position.into();
-        let beta = beta.into();
-        if !(-1.0..=1.0).contains(&beta) {
+    pub fn new(start_position: T, beta: T) -> XResult<Self> {
+        if !(-T::one()..=T::one()).contains(&beta) {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `beta` must be in the range [-1, 1], got {beta}",
+                "The `beta` must be in the range [-1, 1], got {beta:?}",
             ))
             .into());
         }
@@ -50,74 +51,56 @@ impl AsymmetricCauchy {
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
     /// Get the asymmetry parameter
-    pub fn get_asymmetry(&self) -> f64 {
+    pub fn get_asymmetry(&self) -> T {
         self.beta
     }
 }
 
-impl ContinuousProcess for AsymmetricCauchy {
-    fn start(&self) -> f64 {
+impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for AsymmetricCauchy<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        simulate_asymmetric_cauchy(self.start_position, self.beta, duration, time_step)
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
+        simulate_asymmetric_levy(
+            self.start_position,
+            T::one(),
+            self.beta,
+            duration,
+            time_step,
+        )
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
-        let sp = AsymmetricLevy::new(self.start_position, 1.0, self.beta)?;
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
+        let sp = AsymmetricLevy::new(self.start_position, T::one(), self.beta)?;
         sp.displacement(duration, time_step)
     }
 }
 
-/// Simulate asymmetric Cauchy process
-///
-/// # Arguments
-///
-/// * `start_position` - The starting position.
-/// * `beta` - The asymmetry parameter.
-/// * `duration` - The duration of the trajectory.
-/// * `time_step` - The time step of the simulation.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::simulation::continuous::cauchy::simulate_asymmetric_cauchy;
-///
-/// let time_step = 0.1;
-/// let duration = 1.0;
-/// let (t, x) = simulate_asymmetric_cauchy(0.0, 0.4, duration, time_step).unwrap();
-/// ```
-pub fn simulate_asymmetric_cauchy(
-    start_position: f64,
-    beta: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
-    simulate_asymmetric_levy(start_position, 1.0, beta, duration, time_step)
-}
-
 /// Cauchy process
 #[derive(Debug, Clone)]
-pub struct Cauchy {
+pub struct Cauchy<T: FloatExt = f64> {
     /// The starting position
-    start_position: f64,
+    start_position: T,
 }
 
-impl Default for Cauchy {
+impl<T: FloatExt> Default for Cauchy<T> {
     fn default() -> Self {
         Self {
-            start_position: 0.0,
+            start_position: T::zero(),
         }
     }
 }
 
-impl Cauchy {
+impl<T: FloatExt> Cauchy<T> {
     /// Create a new `Cauchy`
     ///
     /// # Arguments
@@ -131,55 +114,32 @@ impl Cauchy {
     ///
     /// let cauchy = Cauchy::new(0.0).unwrap();
     /// ```
-    pub fn new(start_position: impl Into<f64>) -> Self {
-        let start_position = start_position.into();
+    pub fn new(start_position: T) -> Self {
         Self { start_position }
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 }
 
-impl ContinuousProcess for Cauchy {
-    fn start(&self) -> f64 {
+impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for Cauchy<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        simulate_cauchy(self.start_position, duration, time_step)
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
+        simulate_levy(self.start_position, T::one(), duration, time_step)
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
-        let sp = Levy::new(self.start_position, 1.0)?;
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
+        let sp = Levy::new(self.start_position, T::one())?;
         sp.displacement(duration, time_step)
     }
-}
-
-/// Simulate Cauchy process
-///
-/// # Arguments
-///
-/// * `start_position` - The starting position.
-/// * `duration` - The duration of the trajectory.
-/// * `time_step` - The time step of the simulation.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::simulation::continuous::cauchy::simulate_cauchy;
-///
-/// let time_step = 0.1;
-/// let duration = 1.0;
-/// let (t, x) = simulate_cauchy(0.0, duration, time_step).unwrap();
-/// ```
-pub fn simulate_cauchy(
-    start_position: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
-    simulate_levy(start_position, 1.0, duration, time_step)
 }
 
 #[cfg(test)]

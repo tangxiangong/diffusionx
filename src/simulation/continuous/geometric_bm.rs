@@ -1,33 +1,34 @@
 //! Geometric Brownian motion simulation
 
 use crate::{
-    SimulationError, XResult, check_duration_time_step,
+    FloatExt, SimulationError, XResult, check_duration_time_step,
     simulation::{continuous::Bm, prelude::*},
 };
+use rand_distr::{Distribution, StandardNormal};
 use rayon::prelude::*;
 
 /// Geometric Brownian motion
 #[derive(Debug, Clone)]
-pub struct GeometricBm {
+pub struct GeometricBm<T: FloatExt = f64> {
     /// The starting position
-    start_position: f64,
+    start_position: T,
     /// The percentage drift
-    mu: f64,
+    mu: T,
     /// The percentage volatility
-    sigma: f64,
+    sigma: T,
 }
 
-impl Default for GeometricBm {
+impl<T: FloatExt> Default for GeometricBm<T> {
     fn default() -> Self {
         Self {
-            start_position: 0.0,
-            mu: 0.0,
-            sigma: 1.0,
+            start_position: T::zero(),
+            mu: T::zero(),
+            sigma: T::one(),
         }
     }
 }
 
-impl GeometricBm {
+impl<T: FloatExt> GeometricBm<T> {
     /// Create a new `GeometricBm`
     ///
     /// # Arguments
@@ -35,17 +36,10 @@ impl GeometricBm {
     /// * `start_position` - The starting position.
     /// * `mu` - The percentage drift.
     /// * `sigma` - The percentage volatility.
-    pub fn new(
-        start_position: impl Into<f64>,
-        mu: impl Into<f64>,
-        sigma: impl Into<f64>,
-    ) -> XResult<Self> {
-        let start_position = start_position.into();
-        let mu = mu.into();
-        let sigma = sigma.into();
-        if sigma <= 0.0 {
+    pub fn new(start_position: T, mu: T, sigma: T) -> XResult<Self> {
+        if sigma <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The percentage volatility `sigma` must be positive, got {sigma}"
+                "The percentage volatility `sigma` must be positive, got {sigma:?}"
             ))
             .into());
         }
@@ -57,27 +51,30 @@ impl GeometricBm {
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
     /// Get the percentage drift
-    pub fn get_mu(&self) -> f64 {
+    pub fn get_mu(&self) -> T {
         self.mu
     }
 
     /// Get the percentage volatility
-    pub fn get_sigma(&self) -> f64 {
+    pub fn get_sigma(&self) -> T {
         self.sigma
     }
 }
 
-impl ContinuousProcess for GeometricBm {
-    fn start(&self) -> f64 {
+impl<T: FloatExt> ContinuousProcess<T> for GeometricBm<T>
+where
+    StandardNormal: Distribution<T>,
+{
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_gbm(
             self.start_position,
             self.mu,
@@ -87,15 +84,15 @@ impl ContinuousProcess for GeometricBm {
         )
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         let bm = Bm::default();
         let (t, b) = bm.simulate(duration, time_step)?;
-        let tmp = self.mu - self.sigma * self.sigma / 2.0;
+        let tmp = self.mu - self.sigma * self.sigma / T::from(2).unwrap();
         let x = t
             .into_par_iter()
             .zip(b)
             .map(|(t_i, b_i)| self.start_position * (tmp * t_i + self.sigma * b_i).exp())
-            .sum::<f64>();
+            .sum::<T>();
         Ok(x)
     }
 }
@@ -122,22 +119,25 @@ impl ContinuousProcess for GeometricBm {
 /// let duration = 1.0;
 /// let (t, x) = simulate_gbm(start_position, mu, sigma, duration, time_step).unwrap();
 /// ```
-pub fn simulate_gbm(
-    start_position: f64,
-    mu: f64,
-    sigma: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
+pub fn simulate_gbm<T: FloatExt>(
+    start_position: T,
+    mu: T,
+    sigma: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    StandardNormal: Distribution<T>,
+{
     check_duration_time_step(duration, time_step)?;
 
     let bm = Bm::default();
     let (t, b) = bm.simulate(duration, time_step)?;
-    let tmp = mu - sigma * sigma / 2.0;
+    let tmp = mu - sigma * sigma / T::from(2).unwrap();
     let x = t
         .par_iter()
         .zip(b)
-        .map(|(t_i, b_i)| start_position * (tmp * t_i + sigma * b_i).exp())
+        .map(|(&t_i, b_i)| start_position * (tmp * t_i + sigma * b_i).exp())
         .collect();
     Ok((t, x))
 }

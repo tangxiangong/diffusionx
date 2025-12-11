@@ -1,10 +1,12 @@
 //! Generalized Langevin equation and subordinated Langevin equation simulation
 
 use crate::{
-    SimulationError, XResult, check_duration_time_step,
+    FloatExt, SimulationError, XResult, check_duration_time_step,
     random::{normal, stable},
     simulation::{continuous::Subordinator, prelude::*},
 };
+use num_traits::FloatConst;
+use rand_distr::{Distribution, Exp1, StandardNormal, uniform::SampleUniform};
 
 /// Generalized Langevin equation
 ///
@@ -12,25 +14,25 @@ use crate::{
 ///
 /// where $L_\alpha(t)$ is the $\alpha$-stable process.
 #[derive(Debug, Clone)]
-pub struct GeneralizedLangevin<D, G>
+pub struct GeneralizedLangevin<D, G, T: FloatExt = f64>
 where
-    D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
+    D: Fn(T, T) -> T + Clone + Send + Sync,
+    G: Fn(T, T) -> T + Clone + Send + Sync,
 {
     /// The drift function
     drift_func: D,
     /// The diffusion function
     diffusion_func: G,
     /// The starting position
-    start_position: f64,
+    start_position: T,
     /// The stability index
-    alpha: f64,
+    alpha: T,
 }
 
-impl<D, G> GeneralizedLangevin<D, G>
+impl<D, G, T: FloatExt> GeneralizedLangevin<D, G, T>
 where
-    D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
+    D: Fn(T, T) -> T + Clone + Send + Sync,
+    G: Fn(T, T) -> T + Clone + Send + Sync,
 {
     /// Create a new `GeneralizedLangevin`
     ///
@@ -53,17 +55,10 @@ where
     /// let langevin =
     ///     GeneralizedLangevin::new(drift_func, diffusion_func, start_position, alpha).unwrap();
     /// ```
-    pub fn new(
-        drift_func: D,
-        diffusion_func: G,
-        start_position: impl Into<f64>,
-        alpha: impl Into<f64>,
-    ) -> XResult<Self> {
-        let start_position = start_position.into();
-        let alpha = alpha.into();
-        if alpha <= 0.0 || alpha > 2.0 {
+    pub fn new(drift_func: D, diffusion_func: G, start_position: T, alpha: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha > T::from(2).unwrap() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 2], got {alpha}"
+                "The `alpha` must be in the range (0, 2], got {alpha:?}"
             ))
             .into());
         }
@@ -76,7 +71,7 @@ where
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
@@ -91,21 +86,23 @@ where
     }
 
     /// Get the stability index
-    pub fn get_alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> T {
         self.alpha
     }
 }
 
-impl<D, G> ContinuousProcess for GeneralizedLangevin<D, G>
+impl<D, G, T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T>
+    for GeneralizedLangevin<D, G, T>
 where
-    D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
+    D: Fn(T, T) -> T + Clone + Send + Sync,
+    G: Fn(T, T) -> T + Clone + Send + Sync,
+    Exp1: Distribution<T>,
 {
-    fn start(&self) -> f64 {
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_generalized_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -116,15 +113,15 @@ where
         )
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
         let drift = self.get_drift_func();
         let diffusion = self.get_diffusion_func();
-        let num_steps = (duration / time_step).ceil() as usize;
-        let mut scale = time_step.powf(1.0 / self.alpha);
+        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+        let mut scale = time_step.powf(T::one() / self.alpha);
 
-        let mut current_t = 0.0;
+        let mut current_t = T::zero();
         let mut current_x = self.start_position;
         let mut mu;
         let mut diffusivity;
@@ -138,7 +135,7 @@ where
             current_t += time_step;
         }
         let last_step = duration - current_t;
-        scale = last_step.powf(1.0 / self.alpha);
+        scale = last_step.powf(T::one() / self.alpha);
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
         current_x += mu * last_step + diffusivity * stable::sym_standard_rand(self.alpha)? * scale;
@@ -178,32 +175,33 @@ where
 /// )
 /// .unwrap();
 /// ```
-pub fn simulate_generalized_langevin<D, G>(
+pub fn simulate_generalized_langevin<D, G, T: FloatExt + FloatConst + SampleUniform>(
     drift: &D,
     diffusion: &G,
-    start_position: f64,
-    alpha: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<Pair>
+    start_position: T,
+    alpha: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
 where
-    D: Fn(f64, f64) -> f64 + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Send + Sync,
+    D: Fn(T, T) -> T + Send + Sync,
+    G: Fn(T, T) -> T + Send + Sync,
+    Exp1: Distribution<T>,
 {
     check_duration_time_step(duration, time_step)?;
 
-    let num_steps = (duration / time_step).ceil() as usize;
+    let num_steps = (duration / time_step).ceil().to_usize().unwrap();
 
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
 
-    t.push(0.0);
+    t.push(T::zero());
     x.push(start_position);
 
-    let mut scale = time_step.powf(1.0 / alpha);
+    let mut scale = time_step.powf(T::one() / alpha);
 
     let mut current_x = start_position;
-    let mut current_t = 0.0;
+    let mut current_t = T::zero();
     let mut mu;
     let mut diffusivity;
 
@@ -219,7 +217,7 @@ where
     }
 
     let last_step = duration - current_t;
-    scale = last_step.powf(1.0 / alpha);
+    scale = last_step.powf(T::one() / alpha);
     mu = drift(current_x, current_t);
     diffusivity = diffusion(current_x, current_t);
     current_x += mu * last_step + diffusivity * stable::sym_standard_rand(alpha)? * scale;
@@ -234,25 +232,25 @@ where
 ///
 /// where S(t) is the `alpha`-stable subordinator.
 #[derive(Debug, Clone)]
-pub struct SubordinatedLangevin<D, G>
+pub struct SubordinatedLangevin<D, G, T: FloatExt = f64>
 where
-    D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
+    D: Fn(T, T) -> T + Clone + Send + Sync,
+    G: Fn(T, T) -> T + Clone + Send + Sync,
 {
     /// The drift function
     drift_func: D,
     /// The diffusion function
     diffusion_func: G,
     /// The starting position
-    start_position: f64,
+    start_position: T,
     /// The stability index
-    alpha: f64,
+    alpha: T,
 }
 
-impl<D, G> SubordinatedLangevin<D, G>
+impl<D, G, T: FloatExt> SubordinatedLangevin<D, G, T>
 where
-    D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
+    D: Fn(T, T) -> T + Clone + Send + Sync,
+    G: Fn(T, T) -> T + Clone + Send + Sync,
 {
     /// Create a new `SubordinatedLangevin`
     ///
@@ -274,17 +272,10 @@ where
     /// let alpha = 0.5;
     /// let langevin = SubordinatedLangevin::new(drift, diffusion, start_position, alpha).unwrap();
     /// ```
-    pub fn new(
-        drift_func: D,
-        diffusion_func: G,
-        start_position: impl Into<f64>,
-        alpha: impl Into<f64>,
-    ) -> XResult<Self> {
-        let start_position = start_position.into();
-        let alpha = alpha.into();
-        if alpha <= 0.0 || alpha >= 1.0 {
+    pub fn new(drift_func: D, diffusion_func: G, start_position: T, alpha: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha >= T::one() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 1), got {alpha}"
+                "The `alpha` must be in the range (0, 1), got {alpha:?}"
             ))
             .into());
         }
@@ -297,7 +288,7 @@ where
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
@@ -312,21 +303,24 @@ where
     }
 
     /// Get the stability index
-    pub fn get_alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> T {
         self.alpha
     }
 }
 
-impl<D, G> ContinuousProcess for SubordinatedLangevin<D, G>
+impl<D, G, T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T>
+    for SubordinatedLangevin<D, G, T>
 where
-    D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
+    D: Fn(T, T) -> T + Clone + Send + Sync,
+    G: Fn(T, T) -> T + Clone + Send + Sync,
+    Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
 {
-    fn start(&self) -> f64 {
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_subordinated_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -337,7 +331,7 @@ where
         )
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
         let (t, s) = Subordinator::new(self.alpha)?.simulate(duration, time_step)?;
@@ -353,7 +347,7 @@ where
         let mut si_next;
         let mut delta_s;
 
-        let noises = normal::standard_rands::<f64>(num_steps);
+        let noises = normal::standard_rands::<T>(num_steps);
 
         for ((&ti, sis), xi) in t.iter().zip(s.windows(2)).take(num_steps).zip(noises) {
             si = unsafe { *sis.get_unchecked(0) };
@@ -400,17 +394,19 @@ where
 /// )
 /// .unwrap();
 /// ```
-pub fn simulate_subordinated_langevin<D, G>(
+pub fn simulate_subordinated_langevin<D, G, T: FloatExt + FloatConst + SampleUniform>(
     drift: &D,
     diffusion: &G,
-    start_position: f64,
-    alpha: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<Pair>
+    start_position: T,
+    alpha: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
 where
-    D: Fn(f64, f64) -> f64 + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Send + Sync,
+    D: Fn(T, T) -> T + Send + Sync,
+    G: Fn(T, T) -> T + Send + Sync,
+    Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
 {
     check_duration_time_step(duration, time_step)?;
 
@@ -427,7 +423,7 @@ where
     let mut delta_s;
     let mut current_x = start_position;
 
-    let noises = normal::standard_rands::<f64>(num_steps);
+    let noises = normal::standard_rands::<T>(num_steps);
 
     for ((&ti, sis), xi) in t.iter().zip(s.windows(2)).take(num_steps).zip(noises) {
         si = unsafe { *sis.get_unchecked(0) };

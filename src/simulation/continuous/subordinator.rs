@@ -1,11 +1,13 @@
 //! Subordinator simulation
 
 use crate::{
-    SimulationError, XResult, check_duration_time_step,
+    FloatExt, SimulationError, XResult, check_duration_time_step,
     random::stable::{self, sample_standard_alpha},
     simulation::prelude::*,
 };
+use num_traits::FloatConst;
 use rand::prelude::*;
+use rand_distr::{Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
@@ -15,12 +17,12 @@ use rayon::prelude::*;
 ///
 /// A subordinator is a Lévy process that is non-negative and has a non-decreasing sample path.
 #[derive(Debug, Clone)]
-pub struct Subordinator {
+pub struct Subordinator<T: FloatExt = f64> {
     /// The stability index of the subordinator, whose value must be in the range (0, 1).
-    alpha: f64,
+    alpha: T,
 }
 
-impl Subordinator {
+impl<T: FloatExt> Subordinator<T> {
     /// Create a new `Subordinator`
     ///
     /// # Arguments
@@ -34,10 +36,10 @@ impl Subordinator {
     ///
     /// let subordinator = Subordinator::new(0.5).unwrap();
     /// ```
-    pub fn new(alpha: f64) -> XResult<Self> {
-        if alpha <= 0.0 || alpha > 1.0 {
+    pub fn new(alpha: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha > T::one() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 1], got {alpha}"
+                "The `alpha` must be in the range (0, 1], got {alpha:?}."
             ))
             .into());
         }
@@ -45,40 +47,43 @@ impl Subordinator {
     }
 
     /// Get the stability index
-    pub fn get_alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> T {
         self.alpha
     }
 }
 
-impl ContinuousProcess for Subordinator {
-    fn start(&self) -> f64 {
-        0.0
+impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for Subordinator<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn start(&self) -> T {
+        T::zero()
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_subordinator(self.alpha, duration, time_step)
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
-        let num_steps = (duration / time_step).ceil() as usize;
-        let power = 1.0 / self.alpha;
+        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+        let power = T::one() / self.alpha;
         let mut scale = time_step.powf(power);
         let generator = sample_standard_alpha;
         let mut delta_x = (0..num_steps - 1)
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| scale * generator(self.alpha, 1.0, r),
+                |r, _| scale * generator(self.alpha, T::one(), r),
             )
             .sum();
 
-        let last_step = duration - (num_steps - 1) as f64 * time_step;
+        let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
         scale = last_step.powf(power);
         delta_x += generator(
             self.alpha,
-            1.0,
+            T::one(),
             &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
         ) * scale;
         Ok(delta_x)
@@ -100,26 +105,29 @@ impl ContinuousProcess for Subordinator {
 ///
 /// let (t, x) = simulate_subordinator(0.5, 1.0, 0.1).unwrap();
 /// ```
-pub fn simulate_subordinator(
-    alpha: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
+pub fn simulate_subordinator<T: FloatExt + FloatConst + SampleUniform>(
+    alpha: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    Exp1: Distribution<T>,
+{
     check_duration_time_step(duration, time_step)?;
 
-    let num_steps = (duration / time_step).ceil() as usize;
-    let power = 1.0 / alpha;
+    let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+    let power = T::one() / alpha;
     let mut scale = time_step.powf(power);
     let noise = stable::skew_rands(alpha, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
 
-    t.push(0.0);
-    x.push(0.0);
+    t.push(T::zero());
+    x.push(T::zero());
 
-    let mut current_x = 0.0;
-    let mut current_t = 0.0;
+    let mut current_x = T::zero();
+    let mut current_t = T::zero();
     for xi in noise {
         current_x += xi * scale;
         x.push(current_x);
@@ -138,12 +146,12 @@ pub fn simulate_subordinator(
 
 /// Inverse alpha-stable subordinator
 #[derive(Debug, Clone)]
-pub struct InvSubordinator {
+pub struct InvSubordinator<T: FloatExt = f64> {
     /// The stability index
-    alpha: f64,
+    alpha: T,
 }
 
-impl InvSubordinator {
+impl<T: FloatExt> InvSubordinator<T> {
     /// Create a new `InvSubordinator`
     ///
     /// # Arguments
@@ -157,10 +165,10 @@ impl InvSubordinator {
     ///
     /// let inv_subordinator = InvSubordinator::new(0.5).unwrap();
     /// ```
-    pub fn new(alpha: f64) -> XResult<Self> {
-        if alpha <= 0.0 || alpha > 1.0 {
+    pub fn new(alpha: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha > T::one() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 1], got {alpha}"
+                "The `alpha` must be in the range (0, 1], got {alpha:?}"
             ))
             .into());
         }
@@ -168,22 +176,26 @@ impl InvSubordinator {
     }
 
     /// Get the stability index
-    pub fn get_alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> T {
         self.alpha
     }
 }
 
-impl ContinuousProcess for InvSubordinator {
-    fn start(&self) -> f64 {
-        0.0
+impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for InvSubordinator<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn start(&self) -> T {
+        T::zero()
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_invsubordinator(self.alpha, duration, time_step)
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         let mut mut_duration = duration;
+        let two = T::from(2).unwrap();
         let (t, s) = loop {
             let (t, s) = simulate_subordinator(self.alpha, mut_duration, time_step)?;
             let last = match s.last() {
@@ -193,15 +205,15 @@ impl ContinuousProcess for InvSubordinator {
             if last >= duration {
                 break (t, s);
             }
-            mut_duration *= 2.0;
+            mut_duration *= two;
         };
 
-        let num_inv_steps = (duration / time_step).ceil() as usize;
+        let num_inv_steps = (duration / time_step).ceil().to_usize().unwrap();
 
         let mut inv_times = Vec::with_capacity(num_inv_steps + 1);
 
         for i in 0..=num_inv_steps - 1 {
-            inv_times.push(i as f64 * time_step);
+            inv_times.push(T::from(i).unwrap() * time_step);
         }
         inv_times.push(duration);
 
@@ -237,14 +249,18 @@ impl ContinuousProcess for InvSubordinator {
 ///
 /// let (t, x) = simulate_invsubordinator(0.5, 1.0, 0.1).unwrap();
 /// ```
-pub fn simulate_invsubordinator(
-    alpha: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
+pub fn simulate_invsubordinator<T: FloatExt + FloatConst + SampleUniform>(
+    alpha: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    Exp1: Distribution<T>,
+{
     check_duration_time_step(duration, time_step)?;
 
     let mut mut_duration = duration;
+    let two = T::from(2).unwrap();
     let (t, s) = loop {
         let (t, s) = simulate_subordinator(alpha, mut_duration, time_step)?;
         let last = match s.last() {
@@ -254,16 +270,16 @@ pub fn simulate_invsubordinator(
         if last >= duration {
             break (t, s);
         }
-        mut_duration *= 2.0;
+        mut_duration *= two;
     };
 
-    let num_inv_steps = (duration / time_step).ceil() as usize;
+    let num_inv_steps = (duration / time_step).ceil().to_usize().unwrap();
 
     let mut inv_times = Vec::with_capacity(num_inv_steps + 1);
     let mut inv_path = Vec::with_capacity(num_inv_steps + 1);
 
     for i in 0..=num_inv_steps - 1 {
-        inv_times.push(i as f64 * time_step);
+        inv_times.push(T::from(i).unwrap() * time_step);
     }
     inv_times.push(duration);
 
