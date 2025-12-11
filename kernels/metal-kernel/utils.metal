@@ -79,8 +79,8 @@ struct PhiloxState {
  * @brief Single round of Philox 4x32
  */
 inline uint4 philox_round(uint4 ctr, uint2 key) {
-    constant uint PHILOX_M4x32_0 = 0xD2511F53;
-    constant uint PHILOX_M4x32_1 = 0xCD9E8D57;
+    constexpr uint PHILOX_M4x32_0 = 0xD2511F53;
+    constexpr uint PHILOX_M4x32_1 = 0xCD9E8D57;
     
     uint hi0 = mulhi(PHILOX_M4x32_0, ctr.x);
     uint lo0 = PHILOX_M4x32_0 * ctr.x;
@@ -94,8 +94,8 @@ inline uint4 philox_round(uint4 ctr, uint2 key) {
  * @brief Bump the Philox key
  */
 inline uint2 philox_bump_key(uint2 key) {
-    constant uint PHILOX_W32_0 = 0x9E3779B9;
-    constant uint PHILOX_W32_1 = 0xBB67AE85;
+    constexpr uint PHILOX_W32_0 = 0x9E3779B9;
+    constexpr uint PHILOX_W32_1 = 0xBB67AE85;
     return uint2(key.x + PHILOX_W32_0, key.y + PHILOX_W32_1);
 }
 
