@@ -1,6 +1,8 @@
 //! Langevin equation simulation
 
-use crate::{XResult, check_duration_time_step, random::normal, simulation::prelude::*};
+use rand_distr::{Distribution, StandardNormal};
+
+use crate::{FloatExt, XResult, check_duration_time_step, random::normal, simulation::prelude::*};
 
 /// Langevin equation
 ///
@@ -8,23 +10,23 @@ use crate::{XResult, check_duration_time_step, random::normal, simulation::prelu
 ///
 /// where $W(t)$ is the Weiner process or called Brownian motion.
 #[derive(Debug, Clone)]
-pub struct Langevin<D, G>
+pub struct Langevin<D, G, T: FloatExt = f64>
 where
-    D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
+    D: Fn(T, T) -> T + Clone + Send + Sync,
+    G: Fn(T, T) -> T + Clone + Send + Sync,
 {
     /// The drift function
     drift_func: D,
     /// The diffusion function
     diffusion_func: G,
     /// The starting position
-    start_position: f64,
+    start_position: T,
 }
 
-impl<D, G> Langevin<D, G>
+impl<D, G, T: FloatExt> Langevin<D, G, T>
 where
-    D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
+    D: Fn(T, T) -> T + Clone + Send + Sync,
+    G: Fn(T, T) -> T + Clone + Send + Sync,
 {
     /// Create a new `Langevin`
     ///
@@ -44,8 +46,7 @@ where
     /// let start_position = 0.0;
     /// let langevin = Langevin::new(drift, diffusion, start_position).unwrap();
     /// ```
-    pub fn new(drift_func: D, diffusion_func: G, start_position: impl Into<f64>) -> XResult<Self> {
-        let start_position = start_position.into();
+    pub fn new(drift_func: D, diffusion_func: G, start_position: T) -> XResult<Self> {
         Ok(Self {
             drift_func,
             diffusion_func,
@@ -54,7 +55,7 @@ where
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
@@ -69,16 +70,17 @@ where
     }
 }
 
-impl<D, G> ContinuousProcess for Langevin<D, G>
+impl<D, G, T: FloatExt> ContinuousProcess<T> for Langevin<D, G, T>
 where
-    D: Fn(f64, f64) -> f64 + Clone + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Clone + Send + Sync,
+    D: Fn(T, T) -> T + Clone + Send + Sync,
+    G: Fn(T, T) -> T + Clone + Send + Sync,
+    StandardNormal: Distribution<T>,
 {
-    fn start(&self) -> f64 {
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_langevin(
             &self.drift_func,
             &self.diffusion_func,
@@ -88,21 +90,21 @@ where
         )
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
         let drift = self.get_drift_func();
         let diffusion = self.get_diffusion_func();
 
-        let num_steps = (duration / time_step).ceil() as usize;
+        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
 
         let mut scale = time_step.sqrt();
         let mut current_x = self.start_position;
-        let mut current_t = 0.0;
+        let mut current_t = T::zero();
         let mut mu;
         let mut diffusivity;
 
-        let noises = normal::standard_rands::<f64>(num_steps - 1);
+        let noises = normal::standard_rands::<T>(num_steps - 1);
 
         for xi in noises {
             mu = drift(current_x, current_t);
@@ -116,7 +118,7 @@ where
         mu = drift(current_x, current_t);
         diffusivity = diffusion(current_x, current_t);
 
-        current_x += mu * last_step + diffusivity * normal::standard_rand::<f64>() * scale;
+        current_x += mu * last_step + diffusivity * normal::standard_rand::<T>() * scale;
 
         Ok(current_x - self.start_position)
     }
@@ -142,31 +144,30 @@ where
 /// let start_position = 0.0;
 /// let (t, x) = simulate_langevin(&drift, &diffusion, start_position, 1.0, 0.01).unwrap();
 /// ```
-pub fn simulate_langevin<D, G>(
+pub fn simulate_langevin<D, G, T: FloatExt>(
     drift: &D,
     diffusion: &G,
-    start_position: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<Pair>
+    start_position: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
 where
-    D: Fn(f64, f64) -> f64 + Send + Sync,
-    G: Fn(f64, f64) -> f64 + Send + Sync,
+    D: Fn(T, T) -> T + Send + Sync,
+    G: Fn(T, T) -> T + Send + Sync,
+    StandardNormal: Distribution<T>,
 {
     check_duration_time_step(duration, time_step)?;
 
-    let num_steps = (duration / time_step).ceil() as usize;
-
+    let num_steps = (duration / time_step).ceil().to_usize().unwrap();
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
 
-    t.push(0.0);
+    t.push(T::zero());
     x.push(start_position);
 
     let mut scale = time_step.sqrt();
-    let noises = normal::standard_rands::<f64>(num_steps - 1);
-
-    let mut current_t = 0.0;
+    let noises = normal::standard_rands::<T>(num_steps - 1);
+    let mut current_t = T::zero();
     let mut current_x = start_position;
     let mut mu;
     let mut diffusivity;
@@ -184,7 +185,7 @@ where
     scale = last_step.sqrt();
     mu = drift(current_x, current_t);
     diffusivity = diffusion(current_x, current_t);
-    current_x += mu * last_step + diffusivity * normal::standard_rand::<f64>() * scale;
+    current_x += mu * last_step + diffusivity * normal::standard_rand::<T>() * scale;
     x.push(current_x);
     t.push(duration);
 

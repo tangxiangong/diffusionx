@@ -2,6 +2,95 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.2] - 2025-11-29
+
+### 📚 Documentation
+
+- Add note about Xoshiro256++ RNG usage in README files
+
+### ⚡ Performance
+
+- Add benchmarks for random number generation across multiple distributions
+- Replace `thread_rng` with `Xoshiro256PlusPlus` RNG across all random number generators
+
+### ⚙️ Miscellaneous Tasks
+
+- Add `rand_xoshiro` dependency and configure random number generation benchmark
+- Bump version from 0.8.1 to 0.8.2
+
+## [0.8.1] - 2025-11-27
+
+### 🚀 Features
+
+- Add mimalloc as global allocator in lib.rs for improved performance
+
+### 📚 Documentation
+
+- Add dedication to README
+
+### ⚙️ Miscellaneous Tasks
+
+- Add mimalloc as global allocator for improved performance
+- Bump version from 0.8.0 to 0.8.1
+
+## [0.8.0] - 2025-11-26
+
+### 🚜 Refactor
+
+- Remove `simulate_unchecked()` method from `DiscreteProcess` trait and consolidate into `simulate()`
+
+### 📚 Documentation
+
+- Add changelog entries for versions 0.6.2, 0.6.3, and 0.7.0
+- Update README examples to use `simulate()` instead of deprecated `simulate_unchecked()`
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version from 0.7.0 to 0.8.0
+
+## [0.7.0] - 2025-11-25
+
+### 🚜 Refactor
+
+- Move native CPU optimization to build config
+- Centralize parameter validation in `simulate` and `displacement` methods
+- Optimize Langevin and OU process simulations with direct implementation and batch RNG
+- Rename `sigma` to `scale` in continuous processes
+
+### 📚 Documentation
+
+- Update README examples for API changes and feature gates
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.7.0
+
+## [0.6.3] - 2025-11-19
+
+### 🐛 Bug Fixes
+
+- Fix final step displacement in Brownian motion
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.6.3
+
+## [0.6.2] - 2025-11-19
+
+### 🚜 Refactor
+
+- Optimize Langevin simulations with on-demand RNG and FMA
+- Remove GPU infrastructure
+- Parallelize displacement calculations for multiple processes
+
+### 📚 Documentation
+
+- Fix subordinated Langevin macro docs
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.6.2
+
 ## [0.6.0] - 2025-11-17
 
 ### 🚜 Refactor

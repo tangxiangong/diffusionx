@@ -2,17 +2,17 @@
 name = "diffusionx"
 authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
 edition = "2024"
-version = "0.7.0"
-description = "A multi-threaded crate for random number generation and stochastic process simulation."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/tangxiangong/diffusionx"
-readme = "README.md"
 categories = ["science", "mathematics"]
-keywords = ["stochastic-process", "simulation", "Monte-Carlo"]
+keywords = ["stochastic-process", "simulation", "Monte-Carlo", "gpu"]
+version = "0.10.0"
+description = "A multi-threaded crate for random number generation and stochastic process simulation, with optional GPU acceleration."
+readme = "README.md"
 rust-version = "1.87"
 
 [package.metadata.docs.rs]
-all-features = true
+features = ["visualize", "io"]
 rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "./docs-header.html"]
 
 [lib]
@@ -20,6 +20,7 @@ name = "diffusionx"
 doctest = false
 
 [features]
+default = ["mimalloc"]
 visualize = [
     "dep:plotters",
     "dep:derive_builder",
@@ -27,24 +28,35 @@ visualize = [
     "dep:either",
 ]
 io = ["dep:csv"]
+cuda = ["dep:cudarc"]
+mimalloc = ["dep:mimalloc"]
+metal = ["dep:metal"]
 
 [dependencies]
 csv = { version = "1.4", optional = true }
+cudarc = { version = "0.18", optional = true, features = [
+    "std",
+    "cuda-version-from-build-system",
+    "curand",
+] }
 derive_builder = { version = "0.20", optional = true }
 either = { version = "1", optional = true }
 gauss-quad = "0.2.4"
+metal = { version = "0.32", optional = true }
+mimalloc = { version = "0.1", optional = true }
 num-complex = "0.4"
 num-traits = "0.2"
 plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }
 rand = "0.9"
 rand_distr = "0.5"
+rand_xoshiro = "0.7"
 rayon = "1.11"
 realfft = "3.5"
 thiserror = "2"
 
 [dev-dependencies]
-criterion = "0.7"
+criterion = "0.8"
 
 # Workaround for rustc ICE with scrape-examples and Unicode characters
 # See: https://github.com/rust-lang/rust/issues/147399
@@ -58,31 +70,7 @@ name = "bm"
 doc-scrape-examples = false
 
 [[example]]
-name = "bridge"
-doc-scrape-examples = false
-
-[[example]]
-name = "ctrw"
-doc-scrape-examples = false
-
-[[example]]
-name = "excursion"
-doc-scrape-examples = false
-
-[[example]]
-name = "levy"
-doc-scrape-examples = false
-
-[[example]]
-name = "levy_walk"
-doc-scrape-examples = false
-
-[[example]]
-name = "macros"
-doc-scrape-examples = false
-
-[[example]]
-name = "ou"
+name = "langevin"
 doc-scrape-examples = false
 
 [[example]]
@@ -95,5 +83,17 @@ codegen-units = 1
 panic = "abort"
 
 [[bench]]
-name = "simulation"
+name = "bm"
+harness = false
+
+[[bench]]
+name = "ou"
+harness = false
+
+[[bench]]
+name = "random"
+harness = false
+
+[[bench]]
+name = "levy"
 harness = false

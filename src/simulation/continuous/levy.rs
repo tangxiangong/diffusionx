@@ -3,25 +3,28 @@
 //! The Lévy process is a process with independent and stationary increments.
 
 use crate::{
-    SimulationError, XResult, check_duration_time_step,
+    FloatExt, SimulationError, XResult, check_duration_time_step,
     random::stable::{self, sample_standard_alpha, sample_standard_alpha_one},
     simulation::prelude::*,
 };
-use rand::rng;
+use num_traits::FloatConst;
+use rand::prelude::*;
+use rand_distr::{Exp1, uniform::SampleUniform};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Asymmetric Lévy process
 #[derive(Debug, Clone)]
-pub struct AsymmetricLevy {
+pub struct AsymmetricLevy<T: FloatExt = f64> {
     /// The starting position
-    start_position: f64,
+    start_position: T,
     /// The stability index
-    alpha: f64,
+    alpha: T,
     /// The asymmetry parameter
-    beta: f64,
+    beta: T,
 }
 
-impl AsymmetricLevy {
+impl<T: FloatExt> AsymmetricLevy<T> {
     /// Create a new `AsymmetricLevy`
     ///
     /// # Arguments
@@ -37,23 +40,16 @@ impl AsymmetricLevy {
     ///
     /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
     /// ```
-    pub fn new(
-        start_position: impl Into<f64>,
-        alpha: impl Into<f64>,
-        beta: impl Into<f64>,
-    ) -> XResult<Self> {
-        let start_position = start_position.into();
-        let alpha = alpha.into();
-        if alpha <= 0.0 || alpha > 2.0 {
+    pub fn new(start_position: T, alpha: T, beta: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha > T::from(2.0).unwrap() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 2], got {alpha}"
+                "The `alpha` must be in the range (0, 2], got {alpha:?}"
             ))
             .into());
         }
-        let beta = beta.into();
-        if !(-1.0..=1.0).contains(&beta) {
+        if !(-T::one()..=T::one()).contains(&beta) {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `beta` must be in the range [-1, 1], got {beta}"
+                "The `beta` must be in the range [-1, 1], got {beta:?}"
             ))
             .into());
         }
@@ -65,27 +61,30 @@ impl AsymmetricLevy {
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
     /// Get the stability index
-    pub fn get_alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> T {
         self.alpha
     }
 
     /// Get the asymmetry parameter
-    pub fn get_beta(&self) -> f64 {
+    pub fn get_beta(&self) -> T {
         self.beta
     }
 }
 
-impl ContinuousProcess for AsymmetricLevy {
-    fn start(&self) -> f64 {
+impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for AsymmetricLevy<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_asymmetric_levy(
             self.start_position,
             self.alpha,
@@ -95,24 +94,31 @@ impl ContinuousProcess for AsymmetricLevy {
         )
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
-        let num_steps = (duration / time_step).ceil() as usize;
-        let power = 1.0 / self.alpha;
+        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+        let power = T::one() / self.alpha;
         let scale = time_step.powf(power);
-        let generator = if self.alpha == 1.0 {
+        let generator = if self.alpha == T::one() {
             sample_standard_alpha_one
         } else {
             sample_standard_alpha
         };
         let mut delta_x = (0..num_steps - 1)
             .into_par_iter()
-            .map_init(rng, |r, _| scale * generator(self.alpha, self.beta, r))
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| scale * generator(self.alpha, self.beta, r),
+            )
             .sum();
 
-        let last_step = duration - (num_steps - 1) as f64 * time_step;
-        delta_x += generator(self.alpha, self.beta, &mut rng()) * last_step.powf(power);
+        let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
+        delta_x += generator(
+            self.alpha,
+            self.beta,
+            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+        ) * last_step.powf(power);
         Ok(delta_x)
     }
 }
@@ -135,28 +141,31 @@ impl ContinuousProcess for AsymmetricLevy {
 /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
 /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
 /// ```
-pub fn simulate_asymmetric_levy(
-    start_position: f64,
-    alpha: f64,
-    beta: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
+pub fn simulate_asymmetric_levy<T: FloatExt + FloatConst + SampleUniform>(
+    start_position: T,
+    alpha: T,
+    beta: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    Exp1: Distribution<T>,
+{
     check_duration_time_step(duration, time_step)?;
 
-    let num_steps = (duration / time_step).ceil() as usize;
-    let power = 1.0 / alpha;
+    let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+    let power = T::one() / alpha;
     let mut scale = time_step.powf(power);
     let noise = stable::standard_rands(alpha, beta, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
 
-    t.push(0.0);
+    t.push(T::zero());
     x.push(start_position);
 
     let mut current_x = start_position;
-    let mut current_t = 0.0;
+    let mut current_t = T::zero();
     for xi in noise {
         current_x += xi * scale;
         x.push(current_x);
@@ -175,14 +184,14 @@ pub fn simulate_asymmetric_levy(
 
 /// Lévy process
 #[derive(Debug, Clone)]
-pub struct Levy {
+pub struct Levy<T: FloatExt = f64> {
     /// The starting position
-    start_position: f64,
+    start_position: T,
     /// The stability index
-    alpha: f64,
+    alpha: T,
 }
 
-impl Levy {
+impl<T: FloatExt> Levy<T> {
     /// Create a new `Levy`
     ///
     /// # Arguments
@@ -197,12 +206,10 @@ impl Levy {
     ///
     /// let levy = Levy::new(0.0, 1.5).unwrap();
     /// ```
-    pub fn new(start_position: impl Into<f64>, alpha: impl Into<f64>) -> XResult<Self> {
-        let start_position = start_position.into();
-        let alpha = alpha.into();
-        if alpha <= 0.0 || alpha > 2.0 {
+    pub fn new(start_position: T, alpha: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha > T::from(2.0).unwrap() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be in the range (0, 2], got {alpha}"
+                "The `alpha` must be in the range (0, 2], got {alpha:?}"
             ))
             .into());
         }
@@ -213,44 +220,54 @@ impl Levy {
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
     /// Get the stability index
-    pub fn get_alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> T {
         self.alpha
     }
 }
 
-impl ContinuousProcess for Levy {
-    fn start(&self) -> f64 {
+impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for Levy<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_levy(self.start_position, self.alpha, duration, time_step)
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
-        let num_steps = (duration / time_step).ceil() as usize;
-        let power = 1.0 / self.alpha;
+        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+        let power = T::one() / self.alpha;
         let mut scale = time_step.powf(power);
-        let generator = if self.alpha == 1.0 {
+        let generator = if self.alpha == T::one() {
             sample_standard_alpha_one
         } else {
             sample_standard_alpha
         };
         let mut delta_x = (0..num_steps - 1)
             .into_par_iter()
-            .map_init(rng, |r, _| scale * generator(self.alpha, 0.0, r))
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| scale * generator(self.alpha, T::zero(), r),
+            )
             .sum();
 
-        let last_step = duration - (num_steps - 1) as f64 * time_step;
+        let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
         scale = last_step.powf(power);
-        delta_x += generator(self.alpha, 0.0, &mut rng()) * scale;
+        delta_x += generator(
+            self.alpha,
+            T::zero(),
+            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+        ) * scale;
         Ok(delta_x)
     }
 }
@@ -271,26 +288,29 @@ impl ContinuousProcess for Levy {
 ///
 /// let (t, x) = simulate_levy(0.0, 1.5, 1.0, 0.1).unwrap();
 /// ```
-pub fn simulate_levy(
-    start_position: f64,
-    alpha: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
+pub fn simulate_levy<T: FloatExt + FloatConst + SampleUniform>(
+    start_position: T,
+    alpha: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    Exp1: Distribution<T>,
+{
     check_duration_time_step(duration, time_step)?;
 
-    let num_steps = (duration / time_step).ceil() as usize;
-    let power = 1.0 / alpha;
+    let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+    let power = T::one() / alpha;
     let mut scale = time_step.powf(power);
     let noise = stable::sym_standard_rands(alpha, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
-    t.push(0.0);
+    t.push(T::zero());
     x.push(start_position);
 
     let mut current_x = start_position;
-    let mut current_t = 0.0;
+    let mut current_t = T::zero();
     for xi in noise {
         current_x += xi * scale;
         x.push(current_x);

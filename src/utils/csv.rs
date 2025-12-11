@@ -9,7 +9,7 @@ use std::path::Path;
 /// * `path` - The path to the CSV file
 /// * `t` - The time data
 /// * `x` - The data to write
-pub fn write_csv(path: &str, t: &[f64], x: &[f64]) -> XResult<()> {
+pub fn write_csv<T: ToString>(path: &str, t: &[T], x: &[T]) -> XResult<()> {
     ensure_output_dir(Path::new(path))?;
     let mut writer = Writer::from_path(path)?;
     t.iter().zip(x.iter()).for_each(|(t, x)| {

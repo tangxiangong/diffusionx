@@ -1,9 +1,33 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
-//!
-//! ## 简体中文
-//!
-//! 中文版本可见[这里](https://github.com/tangxiangong/diffusionx/blob/stable/README-zh.md).
+
+#[cfg_attr(feature = "mimalloc", global_allocator)]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+pub trait FloatExt:
+    num_traits::Float
+    + std::fmt::Debug
+    + Send
+    + Sync
+    + std::ops::AddAssign<Self>
+    + std::ops::MulAssign<Self>
+    + std::iter::Sum
+{
+}
+
+impl<T> FloatExt for T where
+    T: num_traits::Float
+        + std::fmt::Debug
+        + Send
+        + Sync
+        + std::ops::AddAssign<Self>
+        + std::ops::MulAssign<Self>
+        + std::iter::Sum
+{
+}
+
+pub trait IntExt: num_traits::PrimInt + std::fmt::Debug + Send + Sync + std::iter::Sum {}
+impl<T> IntExt for T where T: num_traits::PrimInt + std::fmt::Debug + Send + Sync + std::iter::Sum {}
 
 mod error;
 pub use error::*;
@@ -21,3 +45,7 @@ pub mod utils;
 #[cfg(feature = "visualize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "visualize")))]
 pub mod visualize;
+
+/// GPU acceleration module
+#[cfg(any(feature = "cuda", feature = "metal"))]
+pub mod gpu;

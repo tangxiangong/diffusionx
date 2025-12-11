@@ -1,17 +1,40 @@
 //! Brownian excursion simulation
 
 use crate::{
-    SimulationError, XResult, check_duration_time_step,
+    FloatExt, SimulationError, XResult, check_duration_time_step,
     simulation::{continuous::BrownianBridge, prelude::*},
     utils::minmax,
 };
+use rand_distr::{Distribution, StandardNormal};
 use rayon::prelude::*;
 
 /// Brownian excursion
 #[derive(Debug, Clone)]
-pub struct BrownianExcursion;
+pub struct BrownianExcursion<T: FloatExt = f64> {
+    _marker: std::marker::PhantomData<T>,
+}
 
-impl BrownianExcursion {
+impl<T: FloatExt> Default for BrownianExcursion<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T: FloatExt> BrownianExcursion<T> {
+    /// Create a new `BrownianExcursion`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use diffusionx::simulation::continuous::BrownianExcursion;
+    ///
+    /// let be = BrownianExcursion::new();
+    /// ```
+    pub fn new() -> Self {
+        Self {
+            _marker: std::marker::PhantomData,
+        }
+    }
     /// Get the first passage time of the Brownian excursion simulation
     ///
     /// # Arguments
@@ -24,12 +47,15 @@ impl BrownianExcursion {
     /// ```rust
     /// use diffusionx::simulation::continuous::BrownianExcursion;
     ///
-    /// let be = BrownianExcursion;
+    /// let be = BrownianExcursion::new();
     /// let fpt = be.fpt((-1.0, 1.0), 0.1).unwrap();
     /// ```
-    pub fn fpt(&self, domain: (f64, f64), time_step: f64) -> XResult<Option<f64>> {
+    pub fn fpt(&self, domain: (T, T), time_step: T) -> XResult<Option<T>>
+    where
+        StandardNormal: Distribution<T>,
+    {
         let (a, b) = domain;
-        let (t, x) = self.simulate(1.0, time_step)?;
+        let (t, x) = self.simulate(T::one(), time_step)?;
         if let Some(index) = x.iter().position(|&x| x <= a || x >= b) {
             Ok(Some(t[index]))
         } else {
@@ -38,17 +64,20 @@ impl BrownianExcursion {
     }
 }
 
-impl ContinuousProcess for BrownianExcursion {
-    fn start(&self) -> f64 {
-        0.0
+impl<T: FloatExt> ContinuousProcess<T> for BrownianExcursion<T>
+where
+    StandardNormal: Distribution<T>,
+{
+    fn start(&self) -> T {
+        T::zero()
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_brownian_excursion(duration, time_step)
     }
 
-    fn displacement(&self, _: f64, _: f64) -> XResult<f64> {
-        Ok(0.0)
+    fn displacement(&self, _: T, _: T) -> XResult<T> {
+        Ok(T::zero())
     }
 }
 
@@ -68,34 +97,40 @@ impl ContinuousProcess for BrownianExcursion {
 /// let duration = 1.0;
 /// let (t, x) = simulate_brownian_excursion(duration, time_step).unwrap();
 /// ```
-pub fn simulate_brownian_excursion(duration: f64, time_step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if duration > 1.0 {
+pub fn simulate_brownian_excursion<T: FloatExt>(
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    StandardNormal: Distribution<T>,
+{
+    if duration > T::one() {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `duration` must be in (0.0, 1.0], got {duration}"
+            "The `duration` must be in (0.0, 1.0], got {duration:?}."
         ))
         .into());
     }
 
     check_duration_time_step(duration, time_step)?;
 
-    let bridge = BrownianBridge;
-    let (bridge_t, bridge_traj) = bridge.simulate(1.0, time_step)?;
+    let bridge: BrownianBridge<T> = BrownianBridge::new();
+    let (bridge_t, bridge_traj) = bridge.simulate(T::one(), time_step)?;
 
     // Find the minimum value and its index within [0, 1]
     let (min_traj, _) = minmax(&bridge_traj); // Assuming minmax returns Result
 
     let min_traj_index = bridge_traj
         .iter()
-        .position(|&x| (x - min_traj).abs() < f64::EPSILON) // Use tolerance for float comparison
+        .position(|&x| (x - min_traj).abs() < T::epsilon()) // Use tolerance for float comparison
         .ok_or(SimulationError::Unknown)?;
 
     let tau_m = bridge_t[min_traj_index];
 
     let x = bridge_t
         .par_iter() // Parallelize the mapping
-        .map(|t_i| {
+        .map(|&t_i| {
             // Correct modulo calculation for tt
-            let tt = (t_i + tau_m) % 1.0;
+            let tt = (t_i + tau_m) % T::one();
 
             // Find the index in the original bridge time corresponding to tt
             // Use >= for better accuracy and handle potential errors
@@ -116,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_simulate_be() {
-        let be = BrownianExcursion;
+        let be = BrownianExcursion::new();
         let duration = 1.0;
         let time_step = 0.1;
         let (t, x) = be.simulate(duration, time_step).unwrap();
@@ -126,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_raw_moment() {
-        let be = BrownianExcursion;
+        let be = BrownianExcursion::new();
         let duration = 1.0;
         let time_step = 0.1;
         let traj = be.duration(duration).unwrap();
@@ -136,7 +171,7 @@ mod tests {
 
     #[test]
     fn test_fpt() {
-        let be = BrownianExcursion;
+        let be = BrownianExcursion::new();
         let time_step = 0.1;
         let fpt = be.fpt((-1.0, 1.0), time_step).unwrap();
         println!("fpt: {fpt:?}");
@@ -144,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_occupation_time() {
-        let be = BrownianExcursion;
+        let be = BrownianExcursion::new();
         let time_step = 0.1;
         let ot = be.occupation_time((-1.0, 1.0), 1.0, time_step).unwrap();
         println!("ot: {ot:?}");

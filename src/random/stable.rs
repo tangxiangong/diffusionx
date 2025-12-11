@@ -35,27 +35,55 @@
 //! SFB 649 Discussion Paper, No. 2005-008, Humboldt University of Berlin, Collaborative Research
 //! Center 649 - Economic Risk, Berlin](https://hdl.handle.net/10419/25027)
 
-use crate::{StableError, XResult};
-use rand::{Rng, prelude::*, rng};
-use rand_distr::Exp1;
+use crate::{FloatExt, StableError, XResult};
+use num_traits::FloatConst;
+use rand::{Rng, prelude::*};
+use rand_distr::{Exp1, uniform::SampleUniform};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
-use std::{
-    f64::consts::PI,
-    ops::{Add, Mul},
-};
+
+/// Precomputed constants for stable distribution sampling
+#[derive(Debug, Clone, Copy)]
+struct StableConstants<T: FloatExt = f64> {
+    /// 1.0 / alpha
+    inv_alpha: T,
+    /// (1.0 - alpha) / alpha
+    one_minus_alpha_div_alpha: T,
+    /// atan(beta * tan(alpha * PI/2)) / alpha
+    b: T,
+    /// (1.0 + (beta * tan(alpha * PI/2))^2)^(1/(2*alpha))
+    s: T,
+}
+
+impl<T: FloatExt + FloatConst> StableConstants<T> {
+    #[inline]
+    fn new(alpha: T, beta: T) -> Self {
+        let inv_alpha = T::one() / alpha;
+        let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
+        let tmp = beta * (alpha * T::FRAC_PI_2()).tan();
+        let b = tmp.atan() * inv_alpha;
+        let s = (T::one() + tmp * tmp).powf(T::from(0.5).unwrap() * inv_alpha);
+        Self {
+            inv_alpha,
+            b,
+            s,
+            one_minus_alpha_div_alpha,
+        }
+    }
+}
 
 /// Standard Lévy stable distribution
 ///
 /// i.e., with scale parameter 1 and location parameter 0
 #[derive(Debug, Clone)]
-pub struct StandardStable {
+pub struct StandardStable<T: FloatExt = f64> {
     /// Index of stability
-    alpha: f64,
+    alpha: T,
     /// Skewness parameter
-    beta: f64,
+    beta: T,
 }
 
-impl StandardStable {
+impl<T: FloatExt> StandardStable<T> {
     /// Create a new standard Lévy stable distribution
     ///
     /// # Arguments
@@ -70,25 +98,23 @@ impl StandardStable {
     ///
     /// let stable = StandardStable::new(0.7, 1.0).unwrap();
     /// ```
-    pub fn new(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<Self> {
-        let alpha: f64 = alpha.into();
-        let beta: f64 = beta.into();
-        if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
+    pub fn new(alpha: T, beta: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
             return Err(StableError::InvalidIndex.into());
         }
-        if !(-1.0..=1.0).contains(&beta) {
+        if !(-T::one()..=T::one()).contains(&beta) {
             return Err(StableError::InvalidSkewness.into());
         }
         Ok(Self { alpha, beta })
     }
 
     /// Get the index of stability
-    pub fn get_index(&self) -> f64 {
+    pub fn get_index(&self) -> T {
         self.alpha
     }
 
     /// Get the skewness parameter
-    pub fn get_skewness(&self) -> f64 {
+    pub fn get_skewness(&self) -> T {
         self.beta
     }
 
@@ -107,74 +133,72 @@ impl StandardStable {
     /// let samples = stable.samples(10).unwrap();
     /// println!("samples: {:?}", samples);
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: usize) -> XResult<Vec<T>>
+    where
+        T: FloatConst + SampleUniform,
+        Exp1: Distribution<T>,
+    {
         standard_rands(self.alpha, self.beta, n)
     }
 }
 
 /// Sample standard stable random number when alpha is not 1
-pub(crate) fn sample_standard_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, rng: &mut R) -> f64 {
-    let half_pi = PI / 2.0;
-    let tmp = beta * (alpha * half_pi).tan();
-    let v = rng.random_range(-half_pi..half_pi);
-    let w = rng.sample::<f64, _>(Exp1);
-    let b = tmp.atan() / alpha;
-    let s = (1.0 + tmp * tmp).powf(1.0 / (2.0 * alpha));
-    let c1 = alpha * (v + b).sin() / (v.cos()).powf(1.0 / alpha);
-    let c2 = ((v - alpha * (v + b)).cos() / w).powf((1. - alpha) / alpha);
-    s * c1 * c2
-}
-
-/// Sample stable random number from the standard version
-///
-/// # Arguments
-///
-/// * `alpha` - The index of stability.
-/// * `beta` - The skewness parameter.
-/// * `sigma` - The scale parameter.
-/// * `mu` - The location parameter.
-fn sample_alpha<R: Rng + ?Sized>(alpha: f64, beta: f64, sigma: f64, mu: f64, rng: &mut R) -> f64 {
-    let r = sample_standard_alpha(alpha, beta, rng);
-    sigma * r + mu
-}
-
-/// Sample stable random number from the standard version when alpha is 1
-///
-/// # Arguments
-///
-/// * `alpha` - The index of stability.
-/// * `beta` - The skewness parameter.
-/// * `sigma` - The scale parameter.
-/// * `mu` - The location parameter.
-fn sample_alpha_one<R: Rng + ?Sized>(
-    alpha: f64,
-    beta: f64,
-    sigma: f64,
-    mu: f64,
+pub(crate) fn sample_standard_alpha<T: FloatExt + FloatConst + SampleUniform, R: Rng + ?Sized>(
+    alpha: T,
+    beta: T,
     rng: &mut R,
-) -> f64 {
-    let r = sample_standard_alpha_one(alpha, beta, rng);
-    sigma * r + mu + 2.0 * beta * sigma * sigma * sigma.ln() / PI
+) -> T
+where
+    Exp1: Distribution<T>,
+{
+    let constants = StableConstants::new(alpha, beta);
+    sample_standard_alpha_with_constants(&constants, alpha, rng)
+}
+
+/// Sample standard stable random number with precomputed constants
+#[inline]
+fn sample_standard_alpha_with_constants<T, R: Rng + ?Sized>(
+    c: &StableConstants<T>,
+    alpha: T,
+    rng: &mut R,
+) -> T
+where
+    T: FloatExt + FloatConst + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
+    let w: T = rng.sample(Exp1);
+    let v_plus_b = v + c.b;
+    let cos_v = v.cos();
+    // alpha * sin(v + b) / cos(v)^(1/alpha)
+    let c1 = alpha * v_plus_b.sin() / cos_v.powf(c.inv_alpha);
+    // ((cos(v - alpha*(v+b)) / w))^((1-alpha)/alpha)
+    let c2 = ((v - alpha * v_plus_b).cos() / w).powf(c.one_minus_alpha_div_alpha);
+    c.s * c1 * c2
 }
 
 /// Sample standard stable random number when alpha is 1
-pub(crate) fn sample_standard_alpha_one<R: Rng + ?Sized>(
-    _alpha: f64,
-    beta: f64,
-    rng: &mut R,
-) -> f64 {
-    let half_pi = PI / 2.0;
-    let v = rng.random_range(-half_pi..half_pi);
-    let w = rng.sample::<f64, _>(Exp1);
-    let c1 = (half_pi + beta * v) * v.tan();
-    let c2 = ((half_pi * w * v.cos()) / (half_pi + beta * v)).ln() * beta;
-    2.0 * (c1 - c2) / PI
+#[inline]
+pub(crate) fn sample_standard_alpha_one<T, R: Rng + ?Sized>(_alpha: T, beta: T, rng: &mut R) -> T
+where
+    T: FloatExt + FloatConst + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
+    let w: T = rng.sample(Exp1);
+    let half_pi_plus_beta_v = T::FRAC_PI_2() + beta * v;
+    let c1 = half_pi_plus_beta_v * v.tan();
+    let c2 = ((T::FRAC_PI_2() * w * v.cos()) / half_pi_plus_beta_v).ln() * beta;
+    (c1 - c2) * T::FRAC_2_PI()
 }
 
 /// Sample from the standard Lévy stable distribution
-impl Distribution<f64> for StandardStable {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> f64 {
-        if self.alpha != 1.0 {
+impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for StandardStable<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> T {
+        if (self.alpha - T::one()).abs() > T::epsilon() {
             sample_standard_alpha(self.alpha, self.beta, rng)
         } else {
             sample_standard_alpha_one(self.alpha, self.beta, rng)
@@ -184,25 +208,25 @@ impl Distribution<f64> for StandardStable {
 
 /// Lévy stable distribution
 #[derive(Debug, Clone, Copy)]
-pub struct Stable {
+pub struct Stable<T: FloatExt = f64> {
     /// Index of stability
-    alpha: f64,
+    alpha: T,
     /// Skewness parameter
-    beta: f64,
+    beta: T,
     /// Scale parameter
-    sigma: f64,
+    sigma: T,
     /// Location parameter
-    mu: f64,
+    mu: T,
 }
 
 /// Convert a standard Lévy stable distribution to a Lévy stable distribution
-impl From<&Stable> for StandardStable {
-    fn from(stable: &Stable) -> Self {
+impl<T: FloatExt> From<&Stable<T>> for StandardStable<T> {
+    fn from(stable: &Stable<T>) -> Self {
         StandardStable::new(stable.alpha, stable.beta).unwrap()
     }
 }
 
-impl Stable {
+impl<T: FloatExt> Stable<T> {
     /// Create a new Lévy stable distribution
     ///
     /// # Arguments
@@ -219,23 +243,14 @@ impl Stable {
     ///
     /// let stable = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
     /// ```
-    pub fn new(
-        alpha: impl Into<f64>,
-        beta: impl Into<f64>,
-        sigma: impl Into<f64>,
-        mu: impl Into<f64>,
-    ) -> XResult<Self> {
-        let alpha: f64 = alpha.into();
-        let beta: f64 = beta.into();
-        let sigma: f64 = sigma.into();
-        let mu: f64 = mu.into();
-        if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
+    pub fn new(alpha: T, beta: T, sigma: T, mu: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
             return Err(StableError::InvalidIndex.into());
         }
-        if !(-1.0..=1.0).contains(&beta) {
+        if !(-T::one()..=T::one()).contains(&beta) {
             return Err(StableError::InvalidSkewness.into());
         }
-        if sigma <= 0.0 || sigma.is_nan() {
+        if sigma <= T::zero() || sigma.is_nan() {
             return Err(StableError::InvalidScale.into());
         }
         if mu.is_nan() {
@@ -250,22 +265,22 @@ impl Stable {
     }
 
     /// Get the index of stability
-    pub fn get_index(&self) -> f64 {
+    pub fn get_index(&self) -> T {
         self.alpha
     }
 
     /// Get the skewness parameter
-    pub fn get_skewness(&self) -> f64 {
+    pub fn get_skewness(&self) -> T {
         self.beta
     }
 
     /// Get the scale parameter
-    pub fn get_scale(&self) -> f64 {
+    pub fn get_scale(&self) -> T {
         self.sigma
     }
 
     /// Get the location parameter
-    pub fn get_location(&self) -> f64 {
+    pub fn get_location(&self) -> T {
         self.mu
     }
 
@@ -284,29 +299,38 @@ impl Stable {
     /// let samples = stable.samples(10).unwrap();
     /// println!("samples: {:?}", samples);
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: usize) -> XResult<Vec<T>>
+    where
+        T: FloatConst + SampleUniform,
+        Exp1: Distribution<T>,
+    {
         rands(self.alpha, self.beta, self.sigma, self.mu, n)
     }
 }
 
 /// Sample from the Lévy stable distribution
-impl Distribution<f64> for Stable {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> f64 {
+impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for Stable<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> T {
         let standard = StandardStable::from(self);
         let r = rng.sample(standard);
-        if self.alpha != 1.0 {
+        if self.alpha != T::one() {
             self.sigma * r + self.mu
         } else {
-            self.sigma * r + self.mu + 2.0 * self.beta * self.sigma * self.sigma.ln() / PI
+            self.sigma * r
+                + self.mu
+                + T::from(2).unwrap() * self.beta * self.sigma * self.sigma.ln() / T::PI()
         }
     }
 }
 
 /// Standard skew Lévy stable distribution
 #[derive(Debug, Clone, Copy)]
-pub struct StandardSkewStable(pub f64);
+pub struct StandardSkewStable<T: FloatExt = f64>(pub T);
 
-impl StandardSkewStable {
+impl<T: FloatExt> StandardSkewStable<T> {
     /// Create a new standard skew Lévy stable distribution
     ///
     /// # Arguments
@@ -320,16 +344,15 @@ impl StandardSkewStable {
     ///
     /// let stable = StandardSkewStable::new(0.7).unwrap();
     /// ```
-    pub fn new(alpha: impl Into<f64>) -> XResult<Self> {
-        let alpha: f64 = alpha.into();
-        if alpha <= 0.0 || alpha >= 1.0 || alpha.is_nan() {
+    pub fn new(alpha: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha >= T::one() || alpha.is_nan() {
             return Err(StableError::InvalidSkewIndex.into());
         }
         Ok(Self(alpha))
     }
 
     /// Get the index of stability
-    pub fn get_index(&self) -> f64 {
+    pub fn get_index(&self) -> T {
         self.0
     }
 
@@ -348,7 +371,11 @@ impl StandardSkewStable {
     /// let samples = stable.samples(10).unwrap();
     /// println!("samples: {:?}", samples);
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: usize) -> XResult<Vec<T>>
+    where
+        T: FloatConst + SampleUniform,
+        Exp1: Distribution<T>,
+    {
         skew_rands(self.0, n)
     }
 }
@@ -358,21 +385,24 @@ impl StandardSkewStable {
 /// # Panic
 ///
 /// if the skew index is invalid
-impl Distribution<f64> for StandardSkewStable {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> f64 {
+impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for StandardSkewStable<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> T {
         let alpha = self.0;
-        if alpha <= 0.0 || alpha >= 1.0 || alpha.is_nan() {
+        if alpha <= T::zero() || alpha >= T::one() || alpha.is_nan() {
             panic!("Invalid skew index");
         }
-        sample_standard_alpha(self.0, 1.0, rng)
+        sample_standard_alpha(self.0, T::one(), rng)
     }
 }
 
 /// Symmetric Lévy stable distribution
 #[derive(Debug, Clone, Copy)]
-pub struct SymmetricStandardStable(pub f64);
+pub struct SymmetricStandardStable<T: FloatExt = f64>(pub T);
 
-impl SymmetricStandardStable {
+impl<T: FloatExt> SymmetricStandardStable<T> {
     /// Create a new symmetric standard Lévy stable distribution
     ///
     /// # Arguments
@@ -386,16 +416,15 @@ impl SymmetricStandardStable {
     ///
     /// let stable = SymmetricStandardStable::new(0.7).unwrap();
     /// ```
-    pub fn new(alpha: impl Into<f64>) -> XResult<Self> {
-        let alpha: f64 = alpha.into();
-        if alpha <= 0.0 || alpha >= 2.0 || alpha.is_nan() {
+    pub fn new(alpha: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha >= T::from(2).unwrap() || alpha.is_nan() {
             return Err(StableError::InvalidSkewIndex.into());
         }
         Ok(Self(alpha))
     }
 
     /// Get the index of stability
-    pub fn get_index(&self) -> f64 {
+    pub fn get_index(&self) -> T {
         self.0
     }
 
@@ -414,7 +443,11 @@ impl SymmetricStandardStable {
     /// let samples = stable.samples(10).unwrap();
     /// println!("samples: {:?}", samples);
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<f64>> {
+    pub fn samples(&self, n: usize) -> XResult<Vec<T>>
+    where
+        T: FloatConst + SampleUniform,
+        Exp1: Distribution<T>,
+    {
         sym_standard_rands(self.0, n)
     }
 }
@@ -424,13 +457,16 @@ impl SymmetricStandardStable {
 /// # Panic
 ///
 /// if the stability index is invalid
-impl Distribution<f64> for SymmetricStandardStable {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> f64 {
+impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for SymmetricStandardStable<T>
+where
+    Exp1: Distribution<T>,
+{
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> T {
         let alpha = self.0;
-        if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
+        if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
             panic!("Invalid stability index");
         }
-        sample_standard_alpha(self.0, 0.0, rng)
+        sample_standard_alpha(self.0, T::zero(), rng)
     }
 }
 
@@ -451,9 +487,13 @@ impl Distribution<f64> for SymmetricStandardStable {
 /// let r = standard_rand(alpha, beta).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn standard_rand(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<f64> {
+pub fn standard_rand<T: FloatExt + FloatConst + SampleUniform>(alpha: T, beta: T) -> XResult<T>
+where
+    Exp1: Distribution<T>,
+{
     let standard = StandardStable::new(alpha, beta)?;
-    Ok(rng().sample(standard))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(standard))
 }
 
 /// Sample the standard Lévy stable distribution random numbers
@@ -475,24 +515,35 @@ pub fn standard_rand(alpha: impl Into<f64>, beta: impl Into<f64>) -> XResult<f64
 /// let r = standard_rands(alpha, beta, n).unwrap();
 /// println!("r: {:?}", r);
 /// ```
-pub fn standard_rands(alpha: impl Into<f64>, beta: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
-    let alpha: f64 = alpha.into();
-    let beta: f64 = beta.into();
-    if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
+pub fn standard_rands<T>(alpha: T, beta: T, n: usize) -> XResult<Vec<T>>
+where
+    T: FloatExt + FloatConst + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
         return Err(StableError::InvalidIndex.into());
     }
-    if !(-1.0..=1.0).contains(&beta) {
+    if !(-T::one()..=T::one()).contains(&beta) {
         return Err(StableError::InvalidSkewness.into());
     }
-    let generator = if alpha == 1.0 {
-        sample_standard_alpha_one
+    if (alpha - T::one()).abs() < T::epsilon() {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_one(alpha, beta, r),
+            )
+            .collect())
     } else {
-        sample_standard_alpha
-    };
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(rng, |r, _| generator(alpha, beta, r))
-        .collect())
+        let constants = StableConstants::new(alpha, beta);
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+            )
+            .collect())
+    }
 }
 
 /// Sample the Lévy stable distribution random number
@@ -516,14 +567,18 @@ pub fn standard_rands(alpha: impl Into<f64>, beta: impl Into<f64>, n: usize) -> 
 /// let r = rand(alpha, beta, sigma, mu).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn rand(
-    alpha: impl Into<f64>,
-    beta: impl Into<f64>,
-    sigma: impl Into<f64>,
-    mu: impl Into<f64>,
-) -> XResult<f64> {
+pub fn rand<T: FloatExt + FloatConst + SampleUniform>(
+    alpha: T,
+    beta: T,
+    sigma: T,
+    mu: T,
+) -> XResult<T>
+where
+    Exp1: Distribution<T>,
+{
     let levy = Stable::new(alpha, beta, sigma, mu)?;
-    Ok(rng().sample(levy))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(levy))
 }
 
 /// Sample the Lévy stable distribution random numbers
@@ -548,38 +603,49 @@ pub fn rand(
 /// let r = rands(alpha, beta, sigma, mu, n).unwrap();
 /// assert_eq!(r.len(), n);
 /// ```
-pub fn rands(
-    alpha: impl Into<f64>,
-    beta: impl Into<f64>,
-    sigma: impl Into<f64>,
-    mu: impl Into<f64>,
-    n: usize,
-) -> XResult<Vec<f64>> {
-    let alpha: f64 = alpha.into();
-    let beta: f64 = beta.into();
-    let sigma: f64 = sigma.into();
-    let mu: f64 = mu.into();
-    if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
+pub fn rands<T>(alpha: T, beta: T, sigma: T, mu: T, n: usize) -> XResult<Vec<T>>
+where
+    T: FloatExt + FloatConst + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    let two = T::from(2).unwrap();
+    if alpha <= T::zero() || alpha > two || alpha.is_nan() {
         return Err(StableError::InvalidIndex.into());
     }
-    if !(-1.0..=1.0).contains(&beta) {
+    if !(-T::one()..=T::one()).contains(&beta) {
         return Err(StableError::InvalidSkewness.into());
     }
-    if sigma <= 0.0 || sigma.is_nan() {
+    if sigma <= T::zero() || sigma.is_nan() {
         return Err(StableError::InvalidScale.into());
     }
     if mu.is_nan() {
         return Err(StableError::InvalidLocation.into());
     }
-    let generator = if alpha == 1.0 {
-        sample_alpha_one
+    if (alpha - T::one()).abs() < T::epsilon() {
+        let correction = two * beta * sigma * sigma.ln() / T::PI();
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| {
+                    let std_sample = sample_standard_alpha_one(alpha, beta, r);
+                    sigma * std_sample + mu + correction
+                },
+            )
+            .collect())
     } else {
-        sample_alpha
-    };
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(rng, |r, _| generator(alpha, beta, sigma, mu, r))
-        .collect())
+        let constants = StableConstants::new(alpha, beta);
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| {
+                    let std_sample = sample_standard_alpha_with_constants(&constants, alpha, r);
+                    sigma * std_sample + mu
+                },
+            )
+            .collect())
+    }
 }
 
 /// Sample the standard skew Lévy stable distribution random number
@@ -597,9 +663,13 @@ pub fn rands(
 /// let r = skew_rand(alpha).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn skew_rand(alpha: impl Into<f64>) -> XResult<f64> {
+pub fn skew_rand<T: FloatExt + FloatConst + SampleUniform>(alpha: T) -> XResult<T>
+where
+    Exp1: Distribution<T>,
+{
     let skew = StandardSkewStable::new(alpha)?;
-    Ok(rng().sample(skew))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(skew))
 }
 
 /// Sample the standard skew Lévy stable distribution random numbers
@@ -618,15 +688,21 @@ pub fn skew_rand(alpha: impl Into<f64>) -> XResult<f64> {
 /// let r = skew_rands(alpha, n).unwrap();
 /// println!("r: {:?}", r);
 /// ```
-pub fn skew_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
-    let alpha: f64 = alpha.into();
-    if alpha <= 0.0 || alpha >= 1.0 || alpha.is_nan() {
+pub fn skew_rands<T>(alpha: T, n: usize) -> XResult<Vec<T>>
+where
+    T: FloatExt + FloatConst + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    if alpha <= T::zero() || alpha >= T::one() || alpha.is_nan() {
         return Err(StableError::InvalidSkewIndex.into());
     }
-    let generator = sample_standard_alpha;
+    let constants = StableConstants::new(alpha, T::one());
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| generator(alpha, 1.0, r))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+        )
         .collect())
 }
 
@@ -645,9 +721,13 @@ pub fn skew_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
 /// let r = sym_standard_rand(alpha).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn sym_standard_rand(alpha: impl Into<f64>) -> XResult<f64> {
+pub fn sym_standard_rand<T: FloatExt + FloatConst + SampleUniform>(alpha: T) -> XResult<T>
+where
+    Exp1: Distribution<T>,
+{
     let sym = SymmetricStandardStable::new(alpha)?;
-    Ok(rng().sample(sym))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(sym))
 }
 
 /// Sample the symmetric standard Lévy stable distribution random numbers
@@ -667,367 +747,38 @@ pub fn sym_standard_rand(alpha: impl Into<f64>) -> XResult<f64> {
 /// let r = sym_standard_rands(alpha, n).unwrap();
 /// println!("r: {:?}", r);
 /// ```
-pub fn sym_standard_rands(alpha: impl Into<f64>, n: usize) -> XResult<Vec<f64>> {
-    let alpha: f64 = alpha.into();
-    if alpha <= 0.0 || alpha > 2.0 || alpha.is_nan() {
+pub fn sym_standard_rands<T>(alpha: T, n: usize) -> XResult<Vec<T>>
+where
+    T: FloatExt + FloatConst + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
         return Err(StableError::InvalidIndex.into());
     }
-    let generator = if alpha == 1.0 {
-        sample_standard_alpha_one
+    if (alpha - T::one()).abs() < T::epsilon() {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_one(alpha, T::zero(), r),
+            )
+            .collect())
     } else {
-        sample_standard_alpha
-    };
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(rng, |r, _| generator(alpha, 0.0, r))
-        .collect())
-}
-
-/// Add two independent Lévy stable distributions
-///
-/// # Arguments
-///
-/// * `self` - The first Lévy stable distribution
-/// * `other` - The second Lévy stable distribution
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let c = a + b;
-/// ```
-impl<T> Add<T> for Stable
-where
-    T: Into<f64>,
-{
-    type Output = Stable;
-
-    fn add(self, other: T) -> Self::Output {
-        Stable::new(self.alpha, self.beta, self.sigma, self.mu + other.into()).unwrap()
-    }
-}
-
-/// Add a Lévy stable distribution and a f64
-///
-/// # Arguments
-///
-/// * `self` - The Lévy stable distribution.
-/// * `other` - The constant.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1.0;
-/// let c = a + b;
-/// ```
-impl Add<Stable> for f64 {
-    type Output = Stable;
-
-    fn add(self, other: Stable) -> Self::Output {
-        Stable::new(other.alpha, other.beta, other.sigma, other.mu + self).unwrap()
-    }
-}
-
-/// Add a i32 and a Lévy stable distribution
-///
-/// # Arguments
-///
-/// * `self` - The i32.
-/// * `other` - The Lévy stable distribution.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = 1.0;
-/// let b = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let c = a + b;
-/// ```
-impl Add<Stable> for i32 {
-    type Output = Stable;
-
-    fn add(self, other: Stable) -> Self::Output {
-        let self_f64: f64 = self.into();
-        Stable::new(other.alpha, other.beta, other.sigma, other.mu + self_f64).unwrap()
-    }
-}
-
-/// Add a standard Lévy stable distribution and a number that can be converted to f64
-///
-/// # Arguments
-///
-/// * `self` - The standard Lévy stable distribution.
-/// * `other` - The number.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1.0;
-/// let c = a + b;
-/// ```
-impl<T> Add<T> for StandardStable
-where
-    T: Into<f64>,
-{
-    type Output = Stable;
-
-    fn add(self, other: T) -> Self::Output {
-        let other_f64: f64 = other.into();
-        Stable::new(self.alpha, self.beta, 0.0, other_f64).unwrap()
-    }
-}
-
-/// Add a standard Lévy stable distribution and a number that can be converted to f64
-///
-/// # Arguments
-///
-/// * `self` - The standard Lévy stable distribution.
-/// * `other` - The number.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1.0;
-/// let c = a + b;
-/// ```
-impl Add<StandardStable> for f64 {
-    type Output = Stable;
-    fn add(self, other: StandardStable) -> Self::Output {
-        Stable::new(other.alpha, other.beta, 0.0, self).unwrap()
-    }
-}
-
-/// Add a standard Lévy stable distribution and an i32
-///
-/// # Arguments
-///
-/// * `self` - The standard Lévy stable distribution.
-/// * `other` - The number.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1;
-/// let c = a + b;
-/// ```
-impl Add<StandardStable> for i32 {
-    type Output = Stable;
-
-    fn add(self, other: StandardStable) -> Self::Output {
-        let self_f64: f64 = self.into();
-        Stable::new(other.alpha, other.beta, 0.0, self_f64).unwrap()
-    }
-}
-
-/// Multiply a Lévy stable distribution and a number that can be converted to f64
-///
-/// # Arguments
-///
-/// * `self` - The Lévy stable distribution.
-/// * `other` - The number.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1.0;
-/// let c = a * b;
-/// ```
-impl<T> Mul<T> for Stable
-where
-    T: Into<f64>,
-{
-    type Output = Stable;
-
-    fn mul(self, other: T) -> Self::Output {
-        let other_f64: f64 = other.into();
-        let sigma: f64 = self.sigma * other_f64.abs();
-        Stable::new(self.alpha, self.beta, sigma, self.mu).unwrap()
-    }
-}
-
-/// Multiply a Lévy stable distribution and a number that can be converted to f64
-///
-/// # Arguments
-///
-/// * `self` - The Lévy stable distribution.
-/// * `other` - The number.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1.0;
-/// let c = a * b;
-/// ```
-impl Mul<Stable> for f64 {
-    type Output = Stable;
-
-    fn mul(self, other: Stable) -> Self::Output {
-        let sigma: f64 = self * other.sigma.abs();
-        Stable::new(other.alpha, other.beta, sigma, other.mu).unwrap()
-    }
-}
-
-/// Multiply a Lévy stable distribution and an i32
-///
-/// # Arguments
-///
-/// * `self` - The Lévy stable distribution.
-/// * `other` - The number.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1;
-/// let c = a * b;
-/// ```
-impl Mul<Stable> for i32 {
-    type Output = Stable;
-
-    fn mul(self, other: Stable) -> Self::Output {
-        let self_f64: f64 = self.into();
-        let sigma: f64 = self_f64 * other.sigma.abs();
-        Stable::new(other.alpha, other.beta, sigma, other.mu).unwrap()
-    }
-}
-
-/// Multiply a standard Lévy stable distribution and a number that can be converted to f64
-///
-/// # Arguments
-///
-/// * `self` - The standard Lévy stable distribution.
-/// * `other` - The number.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1.0;
-/// let c = a * b;
-/// ```
-impl<T> Mul<T> for StandardStable
-where
-    T: Into<f64>,
-{
-    type Output = Stable;
-
-    fn mul(self, other: T) -> Self::Output {
-        let other_f64: f64 = other.into();
-        Stable::new(self.alpha, self.beta, other_f64, 0.0).unwrap()
-    }
-}
-
-/// Multiply a standard Lévy stable distribution and a number that can be converted to f64
-///
-/// # Arguments
-///
-/// * `self` - The standard Lévy stable distribution.
-/// * `other` - The number.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1.0;
-/// let c = a * b;
-/// ```
-impl Mul<StandardStable> for f64 {
-    type Output = Stable;
-    fn mul(self, other: StandardStable) -> Self::Output {
-        Stable::new(other.alpha, other.beta, self, 0.0).unwrap()
-    }
-}
-
-/// Multiply a standard Lévy stable distribution and an i32
-///
-/// # Arguments
-///
-/// * `self` - The standard Lévy stable distribution.
-/// * `other` - The number.
-///
-/// # Example
-///
-/// ```rust
-/// use diffusionx::random::stable::Stable;
-///
-/// let a = Stable::new(0.7, 1.0, 1.0, 0.0).unwrap();
-/// let b = 1;
-/// let c = a * b;
-/// ```
-impl Mul<StandardStable> for i32 {
-    type Output = Stable;
-
-    fn mul(self, other: StandardStable) -> Self::Output {
-        let self_f64: f64 = self.into();
-        Stable::new(other.alpha, other.beta, self_f64, 0.0).unwrap()
-    }
-}
-
-/// Zolotariev's (M)-parameterization from mu to mu0
-///
-/// # Arguments
-///
-/// * `alpha` - The index of stability.
-/// * `beta` - The skewness parameter.
-/// * `sigma` - The scale parameter.
-/// * `mu0` - The parameter of the Zolotariev's (M)-parameterization.
-#[allow(dead_code)]
-fn zolotariev(alpha: f64, beta: f64, sigma: f64, mu0: f64) -> f64 {
-    if alpha != 1.0 {
-        mu0 - beta * sigma * (PI * alpha / 2.0).tan()
-    } else {
-        mu0 - beta * sigma * 2.0 * sigma.ln() / PI
-    }
-}
-
-/// Zolotariev's (M)-parameterization from mu to mu0
-///
-/// # Arguments
-///
-/// * `alpha` - The index of stability.
-/// * `beta` - The skewness parameter.
-/// * `sigma` - The scale parameter.
-/// * `mu` - The location parameter.
-#[allow(dead_code)]
-fn zolotariev_inv(alpha: f64, beta: f64, sigma: f64, mu: f64) -> f64 {
-    if alpha != 1.0 {
-        mu + beta * sigma * (PI * alpha / 2.0).tan()
-    } else {
-        mu + beta * sigma * 2.0 * sigma.ln() / PI
+        let constants = StableConstants::new(alpha, T::zero());
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+            )
+            .collect())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use num_traits::Float;
     use rand::rng;
 
     #[test]
@@ -1037,7 +788,10 @@ mod tests {
         let mut rng = rng();
         let standard = StandardStable::new(alpha, beta).unwrap();
         let r = rng.sample(standard);
-        assert!(r.is_finite())
+        assert!(r.is_finite());
+        let standard = StandardStable::new(alpha as f32, beta as f32).unwrap();
+        let r = rng.sample(standard);
+        assert!(r.is_finite());
     }
 
     #[test]

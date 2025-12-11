@@ -9,33 +9,27 @@
 //! \end{cases}
 //! $$
 
-use crate::{XError, XResult};
-use num_traits::float::Float;
-use rand::{prelude::*, rng};
+use crate::{FloatExt, XError, XResult};
+use rand::prelude::*;
 use rand_distr::{Exp, Exp1};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Exponential distribution with rate parameter $\lambda$
 #[derive(Debug, Clone)]
-pub struct Exponential<T: Float + Send + Sync = f64>
-where
-    Exp1: Distribution<T>,
-{
+pub struct Exponential<T: FloatExt = f64> {
     /// rate parameter
     lambda: T,
 }
 
 /// Default value for the exponential distribution
-impl Default for Exponential {
+impl<T: FloatExt> Default for Exponential<T> {
     fn default() -> Self {
-        Self { lambda: 1.0 }
+        Self { lambda: T::one() }
     }
 }
 
-impl<T: Float + Send + Sync> Exponential<T>
-where
-    Exp1: Distribution<T>,
-{
+impl<T: FloatExt> Exponential<T> {
     /// Create a new exponential distribution with a given rate parameter $\lambda$
     ///
     /// # Arguments
@@ -49,13 +43,10 @@ where
     ///
     /// let exp = Exponential::new(2.0).unwrap();
     /// ```
-    pub fn new(lambda: T) -> XResult<Self>
-    where
-        T: std::fmt::Display,
-    {
+    pub fn new(lambda: T) -> XResult<Self> {
         if lambda <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "The rate parameter `lambda` must be greater than 0, got {lambda}"
+                "The rate parameter `lambda` must be greater than 0, got {lambda:?}"
             )));
         }
         Ok(Self { lambda })
@@ -80,7 +71,10 @@ where
     /// let exp = Exponential::new(2.0).unwrap();
     /// let randoms = exp.samples(10).unwrap();
     /// ```
-    pub fn samples(&self, n: usize) -> XResult<Vec<T>> {
+    pub fn samples(&self, n: usize) -> XResult<Vec<T>>
+    where
+        Exp1: Distribution<T>,
+    {
         if self.lambda == T::one() {
             Ok(standard_rands(n))
         } else {
@@ -98,11 +92,12 @@ where
 ///
 /// let random = standard_rand::<f64>();
 /// ```
-pub fn standard_rand<T: Float + Send + Sync>() -> T
+pub fn standard_rand<T: FloatExt>() -> T
 where
     Exp1: Distribution<T>,
 {
-    rng().sample(Exp1)
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    rng.sample(Exp1)
 }
 
 /// Generate a vector of standard exponential random numbers
@@ -118,14 +113,17 @@ where
 ///
 /// let randoms = standard_rands::<f64>(10);
 /// ```
-pub fn standard_rands<T: Float + Send + Sync>(n: usize) -> Vec<T>
+pub fn standard_rands<T: FloatExt>(n: usize) -> Vec<T>
 where
     Exp1: Distribution<T>,
 {
     let dist = Exp1;
     (0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(dist))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(dist),
+        )
         .collect()
 }
 
@@ -142,12 +140,13 @@ where
 ///
 /// let random = rand(1.0).unwrap();
 /// ```
-pub fn rand<T: Float + Send + Sync>(lambda: T) -> XResult<T>
+pub fn rand<T: FloatExt>(lambda: T) -> XResult<T>
 where
     Exp1: Distribution<T>,
 {
     let exp = Exp::new(lambda)?;
-    Ok(rng().sample(exp))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(exp))
 }
 
 /// Generate a vector of exponential random numbers
@@ -164,14 +163,17 @@ where
 ///
 /// let randoms = rands(1.0, 10).unwrap();
 /// ```
-pub fn rands<T: Float + Send + Sync>(lambda: T, n: usize) -> XResult<Vec<T>>
+pub fn rands<T: FloatExt>(lambda: T, n: usize) -> XResult<Vec<T>>
 where
     Exp1: Distribution<T>,
 {
     let exp = Exp::new(lambda)?;
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(exp))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(exp),
+        )
         .collect())
 }
 
@@ -179,6 +181,7 @@ where
 mod tests {
     use super::*;
     use crate::utils::calculate_stats;
+    use num_traits::Float;
 
     #[test]
     fn test_standard_rand() {

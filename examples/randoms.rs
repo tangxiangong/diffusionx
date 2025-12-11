@@ -13,13 +13,13 @@ fn main() {
 
     // Example of Exponential Distribution
     let exponential = Exponential::new(2.0).unwrap();
-    let exponential_samples = exponential.samples(10);
+    let exponential_samples = exponential.samples(10).unwrap();
 
     println!("Exponential Distribution (λ=2) samples: {exponential_samples:?}");
 
     // Example of Poisson Distribution
     let poisson = Poisson::new(5.0).unwrap();
-    let poisson_samples = poisson.samples(10);
+    let poisson_samples = poisson.samples::<u32>(10).unwrap();
 
     println!("Poisson Distribution (λ=5) samples: {poisson_samples:?}");
 

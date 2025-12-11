@@ -1,32 +1,31 @@
 //! Normal random number generation
 //! For other stable distributions, see [crate::random::stable].
 
-use crate::{XError, XResult};
-use num_traits::float::Float;
-use rand::{prelude::*, rng};
+use crate::{FloatExt, XError, XResult};
+use rand::prelude::*;
 use rand_distr::StandardNormal;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
-use std::ops::{Add, Mul, Neg, Sub};
 
 /// Normal distribution
 #[derive(Debug, Clone)]
-pub struct Normal<T: Float + Send + Sync = f64> {
+pub struct Normal<T: FloatExt = f64> {
     /// mean
     mu: T,
     /// standard deviation
     sigma: T,
 }
 
-impl Default for Normal {
+impl<T: FloatExt> Default for Normal<T> {
     fn default() -> Self {
         Self {
-            mu: 0.0,
-            sigma: 1.0,
+            mu: T::zero(),
+            sigma: T::one(),
         }
     }
 }
 
-impl<T: Float + Send + Sync> Normal<T> {
+impl<T: FloatExt> Normal<T> {
     /// Create a new normal distribution with a given mean and standard deviation
     ///
     /// # Arguments
@@ -43,13 +42,10 @@ impl<T: Float + Send + Sync> Normal<T> {
     /// let sigma = 2.0;
     /// let normal = Normal::new(mu, sigma).unwrap();
     /// ```
-    pub fn new(mu: T, sigma: T) -> XResult<Self>
-    where
-        T: std::fmt::Display,
-    {
+    pub fn new(mu: T, sigma: T) -> XResult<Self> {
         if sigma <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "The standard deviation `sigma` must be greater than 0, got {sigma}"
+                "The standard deviation `sigma` must be greater than 0, got {sigma:?}"
             )));
         }
         Ok(Self { mu, sigma })
@@ -91,97 +87,6 @@ impl<T: Float + Send + Sync> Normal<T> {
     }
 }
 
-impl<T: Float + Send + Sync> Neg for Normal<T> {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        Self {
-            mu: -self.mu,
-            sigma: self.sigma,
-        }
-    }
-}
-
-impl<T: Float + Send + Sync> Add for Normal<T> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        let sigma = (self.sigma * self.sigma + rhs.sigma * rhs.sigma).sqrt();
-        Self {
-            mu: self.mu + rhs.mu,
-            sigma,
-        }
-    }
-}
-
-impl<T: Float + Send + Sync> Sub for Normal<T> {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        self + (-rhs)
-    }
-}
-
-impl<T: Float + Send + Sync> Mul<T> for Normal<T> {
-    type Output = Self;
-
-    fn mul(self, rhs: T) -> Self::Output {
-        Self {
-            mu: self.mu * rhs,
-            sigma: self.sigma * rhs.abs(),
-        }
-    }
-}
-
-impl Mul<Normal> for f64 {
-    type Output = Normal;
-
-    fn mul(self, rhs: Normal) -> Self::Output {
-        Self::Output {
-            mu: self * rhs.mu,
-            sigma: self.abs() * rhs.sigma,
-        }
-    }
-}
-
-impl<T: Send + Sync + Float> Add<T> for Normal<T> {
-    type Output = Self;
-
-    fn add(self, rhs: T) -> Self::Output {
-        Self {
-            mu: self.mu + rhs,
-            sigma: self.sigma,
-        }
-    }
-}
-
-impl Add<Normal> for f64 {
-    type Output = Normal;
-
-    fn add(self, rhs: Normal) -> Self::Output {
-        Self::Output {
-            mu: self + rhs.mu,
-            sigma: rhs.sigma,
-        }
-    }
-}
-
-impl<T: Send + Sync + Float> Sub<T> for Normal<T> {
-    type Output = Self;
-
-    fn sub(self, rhs: T) -> Self::Output {
-        self + (-rhs)
-    }
-}
-
-impl Sub<Normal> for f64 {
-    type Output = Normal;
-
-    fn sub(self, rhs: Normal) -> Self::Output {
-        self + (-rhs)
-    }
-}
-
 /// Generate a standard normal random number
 ///
 /// # Example
@@ -191,11 +96,12 @@ impl Sub<Normal> for f64 {
 ///
 /// let random = standard_rand::<f64>();
 /// ```
-pub fn standard_rand<T: Float + Send + Sync>() -> T
+pub fn standard_rand<T: FloatExt>() -> T
 where
     StandardNormal: Distribution<T>,
 {
-    rng().sample(rand_distr::StandardNormal)
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    rng.sample(rand_distr::StandardNormal)
 }
 
 /// Generate a vector of standard normal random numbers
@@ -207,14 +113,17 @@ where
 ///
 /// let randoms = standard_rands::<f64>(10);
 /// ```
-pub fn standard_rands<T: Float + Send + Sync>(n: usize) -> Vec<T>
+pub fn standard_rands<T: FloatExt>(n: usize) -> Vec<T>
 where
     StandardNormal: Distribution<T>,
 {
     let dist = rand_distr::StandardNormal;
     (0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(dist))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(dist),
+        )
         .collect()
 }
 
@@ -232,12 +141,13 @@ where
 ///
 /// let random = rand(0.0, 1.0).unwrap();
 /// ```
-pub fn rand<T: Float + Send + Sync>(mean: T, std_dev: T) -> XResult<T>
+pub fn rand<T: FloatExt>(mean: T, std_dev: T) -> XResult<T>
 where
     StandardNormal: Distribution<T>,
 {
     let normal = rand_distr::Normal::new(mean, std_dev)?;
-    Ok(rng().sample(normal))
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    Ok(rng.sample(normal))
 }
 
 /// Generate a vector of normal random numbers
@@ -255,14 +165,17 @@ where
 ///
 /// let randoms = rands(0.0, 1.0, 10).unwrap();
 /// ```
-pub fn rands<T: Float + Send + Sync>(mean: T, std_dev: T, n: usize) -> XResult<Vec<T>>
+pub fn rands<T: FloatExt>(mean: T, std_dev: T, n: usize) -> XResult<Vec<T>>
 where
     StandardNormal: Distribution<T>,
 {
     let normal = rand_distr::Normal::new(mean, std_dev)?;
     Ok((0..n)
         .into_par_iter()
-        .map_init(rng, |r, _| r.sample(normal))
+        .map_init(
+            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+            |r, _| r.sample(normal),
+        )
         .collect())
 }
 
@@ -270,6 +183,7 @@ where
 mod tests {
     use super::*;
     use crate::utils::calculate_stats;
+    use num_traits::Float;
 
     #[test]
     fn test_standard_rand() {

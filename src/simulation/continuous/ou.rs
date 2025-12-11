@@ -1,6 +1,7 @@
 //! Ornstein-Uhlenbeck process simulation
 
-use crate::{XResult, check_duration_time_step, random::normal, simulation::prelude::*};
+use crate::{FloatExt, XResult, check_duration_time_step, random::normal, simulation::prelude::*};
+use rand_distr::{Distribution, StandardNormal};
 
 /// Ornstein–Uhlenbeck process
 ///
@@ -8,16 +9,26 @@ use crate::{XResult, check_duration_time_step, random::normal, simulation::prelu
 ///
 /// where $W(t)$ is the Wiener process, also called Brownian motion.
 #[derive(Debug, Clone)]
-pub struct OrnsteinUhlenbeck {
+pub struct OrnsteinUhlenbeck<T: FloatExt = f64> {
     /// The parameter controlling the strength of mean reversion.
-    theta: f64,
+    theta: T,
     /// The diffusion coefficient controlling the noise intensity.
-    sigma: f64,
+    sigma: T,
     /// The starting position.
-    start_position: f64,
+    start_position: T,
 }
 
-impl OrnsteinUhlenbeck {
+impl<T: FloatExt> Default for OrnsteinUhlenbeck<T> {
+    fn default() -> Self {
+        Self {
+            theta: T::one(),
+            sigma: T::one(),
+            start_position: T::zero(),
+        }
+    }
+}
+
+impl<T: FloatExt> OrnsteinUhlenbeck<T> {
     /// Create a new `OrnsteinUhlenbeck`
     ///
     /// # Arguments
@@ -33,8 +44,7 @@ impl OrnsteinUhlenbeck {
     ///
     /// let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
     /// ```
-    pub fn new(theta: f64, sigma: f64, start_position: impl Into<f64>) -> XResult<Self> {
-        let start_position = start_position.into();
+    pub fn new(theta: T, sigma: T, start_position: T) -> XResult<Self> {
         Ok(Self {
             theta,
             sigma,
@@ -43,27 +53,30 @@ impl OrnsteinUhlenbeck {
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 
     /// Get the parameter controlling the strength of mean reversion
-    pub fn get_theta(&self) -> f64 {
+    pub fn get_theta(&self) -> T {
         self.theta
     }
 
     /// Get the diffusion coefficient
-    pub fn get_sigma(&self) -> f64 {
+    pub fn get_sigma(&self) -> T {
         self.sigma
     }
 }
 
-impl ContinuousProcess for OrnsteinUhlenbeck {
-    fn start(&self) -> f64 {
+impl<T: FloatExt> ContinuousProcess<T> for OrnsteinUhlenbeck<T>
+where
+    StandardNormal: Distribution<T>,
+{
+    fn start(&self) -> T {
         self.start_position
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_ou(
             self.theta,
             self.sigma,
@@ -73,27 +86,27 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
         )
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
-        let num_steps = (duration / time_step).ceil() as usize;
+        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
 
         let mut scale = time_step.sqrt();
 
         let mut current_x = self.start_position;
         let mut mu;
 
-        let noises = normal::standard_rands::<f64>(num_steps - 1);
+        let noises = normal::standard_rands::<T>(num_steps - 1);
 
         for xi in noises {
             mu = -self.theta * current_x;
             current_x += mu * time_step + self.sigma * xi * scale;
         }
 
-        let last_step = duration - (num_steps - 1) as f64 * time_step;
+        let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
         scale = last_step.sqrt();
         mu = -self.theta * current_x;
-        current_x += mu * last_step + self.sigma * normal::standard_rand::<f64>() * scale;
+        current_x += mu * last_step + self.sigma * normal::standard_rand::<T>() * scale;
 
         Ok(current_x - self.start_position)
     }
@@ -122,30 +135,33 @@ impl ContinuousProcess for OrnsteinUhlenbeck {
 ///
 /// let (t, x) = simulate_ou(1.0, 1.0, 0.0, 1.0, 0.01).unwrap();
 /// ```
-pub fn simulate_ou(
-    theta: f64,
-    sigma: f64,
-    start_position: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<Pair> {
+pub fn simulate_ou<T: FloatExt>(
+    theta: T,
+    sigma: T,
+    start_position: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    StandardNormal: Distribution<T>,
+{
     check_duration_time_step(duration, time_step)?;
 
-    let num_steps = (duration / time_step).ceil() as usize;
+    let num_steps = (duration / time_step).ceil().to_usize().unwrap();
 
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
 
-    t.push(0.0);
+    t.push(T::zero());
     x.push(start_position);
 
     let mut scale = time_step.sqrt();
 
-    let mut current_t = 0.0;
+    let mut current_t = T::zero();
     let mut current_x = start_position;
     let mut mu;
 
-    let noises = normal::standard_rands::<f64>(num_steps - 1);
+    let noises = normal::standard_rands::<T>(num_steps - 1);
 
     for xi in noises {
         mu = -theta * current_x;
@@ -158,7 +174,7 @@ pub fn simulate_ou(
     let last_step = duration - current_t;
     scale = last_step.sqrt();
     mu = -theta * current_x;
-    current_x += mu * last_step + sigma * normal::standard_rand::<f64>() * scale;
+    current_x += mu * last_step + sigma * normal::standard_rand::<T>() * scale;
     x.push(current_x);
     t.push(duration);
 
@@ -194,7 +210,6 @@ mod tests {
     fn test_raw_moment() {
         let ou = OrnsteinUhlenbeck::new(1.0, 1.0, 0.0).unwrap();
         let _raw_moment = ou.raw_moment(1.0, 1, 1000, 0.01).unwrap();
-        // 由于随机过程的特性，这里不做具体数值断言
     }
 
     #[test]

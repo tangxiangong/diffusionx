@@ -1,10 +1,12 @@
 //! Gamma process simulation
 
 use crate::{
-    SimulationError, XError, XResult, check_duration_time_step, random::gamma,
+    FloatExt, SimulationError, XError, XResult, check_duration_time_step, random::gamma,
     simulation::prelude::*,
 };
-use rand::{Rng, rng};
+use rand::prelude::*;
+use rand_distr::{Distribution, Exp1, Open01, StandardNormal};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Gamma process
@@ -13,14 +15,14 @@ use rayon::prelude::*;
 ///
 /// A Gamma process is a process that is non-negative and has a non-decreasing sample path with a Gamma distribution.
 #[derive(Debug, Clone)]
-pub struct Gamma {
+pub struct Gamma<T: FloatExt = f64> {
     /// The shape parameter
-    shape: f64,
+    shape: T,
     /// The rate parameter
-    rate: f64,
+    rate: T,
 }
 
-impl Gamma {
+impl<T: FloatExt> Gamma<T> {
     /// Create a new `Gamma`
     ///
     /// # Arguments
@@ -35,18 +37,16 @@ impl Gamma {
     ///
     /// let gamma = Gamma::new(0.5, 1.0).unwrap();
     /// ```
-    pub fn new(shape: impl Into<f64>, rate: impl Into<f64>) -> XResult<Self> {
-        let shape = shape.into();
-        let rate = rate.into();
-        if shape <= 0.0 {
+    pub fn new(shape: T, rate: T) -> XResult<Self> {
+        if shape <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `shape` must be positive, got {shape}"
+                "The `shape` must be positive, got {shape:?}"
             ))
             .into());
         }
-        if rate <= 0.0 {
+        if rate <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `rate` must be positive, got {rate}"
+                "The `rate` must be positive, got {rate:?}"
             ))
             .into());
         }
@@ -54,38 +54,46 @@ impl Gamma {
     }
 
     /// Get the shape parameter
-    pub fn get_shape(&self) -> f64 {
+    pub fn get_shape(&self) -> T {
         self.shape
     }
 
     /// Get the rate parameter
-    pub fn get_rate(&self) -> f64 {
+    pub fn get_rate(&self) -> T {
         self.rate
     }
 }
 
-impl ContinuousProcess for Gamma {
-    fn start(&self) -> f64 {
-        0.0
+impl<T: FloatExt> ContinuousProcess<T> for Gamma<T>
+where
+    StandardNormal: Distribution<T>,
+    Exp1: Distribution<T>,
+    Open01: Distribution<T>,
+{
+    fn start(&self) -> T {
+        T::zero()
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_gamma(self.shape, self.rate, duration, time_step)
     }
 
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
-        let num_steps = (duration / time_step).ceil() as usize;
-        let scale = 1.0 / self.rate;
+        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+        let scale = T::one() / self.rate;
         let gamma = rand_distr::Gamma::new(self.shape, scale)
             .map_err(|e| XError::InvalidParameters(e.to_string()))?;
         let mut delta_x = (0..num_steps - 1)
             .into_par_iter()
-            .map_init(rng, |r, _| r.sample(gamma))
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(gamma),
+            )
             .sum();
 
-        let last_step = duration - ((num_steps - 1) as f64 * time_step);
+        let last_step = duration - (T::from(num_steps - 1).unwrap() * time_step);
         delta_x += gamma::rand(self.shape * last_step, scale)?;
 
         Ok(delta_x)
@@ -112,27 +120,32 @@ impl ContinuousProcess for Gamma {
 /// let time_step = 0.1;
 /// let (t, x) = simulate_gamma(shape, rate, duration, time_step).unwrap();
 /// ```
-pub fn simulate_gamma(
-    shape: f64,
-    rate: f64,
-    duration: f64,
-    time_step: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
+pub fn simulate_gamma<T: FloatExt>(
+    shape: T,
+    rate: T,
+    duration: T,
+    time_step: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    StandardNormal: Distribution<T>,
+    Exp1: Distribution<T>,
+    Open01: Distribution<T>,
+{
     check_duration_time_step(duration, time_step)?;
 
-    let num_steps = (duration / time_step).ceil() as usize;
+    let num_steps = (duration / time_step).ceil().to_usize().unwrap();
 
-    let scale = 1.0 / rate;
+    let scale = T::one() / rate;
     let noise = gamma::rands(shape * time_step, scale, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
 
-    t.push(0.0);
-    x.push(0.0);
+    t.push(T::zero());
+    x.push(T::zero());
 
-    let mut current_x = 0.0;
-    let mut current_t = 0.0;
+    let mut current_x = T::zero();
+    let mut current_t = T::zero();
     for xi in noise {
         current_t += time_step;
         t.push(current_t);
