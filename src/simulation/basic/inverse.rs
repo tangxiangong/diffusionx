@@ -1,6 +1,6 @@
 use crate::{
-    SimulationError, XResult, check_duration_time_step,
-    simulation::prelude::{ContinuousProcess, Pair},
+    FloatExt, SimulationError, XResult, check_duration_time_step,
+    simulation::prelude::ContinuousProcess,
 };
 
 /// Inverse process of a continuous process
@@ -11,30 +11,35 @@ use crate::{
 ///
 ///
 #[derive(Debug, Clone)]
-pub struct InverseProcess<'a, T: ContinuousProcess> {
+pub struct InverseProcess<'a, CP: ContinuousProcess<T>, T: FloatExt = f64> {
     /// The process
-    process: &'a T,
+    process: &'a CP,
+    _marker: std::marker::PhantomData<T>,
 }
 
-impl<'a, T: ContinuousProcess> InverseProcess<'a, T> {
+impl<'a, CP: ContinuousProcess<T>, T: FloatExt> InverseProcess<'a, CP, T> {
     /// Create a new inverse process with given process
     ///
     /// # Arguments
     ///
     /// * `process` - The continuous process
-    pub fn new(process: &'a T) -> Self {
-        Self { process }
+    pub fn new(process: &'a CP) -> Self {
+        Self {
+            process,
+            _marker: std::marker::PhantomData,
+        }
     }
 
     /// Get the process
-    pub fn get_process(&self) -> &'a T {
+    pub fn get_process(&self) -> &'a CP {
         self.process
     }
 }
 
-impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
-    fn displacement(&self, duration: f64, time_step: f64) -> XResult<f64> {
+impl<'a, CP: ContinuousProcess<T>, T: FloatExt> ContinuousProcess<T> for InverseProcess<'a, CP, T> {
+    fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         let mut mut_duration = duration;
+        let two = T::from(2).unwrap();
         let (t, s) = loop {
             let (t, s) = self.process.simulate(mut_duration, time_step)?;
             let last = match s.last() {
@@ -44,7 +49,7 @@ impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
             if last >= duration {
                 break (t, s);
             }
-            mut_duration *= 2.0;
+            mut_duration *= two;
         };
 
         let target_time = duration;
@@ -60,7 +65,7 @@ impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
         };
         let end = t[pos];
 
-        let target_time = 0.0;
+        let target_time = T::zero();
         let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {
             Ok(idx) => idx,
             Err(idx) => {
@@ -77,12 +82,9 @@ impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
         Ok(end - start)
     }
 
-    fn start(&self) -> f64 {
-        panic!("Not implemented")
-    }
-
-    fn end(&self, duration: f64, time_step: f64) -> XResult<f64> {
+    fn end(&self, duration: T, time_step: T) -> XResult<T> {
         let mut mut_duration = duration;
+        let two = T::from(2).unwrap();
         let (t, s) = loop {
             let (t, s) = self.process.simulate(mut_duration, time_step)?;
             let last = match s.last() {
@@ -92,7 +94,7 @@ impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
             if last >= duration {
                 break (t, s);
             }
-            mut_duration *= 2.0;
+            mut_duration *= two;
         };
 
         let target_time = duration;
@@ -106,14 +108,40 @@ impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
                 }
             }
         };
-        let end = t[pos];
-
-        Ok(end)
+        Ok(t[pos])
     }
 
-    fn simulate(&self, duration: f64, time_step: f64) -> XResult<Pair> {
-        check_duration_time_step(duration, time_step)?;
+    fn start(&self) -> T {
+        let duration = T::from(1).unwrap();
+        let time_step = T::from(0.01).unwrap();
+        let mut mut_duration = T::from(1).unwrap();
+        let two = T::from(2).unwrap();
+        let (t, s) = loop {
+            let (t, s) = self.process.simulate(mut_duration, time_step).unwrap();
+            let last = *s.last().unwrap();
+            if last >= duration {
+                break (t, s);
+            }
+            mut_duration *= two;
+        };
 
+        let target_time = T::zero();
+        let pos = match s.binary_search_by(|&x| x.partial_cmp(&target_time).unwrap()) {
+            Ok(idx) => idx,
+            Err(idx) => {
+                if idx >= s.len() {
+                    s.len() - 1
+                } else {
+                    idx
+                }
+            }
+        };
+        t[pos]
+    }
+
+    fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)> {
+        check_duration_time_step(duration, time_step)?;
+        let two = T::from(2).unwrap();
         let mut mut_duration = duration;
         let (t, s) = loop {
             let (t, s) = self.process.simulate(mut_duration, time_step)?;
@@ -124,19 +152,14 @@ impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
             if last >= duration {
                 break (t, s);
             }
-            mut_duration *= 2.0;
+            mut_duration *= two;
         };
 
-        let num_steps = (duration / time_step).ceil() as usize;
-        let inv_times: Vec<f64> = (0..=num_steps)
-            .map(|i| {
-                if i == num_steps {
-                    duration
-                } else {
-                    i as f64 * time_step
-                }
-            })
+        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
+        let mut inv_times: Vec<_> = (0..=num_steps)
+            .map(|i| T::from(i).unwrap() * time_step)
             .collect();
+        *inv_times.last_mut().unwrap() = duration;
 
         let mut inv_path = Vec::with_capacity(inv_times.len());
 
@@ -160,9 +183,9 @@ impl<'a, T: ContinuousProcess> ContinuousProcess for InverseProcess<'a, T> {
 }
 
 /// The inverse process trait
-pub trait Inverse: ContinuousProcess {
+pub trait Inverse<T: FloatExt>: ContinuousProcess<T> {
     /// Create a new `InverseProcess`
-    fn inverse(&self) -> InverseProcess<'_, Self>
+    fn inverse(&self) -> InverseProcess<'_, Self, T>
     where
         Self: Sized,
     {
