@@ -26,6 +26,9 @@ impl<T> FloatExt for T where
 {
 }
 
+pub trait IntExt: num_traits::PrimInt + std::fmt::Debug + Send + Sync + std::iter::Sum {}
+impl<T> IntExt for T where T: num_traits::PrimInt + std::fmt::Debug + Send + Sync + std::iter::Sum {}
+
 mod error;
 pub use error::*;
 

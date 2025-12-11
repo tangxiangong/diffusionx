@@ -1,23 +1,26 @@
 //! Poisson distribution random number generation
 
-use crate::{XError, XResult};
+use crate::{FloatExt, IntExt, XError, XResult};
+use num_traits::FloatConst;
 use rand::prelude::*;
+use rand_distr::{Exp1, StandardNormal, StandardUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
+#[derive(Debug, Clone)]
 /// Poisson distribution
-pub struct Poisson {
+pub struct Poisson<T: FloatExt = f64> {
     /// rate parameter, must be greater than 0
-    lambda: f64,
+    lambda: T,
 }
 
-impl Default for Poisson {
+impl<T: FloatExt> Default for Poisson<T> {
     fn default() -> Self {
-        Self { lambda: 1.0 }
+        Self { lambda: T::one() }
     }
 }
 
-impl Poisson {
+impl<T: FloatExt> Poisson<T> {
     /// Create a new Poisson distribution with a given rate parameter
     ///
     /// # Arguments
@@ -32,23 +35,28 @@ impl Poisson {
     /// let lambda = 1.0;
     /// let poisson = Poisson::new(lambda).unwrap();
     /// ```
-    pub fn new(lambda: impl Into<f64>) -> XResult<Self> {
-        let lambda = lambda.into();
-        if lambda <= 0.0 {
+    pub fn new(lambda: T) -> XResult<Self> {
+        if lambda <= T::zero() {
             return Err(XError::InvalidParameters(format!(
-                "The rate parameter `lambda` must be greater than 0, got {lambda}"
+                "The rate parameter `lambda` must be greater than 0, got {lambda:?}"
             )));
         }
         Ok(Self { lambda })
     }
 
     /// Get the rate parameter
-    pub fn get_lambda(&self) -> f64 {
+    pub fn get_lambda(&self) -> T {
         self.lambda
     }
 
     /// Generate a vector of Poisson random numbers
-    pub fn samples(&self, n: usize) -> XResult<Vec<usize>> {
+    pub fn samples<U: IntExt>(&self, n: usize) -> XResult<Vec<U>>
+    where
+        T: FloatConst,
+        StandardUniform: Distribution<T>,
+        Exp1: Distribution<T>,
+        StandardNormal: Distribution<T>,
+    {
         rands(self.lambda, n)
     }
 }
@@ -66,11 +74,15 @@ impl Poisson {
 ///
 /// let random = rand(1.0).unwrap();
 /// ```
-pub fn rand(lambda: impl Into<f64>) -> XResult<usize> {
-    let lambda: f64 = lambda.into();
+pub fn rand<T: FloatExt + FloatConst, U: IntExt>(lambda: T) -> XResult<U>
+where
+    StandardUniform: Distribution<T>,
+    Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
+{
     let poisson = rand_distr::Poisson::new(lambda)?;
     let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
-    Ok(rng.sample(poisson) as usize)
+    Ok(U::from(rng.sample(poisson)).unwrap())
 }
 
 /// Generate a vector of Poisson random numbers
@@ -87,14 +99,18 @@ pub fn rand(lambda: impl Into<f64>) -> XResult<usize> {
 ///
 /// let randoms = rands(1.0, 10).unwrap();
 /// ```
-pub fn rands(lambda: impl Into<f64>, n: usize) -> XResult<Vec<usize>> {
-    let lambda: f64 = lambda.into();
+pub fn rands<T: FloatExt + FloatConst, U: IntExt>(lambda: T, n: usize) -> XResult<Vec<U>>
+where
+    StandardUniform: Distribution<T>,
+    Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
+{
     let poisson = rand_distr::Poisson::new(lambda)?;
     Ok((0..n)
         .into_par_iter()
         .map_init(
             || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.sample(poisson) as usize,
+            |r, _| U::from(r.sample(poisson)).unwrap(),
         )
         .collect())
 }
@@ -106,12 +122,12 @@ mod tests {
 
     #[test]
     fn test_rand() {
-        let _random = rand(1.0).unwrap();
+        let _random = rand::<_, usize>(1.0).unwrap();
     }
 
     #[test]
     fn test_rands() {
-        let randoms = rands(1.0, 10).unwrap();
+        let randoms = rands::<_, usize>(1.0, 10).unwrap();
         assert_eq!(randoms.len(), 10);
     }
 
