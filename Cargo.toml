@@ -70,15 +70,7 @@ name = "bm"
 doc-scrape-examples = false
 
 [[example]]
-name = "bridge"
-doc-scrape-examples = false
-
-[[example]]
 name = "ctrw"
-doc-scrape-examples = false
-
-[[example]]
-name = "excursion"
 doc-scrape-examples = false
 
 [[example]]
