@@ -17,7 +17,7 @@ pub trait Visualize {
     fn plot(&self, config: &PlotConfig) -> XResult<()>;
 }
 
-impl<CP: ContinuousProcess + Clone> Visualize for ContinuousTrajectory<CP> {
+impl<CP: ContinuousProcess<T> + Clone, T: FloatExt> Visualize for ContinuousTrajectory<CP, T> {
     /// Plot the continuous trajectory.
     ///
     /// # Arguments
@@ -25,7 +25,10 @@ impl<CP: ContinuousProcess + Clone> Visualize for ContinuousTrajectory<CP> {
     /// * `config`: The configuration for the plot.
     fn plot(&self, config: &PlotConfig) -> XResult<()> {
         ensure_output_dir(&config.output_path)?;
-        let traj = self.simulate(config.time_step)?;
+        let (t, x) = self.simulate(T::from(config.time_step).unwrap())?;
+        let t_new = t.iter().map(|&v| v.to_f64().unwrap()).collect::<Vec<f64>>();
+        let x_new = x.iter().map(|&v| v.to_f64().unwrap()).collect::<Vec<f64>>();
+        let traj = (t_new, x_new);
         match config.backend {
             PlotterBackend::BitMap => {
                 let path = svg2png(&config.output_path)?;
@@ -85,11 +88,19 @@ impl<P: PointProcess> Visualize for PointTrajectory<P> {
 /// let config = PlotConfig::default();
 /// plot(&times, &positions, &config).unwrap();
 /// ```
-pub fn plot(times: &[f64], positions: &[f64], config: &PlotConfig) -> XResult<()> {
+pub fn plot<T: FloatExt>(times: &[T], positions: &[T], config: &PlotConfig) -> XResult<()> {
     let max_time = *times.last().unwrap();
     let (min_x, max_x) = minmax(positions);
-    let meta = (max_time, min_x, max_x);
-    let points: Vec<(f64, f64)> = times.iter().zip(positions).map(|(&t, &x)| (t, x)).collect();
+    let meta = (
+        max_time.to_f64().unwrap(),
+        min_x.to_f64().unwrap(),
+        max_x.to_f64().unwrap(),
+    );
+    let points: Vec<(f64, f64)> = times
+        .iter()
+        .zip(positions)
+        .map(|(&t, &x)| (t.to_f64().unwrap(), x.to_f64().unwrap()))
+        .collect();
     match config.backend {
         PlotterBackend::BitMap => {
             let path = svg2png(&config.output_path)?;
@@ -120,11 +131,19 @@ pub fn plot(times: &[f64], positions: &[f64], config: &PlotConfig) -> XResult<()
 /// let config = PlotConfig::default();
 /// loglog(&times, &positions, &config).unwrap();
 /// ```
-pub fn loglog(times: &[f64], positions: &[f64], config: &PlotConfig) -> XResult<()> {
+pub fn loglog<T: FloatExt>(times: &[T], positions: &[T], config: &PlotConfig) -> XResult<()> {
     let max_time = *times.last().unwrap();
     let (min_x, max_x) = minmax(positions);
-    let meta = (max_time, min_x, max_x);
-    let points: Vec<(f64, f64)> = times.iter().zip(positions).map(|(&t, &x)| (t, x)).collect();
+    let meta = (
+        max_time.to_f64().unwrap(),
+        min_x.to_f64().unwrap(),
+        max_x.to_f64().unwrap(),
+    );
+    let points: Vec<(f64, f64)> = times
+        .iter()
+        .zip(positions)
+        .map(|(&t, &x)| (t.to_f64().unwrap(), x.to_f64().unwrap()))
+        .collect();
     match config.backend {
         PlotterBackend::BitMap => {
             let path = svg2png(&config.output_path)?;
