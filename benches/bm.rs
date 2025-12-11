@@ -33,6 +33,19 @@ fn criterion_benchmark(c: &mut Criterion) {
                 .unwrap();
         })
     });
+
+    #[cfg(feature = "metal")]
+    c.bench_function("bm-msd-metal-f32", |b| {
+        b.iter(|| {
+            let _ = bm
+                .msd_gpu(
+                    black_box(duration),
+                    black_box(particles),
+                    black_box(time_step),
+                )
+                .unwrap();
+        })
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);
