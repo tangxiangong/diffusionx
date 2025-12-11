@@ -70,23 +70,7 @@ name = "bm"
 doc-scrape-examples = false
 
 [[example]]
-name = "ctrw"
-doc-scrape-examples = false
-
-[[example]]
-name = "levy"
-doc-scrape-examples = false
-
-[[example]]
-name = "levy_walk"
-doc-scrape-examples = false
-
-[[example]]
-name = "macros"
-doc-scrape-examples = false
-
-[[example]]
-name = "ou"
+name = "langevin"
 doc-scrape-examples = false
 
 [[example]]
