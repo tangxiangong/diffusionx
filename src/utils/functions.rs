@@ -110,24 +110,6 @@ pub fn float_eq<T: FloatExt>(a: T, b: T) -> bool {
     approx_eq(a, b, T::epsilon())
 }
 
-/// Evaluate a polynomial using the Horner method
-///
-/// # Arguments
-///
-/// * `x` - The value of the independent variable
-/// * `arr` - The coefficients of the polynomial
-///
-/// # Example
-///
-/// ```
-/// use diffusionx::utils::eval_poly;
-///
-/// let y = eval_poly(0.5, &[16., 0., 20., 0., 5., 0.]); // 6th first-kind Chebyshev polynomial
-/// ```
-pub fn eval_poly(x: f64, arr: &[f64]) -> f64 {
-    arr.iter().fold(0.0, |acc, &a| acc * x + a)
-}
-
 /// find max value and min value in a &\[f64\]
 pub fn minmax<T: FloatExt>(arr: &[T]) -> (T, T) {
     arr.iter()
@@ -434,24 +416,6 @@ mod tests {
     fn test_approx_eq() {
         assert_ne!(0.1 + 0.2, 0.3);
         assert!(float_eq(0.1 + 0.2, 0.3));
-    }
-    #[test]
-    fn test_eval_poly() {
-        let arr = [
-            0.3198453915289723,
-            0.9076227501539942,
-            0.40138509410337553,
-            0.9088787482769067,
-            0.7563007138750291,
-        ];
-        let x = 0.35625260496659283;
-        let result = eval_poly(x, &arr);
-        assert!(approx_eq(result, 1.1772226211231838, 1.0e-5));
-        assert!(approx_eq(
-            eval_poly(2.7172900350129723, &[4., 2., 9., 8.]),
-            127.47717934998103,
-            1.0e-5,
-        ));
     }
 
     #[test]
