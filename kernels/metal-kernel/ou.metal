@@ -32,33 +32,33 @@ inline void simulate(device float* t, device float* x, float start_position,
                         ulong seed, uint idx) {
     float current_x = start_position;
     float current_t = 0.0f;
-    
+
     t[0] = current_t;
     x[0] = current_x;
-    
+
     float scale = sqrt(sigma * time_step);
     uint num_steps = uint(ceil(duration / time_step));
-    
+
     PhiloxState state = philox_init(seed, idx);
-    
+
     float mu;
     float xi;
-    
+
     for (uint i = 0; i < num_steps - 1; ++i) {
         mu = -theta * current_x;
         xi = philox_normal(state);
         current_x += mu * time_step + scale * xi;
         current_t += time_step;
-        
+
         t[i + 1] = current_t;
         x[i + 1] = current_x;
     }
-    
+
     float last_step = duration - current_t;
     xi = philox_normal(state);
     mu = -theta * current_x;
     current_x += mu * last_step + sqrt(sigma * last_step) * xi;
-    
+
     t[num_steps] = duration;
     x[num_steps] = current_x;
 }
@@ -69,26 +69,26 @@ inline void simulate(device float* t, device float* x, float start_position,
 inline float end(float start_position, float theta, float sigma,
                     float duration, float time_step, ulong seed, uint idx) {
     float current_x = start_position;
-    
+
     float scale = sqrt(sigma * time_step);
     uint num_steps = uint(ceil(duration / time_step));
-    
+
     PhiloxState state = philox_init(seed, idx);
-    
+
     float mu;
     float xi;
-    
+
     for (uint i = 0; i < num_steps - 1; ++i) {
         mu = -theta * current_x;
         xi = philox_normal(state);
         current_x += mu * time_step + scale * xi;
     }
-    
+
     float last_step = duration - float(num_steps - 1) * time_step;
     xi = philox_normal(state);
     mu = -theta * current_x;
     current_x += mu * last_step + sqrt(sigma * last_step) * xi;
-    
+
     return current_x - start_position;
 }
 
@@ -107,15 +107,15 @@ kernel void mean(device atomic_float* out [[buffer(0)]],
                     uint tg_size [[threads_per_threadgroup]],
                     uint idx [[thread_position_in_grid]],
                     threadgroup float* simd_sums [[threadgroup(0)]]) {
-    
+
     float val = 0.0f;
-    
+
     if (idx < particles) {
         val = end(start_position, theta, sigma, duration, time_step, seed, idx);
     }
-    
+
     float block_sum = threadgroup_reduce_sum(val, simd_sums, tid, tg_size);
-    
+
     if (tid == 0) {
         atomic_fetch_add_explicit(out, block_sum, memory_order_relaxed);
     }
@@ -136,16 +136,16 @@ kernel void msd(device atomic_float* out [[buffer(0)]],
                    uint tg_size [[threads_per_threadgroup]],
                    uint idx [[thread_position_in_grid]],
                    threadgroup float* simd_sums [[threadgroup(0)]]) {
-    
+
     float val = 0.0f;
-    
+
     if (idx < particles) {
         float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
         val = (end_position - start_position) * (end_position - start_position);
     }
-    
+
     float block_sum = threadgroup_reduce_sum(val, simd_sums, tid, tg_size);
-    
+
     if (tid == 0) {
         atomic_fetch_add_explicit(out, block_sum, memory_order_relaxed);
     }
@@ -167,16 +167,16 @@ kernel void raw_moment(device atomic_float* out [[buffer(0)]],
                           uint tg_size [[threads_per_threadgroup]],
                           uint idx [[thread_position_in_grid]],
                           threadgroup float* simd_sums [[threadgroup(0)]]) {
-    
+
     float val = 0.0f;
-    
+
     if (idx < particles) {
         float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
         val = powi(end_position, order);
     }
-    
+
     float block_sum = threadgroup_reduce_sum(val, simd_sums, tid, tg_size);
-    
+
     if (tid == 0) {
         atomic_fetch_add_explicit(out, block_sum, memory_order_relaxed);
     }
@@ -199,16 +199,16 @@ kernel void central_moment(device atomic_float* out [[buffer(0)]],
                               uint tg_size [[threads_per_threadgroup]],
                               uint idx [[thread_position_in_grid]],
                               threadgroup float* simd_sums [[threadgroup(0)]]) {
-    
+
     float val = 0.0f;
-    
+
     if (idx < particles) {
         float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
         val = powi(end_position - mean, order);
     }
-    
+
     float block_sum = threadgroup_reduce_sum(val, simd_sums, tid, tg_size);
-    
+
     if (tid == 0) {
         atomic_fetch_add_explicit(out, block_sum, memory_order_relaxed);
     }
@@ -230,16 +230,16 @@ kernel void frac_raw_moment(device atomic_float* out [[buffer(0)]],
                                uint tg_size [[threads_per_threadgroup]],
                                uint idx [[thread_position_in_grid]],
                                threadgroup float* simd_sums [[threadgroup(0)]]) {
-    
+
     float val = 0.0f;
-    
+
     if (idx < particles) {
         float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
         val = pow(abs(end_position), order);
     }
-    
+
     float block_sum = threadgroup_reduce_sum(val, simd_sums, tid, tg_size);
-    
+
     if (tid == 0) {
         atomic_fetch_add_explicit(out, block_sum, memory_order_relaxed);
     }
@@ -262,16 +262,16 @@ kernel void frac_central_moment(device atomic_float* out [[buffer(0)]],
                                    uint tg_size [[threads_per_threadgroup]],
                                    uint idx [[thread_position_in_grid]],
                                    threadgroup float* simd_sums [[threadgroup(0)]]) {
-    
+
     float val = 0.0f;
-    
+
     if (idx < particles) {
         float end_position = end(start_position, theta, sigma, duration, time_step, seed, idx);
         val = pow(abs(end_position - mean), order);
     }
-    
+
     float block_sum = threadgroup_reduce_sum(val, simd_sums, tid, tg_size);
-    
+
     if (tid == 0) {
         atomic_fetch_add_explicit(out, block_sum, memory_order_relaxed);
     }
