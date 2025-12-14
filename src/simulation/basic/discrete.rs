@@ -1,5 +1,4 @@
-use super::{DiscretePair, Moment};
-use crate::{SimulationError, XResult};
+use crate::{SimulationError, XResult, simulation::prelude::Moment};
 
 /// Discrete process trait
 pub trait DiscreteProcess: Send + Sync {
@@ -31,7 +30,7 @@ pub trait DiscreteProcess: Send + Sync {
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the simulation.
-    fn simulate(&self, num_step: usize) -> XResult<DiscretePair>;
+    fn simulate(&self, num_step: usize) -> XResult<(Vec<usize>, Vec<f64>)>;
 
     /// Get the mean of the discrete process
     ///
@@ -168,7 +167,7 @@ impl<SP: DiscreteProcess + Clone> DiscreteTrajectory<SP> {
     }
 
     /// Simulate method
-    pub fn simulate(&self) -> XResult<DiscretePair> {
+    pub fn simulate(&self) -> XResult<(Vec<usize>, Vec<f64>)> {
         self.sp.simulate(self.num_step)
     }
 }

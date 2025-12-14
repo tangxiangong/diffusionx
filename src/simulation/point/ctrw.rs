@@ -126,7 +126,7 @@ impl PointProcess for CTRW {
     /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = ctrw.simulate_with_step(1000).unwrap();
     /// ```
-    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
+    fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
         simulate_ctrw_with_step(self.alpha, self.beta, num_step, self.start_position)
     }
 }

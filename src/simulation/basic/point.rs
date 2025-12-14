@@ -1,7 +1,6 @@
-use super::{Moment, Pair};
 use crate::{
     SimulationError, XResult,
-    simulation::prelude::{FirstPassageTime, OccupationTime},
+    simulation::prelude::{FirstPassageTime, Moment, OccupationTime},
 };
 use std::sync::Arc;
 
@@ -48,7 +47,7 @@ pub trait PointProcess: Send + Sync {
     /// # Arguments
     ///
     /// * `duration` - The duration of the simulation.
-    fn simulate_with_duration(&self, duration: f64) -> XResult<Pair>
+    fn simulate_with_duration(&self, duration: f64) -> XResult<(Vec<f64>, Vec<f64>)>
     where
         Self: Sized,
     {
@@ -201,7 +200,7 @@ pub trait PointProcess: Send + Sync {
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the simulation.
-    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair>;
+    fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)>;
 }
 
 /// Point process trajectory
@@ -297,7 +296,7 @@ impl<SP: PointProcess> PointTrajectory<SP> {
     }
 
     /// Simulate the trajectory with duration
-    pub fn simulate_with_duration(&self) -> XResult<Pair> {
+    pub fn simulate_with_duration(&self) -> XResult<(Vec<f64>, Vec<f64>)> {
         if self.duration.is_none() {
             return Err(SimulationError::InvalidParameters(
                 "The `duration` must be provided".to_string(),
@@ -315,7 +314,7 @@ impl<SP: PointProcess> PointTrajectory<SP> {
     }
 
     /// Simulate with number of steps
-    pub fn simulate_with_step(&self) -> XResult<Pair> {
+    pub fn simulate_with_step(&self) -> XResult<(Vec<f64>, Vec<f64>)> {
         if self.num_step.is_none() {
             return Err(SimulationError::InvalidParameters(
                 "num_step must be provided".to_string(),

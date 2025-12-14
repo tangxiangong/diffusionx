@@ -13,9 +13,6 @@
 //! - PointTrajectory [PointTrajectory]
 //! - TAMSD [TAMSD]
 
-pub type Pair = (Vec<f64>, Vec<f64>);
-pub type DiscretePair = (Vec<usize>, Vec<f64>);
-
 mod continuous;
 pub use continuous::*;
 

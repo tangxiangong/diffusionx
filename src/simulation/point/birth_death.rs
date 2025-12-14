@@ -84,7 +84,7 @@ impl PointProcess for BirthDeath {
     /// let birth_death = BirthDeath::new(1.0, 1.0).unwrap();
     /// let (t, x) = birth_death.simulate_with_step(100).unwrap();
     /// ```
-    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
+    fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
         simulate_birth_death_with_step(self.lambda, self.mu, num_step)
     }
 }
@@ -104,7 +104,11 @@ impl PointProcess for BirthDeath {
 ///
 /// let (t, x) = simulate_birth_death_with_step(1.0, 1.0, 100).unwrap();
 /// ```
-pub fn simulate_birth_death_with_step(lambda: f64, mu: f64, num_step: usize) -> XResult<Pair> {
+pub fn simulate_birth_death_with_step(
+    lambda: f64,
+    mu: f64,
+    num_step: usize,
+) -> XResult<(Vec<f64>, Vec<f64>)> {
     if lambda <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
             "The `lambda` must be greater than 0, got {lambda}"
@@ -148,7 +152,11 @@ pub fn simulate_birth_death_with_step(lambda: f64, mu: f64, num_step: usize) -> 
 ///
 /// let (t, x) = simulate_birth_death_with_duration(1.0, 1.0, 100.0).unwrap();
 /// ```
-pub fn simulate_birth_death_with_duration(lambda: f64, mu: f64, duration: f64) -> XResult<Pair> {
+pub fn simulate_birth_death_with_duration(
+    lambda: f64,
+    mu: f64,
+    duration: f64,
+) -> XResult<(Vec<f64>, Vec<f64>)> {
     if lambda <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
             "The `lambda` must be greater than 0, got {lambda}"

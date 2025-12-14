@@ -59,7 +59,7 @@ impl PointProcess for Poisson {
     /// let poisson = Poisson::new(1.0).unwrap();
     /// let (t, x) = poisson.simulate_with_step(1000).unwrap();
     /// ```
-    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
+    fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
         simulate_poisson_with_step(self.lambda, num_step)
     }
 }
@@ -78,7 +78,7 @@ impl PointProcess for Poisson {
 ///
 /// let (t, x) = simulate_poisson_with_step(1.0, 1000).unwrap();
 /// ```
-pub fn simulate_poisson_with_step(lambda: f64, num_step: usize) -> XResult<Pair> {
+pub fn simulate_poisson_with_step(lambda: f64, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
     if lambda <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
             "The `lambda` must be greater than 0, got {lambda}"
@@ -105,7 +105,7 @@ pub fn simulate_poisson_with_step(lambda: f64, num_step: usize) -> XResult<Pair>
 ///
 /// let (t, x) = simulate_poisson_with_duration(1.0, 100.0).unwrap();
 /// ```
-pub fn simulate_poisson_with_duration(lambda: f64, duration: f64) -> XResult<Pair> {
+pub fn simulate_poisson_with_duration(lambda: f64, duration: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
     if lambda <= 0.0 {
         return Err(SimulationError::InvalidParameters(format!(
             "The `lambda` must be greater than 0, got {lambda}"
