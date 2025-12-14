@@ -20,21 +20,21 @@ name = "diffusionx"
 doctest = false
 
 [features]
-default = ["mimalloc"]
+default = ["mimalloc", "io", "visualize"]
+cuda = ["dep:cudarc"]
+mimalloc = ["dep:mimalloc"]
+metal = ["dep:metal"]
+io = ["dep:csv"]
 visualize = [
     "dep:plotters",
     "dep:derive_builder",
     "dep:plotters-backend",
     "dep:either",
 ]
-io = ["dep:csv"]
-cuda = ["dep:cudarc"]
-mimalloc = ["dep:mimalloc"]
-metal = ["dep:metal"]
 
 [dependencies]
 csv = { version = "1.4", optional = true }
-cudarc = { version = "0.18.2", optional = true, features = [
+cudarc = { version = "0.18", optional = true, features = [
     "cuda-version-from-build-system",
 ] }
 derive_builder = { version = "0.20", optional = true }
