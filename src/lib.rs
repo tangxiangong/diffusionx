@@ -39,7 +39,6 @@ pub trait RealExt:
     + Sync
     + Copy
     + PartialOrd
-    + Neg<Output = Self>
     + std::iter::Sum
 {
 }
@@ -52,14 +51,11 @@ impl<T> RealExt for T where
         + Sync
         + Copy
         + PartialOrd
-        + Neg<Output = Self>
         + std::iter::Sum
 {
 }
 
 mod error;
-use std::ops::Neg;
-
 pub use error::*;
 
 /// Random number generation module
