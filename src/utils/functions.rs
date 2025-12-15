@@ -14,7 +14,7 @@
 //! - `calculate_bool_mean`: Calculate the mean of a boolean array.
 //!
 
-use crate::{FloatExt, XError, XResult};
+use crate::{FloatExt, RealExt, XError, XResult};
 use num_traits::Num;
 #[cfg(feature = "visualize")]
 use std::path::Path;
@@ -310,7 +310,11 @@ pub fn linear_interpolate<T: FloatExt>(t: &[T], x: &[T], step: T) -> XResult<(Ve
 /// * `t` - The time points (must be strictly monotonically increasing)
 /// * `x` - The corresponding values
 /// * `step` - The step size for the output time sequence (must be positive)
-pub fn flatten_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+pub fn flatten_interpolate<T: FloatExt, X: RealExt>(
+    t: &[T],
+    x: &[X],
+    step: T,
+) -> XResult<(Vec<T>, Vec<X>)> {
     if t.len() != x.len() {
         return Err(XError::Other(
             "t and x must have the same length".to_string(),
@@ -323,7 +327,7 @@ pub fn flatten_interpolate(t: &[f64], x: &[f64], step: f64) -> XResult<(Vec<f64>
         ));
     }
 
-    if step <= 0.0 {
+    if step <= T::zero() {
         return Err(XError::Other("step must be positive".to_string()));
     }
 
