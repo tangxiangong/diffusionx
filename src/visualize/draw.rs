@@ -1,5 +1,5 @@
 use crate::{
-    XError, XResult,
+    RealExt, XError, XResult,
     simulation::prelude::*,
     utils::{ensure_output_dir, minmax},
     visualize::{PlotConfig, PlotterBackend, set_config},
@@ -44,11 +44,17 @@ impl<CP: ContinuousProcess<T> + Clone, T: FloatExt> Visualize for ContinuousTraj
     }
 }
 
-impl<P: PointProcess> Visualize for PointTrajectory<P> {
+impl<P: PointProcess<T, V> + Clone, T: RealExt, V: FloatExt> Visualize
+    for PointTrajectory<P, T, V>
+{
     /// Plot the point trajectory.
     fn plot(&self, config: &PlotConfig) -> XResult<()> {
         ensure_output_dir(&config.output_path)?;
-        let traj = self.simulate_with_duration()?;
+        let (t, x) = self.simulate_with_duration()?;
+        let t_new = t.iter().map(|&v| v.to_f64().unwrap()).collect::<Vec<f64>>();
+        let x_new = x.iter().map(|&v| v.to_f64().unwrap()).collect::<Vec<f64>>();
+        let traj = (t_new, x_new);
+
         match config.backend {
             PlotterBackend::BitMap => {
                 let path = svg2png(&config.output_path)?;

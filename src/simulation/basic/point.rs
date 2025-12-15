@@ -1,16 +1,18 @@
 use crate::{
-    SimulationError, XResult,
+    FloatExt, RealExt, SimulationError, XResult,
     simulation::prelude::{FirstPassageTime, Moment, OccupationTime},
 };
-use std::sync::Arc;
 
 /// Point process trait
-pub trait PointProcess: Send + Sync {
+///
+/// `T`: The type of the position (default: f64)
+/// `V`: The type of the time (default: f64)
+pub trait PointProcess<T: RealExt = f64, V: FloatExt = f64>: Send + Sync {
     /// Get the starting position
-    fn start(&self) -> f64;
+    fn start(&self) -> T;
 
     /// Get the ending position
-    fn end(&self, duration: f64) -> XResult<f64> {
+    fn end(&self, duration: V) -> XResult<T> {
         Ok(self.start() + self.displacement(duration)?)
     }
 
@@ -19,15 +21,15 @@ pub trait PointProcess: Send + Sync {
     /// # Arguments
     ///
     /// * `duration` - The duration of the simulation.
-    fn displacement(&self, duration: f64) -> XResult<f64> {
-        let mut num_step = duration.ceil() as usize;
+    fn displacement(&self, duration: V) -> XResult<T> {
+        let mut num_step = duration.ceil().to_usize().unwrap();
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;
             if t.last().is_none() {
                 return Err(SimulationError::Unknown.into());
             }
             let end_time = *t.last().unwrap();
-            if end_time >= duration {
+            if V::from(end_time).unwrap() >= duration {
                 break (t, x);
             }
             num_step *= 2;
@@ -47,11 +49,11 @@ pub trait PointProcess: Send + Sync {
     /// # Arguments
     ///
     /// * `duration` - The duration of the simulation.
-    fn simulate_with_duration(&self, duration: f64) -> XResult<(Vec<f64>, Vec<f64>)>
+    fn simulate_with_duration(&self, duration: V) -> XResult<(Vec<V>, Vec<T>)>
     where
         Self: Sized,
     {
-        let mut num_step = duration.ceil() as usize;
+        let mut num_step = duration.ceil().to_usize().unwrap();
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;
             if t.last().is_none() {
@@ -64,8 +66,8 @@ pub trait PointProcess: Send + Sync {
             num_step *= 2;
         };
         let index = t.iter().position(|&time| time >= duration).unwrap();
-        let mut t_ = vec![0.0; index + 1];
-        let mut x_ = vec![0.0; index + 1];
+        let mut t_ = vec![V::zero(); index + 1];
+        let mut x_ = vec![T::zero(); index + 1];
         t_[..index].copy_from_slice(&t[..index]);
         x_[..index].copy_from_slice(&x[..index]);
         if t[index] > duration {
@@ -85,9 +87,9 @@ pub trait PointProcess: Send + Sync {
     ///
     /// * `duration` - The duration of the simulation.
     /// * `particles` - The number of particles.
-    fn mean(&self, duration: f64, particles: usize) -> XResult<f64>
+    fn mean(&self, duration: V, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + PointTrajectoryTrait,
+        Self: Sized + Clone + PointTrajectoryTrait<T, V>,
     {
         let traj = self.duration(duration)?;
         traj.raw_moment(1, particles, 0.1)
@@ -99,9 +101,9 @@ pub trait PointProcess: Send + Sync {
     ///
     /// * `duration` - The duration of the simulation.
     /// * `particles` - The number of particles.
-    fn msd(&self, duration: f64, particles: usize) -> XResult<f64>
+    fn msd(&self, duration: V, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + PointTrajectoryTrait,
+        Self: Sized + Clone + PointTrajectoryTrait<T, V>,
     {
         let traj = self.duration(duration)?;
         traj.msd(particles, 0.1)
@@ -114,9 +116,9 @@ pub trait PointProcess: Send + Sync {
     /// * `duration` - The duration of the simulation.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn raw_moment(&self, duration: f64, order: i32, particles: usize) -> XResult<f64>
+    fn raw_moment(&self, duration: V, order: i32, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + PointTrajectoryTrait,
+        Self: Sized + Clone + PointTrajectoryTrait<T, V>,
     {
         let traj = self.duration(duration)?;
         traj.raw_moment(order, particles, 0.1)
@@ -129,9 +131,9 @@ pub trait PointProcess: Send + Sync {
     /// * `duration` - The duration of the simulation.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn central_moment(&self, duration: f64, order: i32, particles: usize) -> XResult<f64>
+    fn central_moment(&self, duration: V, order: i32, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + PointTrajectoryTrait,
+        Self: Sized + Clone + PointTrajectoryTrait<T, V>,
     {
         let traj = self.duration(duration)?;
         traj.central_moment(order, particles, 0.1)
@@ -144,9 +146,9 @@ pub trait PointProcess: Send + Sync {
     /// * `duration` - The duration of the simulation.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn frac_raw_moment(&self, duration: f64, order: f64, particles: usize) -> XResult<f64>
+    fn frac_raw_moment(&self, duration: V, order: f64, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + PointTrajectoryTrait,
+        Self: Sized + Clone + PointTrajectoryTrait<T, V>,
     {
         let traj = self.duration(duration)?;
         traj.frac_raw_moment(order, particles, 0.1)
@@ -159,9 +161,9 @@ pub trait PointProcess: Send + Sync {
     /// * `duration` - The duration of the simulation.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn frac_central_moment(&self, duration: f64, order: f64, particles: usize) -> XResult<f64>
+    fn frac_central_moment(&self, duration: V, order: f64, particles: usize) -> XResult<f64>
     where
-        Self: Sized + Clone + PointTrajectoryTrait,
+        Self: Sized + Clone + PointTrajectoryTrait<T, V>,
     {
         let traj = self.duration(duration)?;
         traj.frac_central_moment(order, particles, 0.1)
@@ -173,9 +175,9 @@ pub trait PointProcess: Send + Sync {
     ///
     /// * `domain` - The domain which the first passage time is interested in.
     /// * `max_duration` - The maximum duration of the simulation. If the process does not exit the domain before the maximum duration, the function returns None.
-    fn fpt(&self, domain: (f64, f64), max_duration: f64) -> XResult<Option<f64>>
+    fn fpt(&self, domain: (T, T), max_duration: V) -> XResult<Option<V>>
     where
-        Self: Sized,
+        Self: Sized + Clone,
     {
         let fpt = FirstPassageTime::new(self, domain)?;
         fpt.simulate_p(max_duration)
@@ -187,9 +189,9 @@ pub trait PointProcess: Send + Sync {
     ///
     /// * `domain` - The domain which the occupation time is interested in.
     /// * `duration` - The duration of the simulation.
-    fn occupation_time(&self, domain: (f64, f64), duration: f64) -> XResult<f64>
+    fn occupation_time(&self, domain: (T, T), duration: V) -> XResult<V>
     where
-        Self: Sized,
+        Self: Sized + Clone,
     {
         let ot = OccupationTime::new(self, domain, duration)?;
         ot.simulate_p()
@@ -200,30 +202,30 @@ pub trait PointProcess: Send + Sync {
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the simulation.
-    fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)>;
+    fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<V>, Vec<T>)>;
 }
 
 /// Point process trajectory
 #[derive(Debug, Clone)]
-pub struct PointTrajectory<SP: PointProcess> {
+pub struct PointTrajectory<SP: PointProcess<T, V> + Clone, T: RealExt = f64, V: FloatExt = f64> {
     /// The point process
-    pub(crate) sp: Arc<SP>,
+    pub(crate) sp: SP,
     /// The duration of the trajectory
-    pub(crate) duration: Option<f64>,
+    pub(crate) duration: Option<V>,
     /// The number of steps of the trajectory
     pub(crate) num_step: Option<usize>,
+    _marker: std::marker::PhantomData<T>,
 }
 
-pub trait PointTrajectoryTrait: PointProcess
-where
-    Self: Sized + Clone,
+pub trait PointTrajectoryTrait<T: RealExt = f64, V: FloatExt = f64>:
+    PointProcess<T, V> + Clone
 {
     /// Create a `PointTrajectory` with given duration
     ///
     /// # Arguments
     ///
     /// * `duration` - The duration of the trajectory
-    fn duration(&self, duration: f64) -> XResult<PointTrajectory<Self>> {
+    fn duration(&self, duration: V) -> XResult<PointTrajectory<Self, T, V>> {
         let traj = PointTrajectory::with_duration(self.clone(), duration)?;
         Ok(traj)
     }
@@ -233,22 +235,25 @@ where
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the trajectory
-    fn step(&self, num_step: usize) -> XResult<PointTrajectory<Self>> {
+    fn step(&self, num_step: usize) -> XResult<PointTrajectory<Self, T, V>> {
         let traj = PointTrajectory::with_step(self.clone(), num_step)?;
         Ok(traj)
     }
 }
 
-impl<SP: PointProcess + Sized + Clone> PointTrajectoryTrait for SP {}
+impl<SP: PointProcess<T, V> + Sized + Clone, T: RealExt, V: FloatExt> PointTrajectoryTrait<T, V>
+    for SP
+{
+}
 
-impl<SP: PointProcess> PointTrajectory<SP> {
+impl<SP: PointProcess<T, V> + Clone, T: RealExt, V: FloatExt> PointTrajectory<SP, T, V> {
     /// Get the point process
     pub fn get_process(&self) -> &SP {
         &self.sp
     }
 
     /// Get the duration of the trajectory
-    pub fn get_duration(&self) -> Option<f64> {
+    pub fn get_duration(&self) -> Option<V> {
         self.duration
     }
 
@@ -262,17 +267,18 @@ impl<SP: PointProcess> PointTrajectory<SP> {
     /// # Arguments
     ///
     /// * `duration` - The duration of the trajectory
-    pub fn with_duration(sp: SP, duration: f64) -> XResult<Self> {
-        if duration <= 0.0 {
+    pub fn with_duration(sp: SP, duration: V) -> XResult<Self> {
+        if duration <= V::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {duration}"
+                "The `duration` must be positive, got {duration:?}"
             ))
             .into());
         }
         Ok(Self {
-            sp: Arc::new(sp),
+            sp: sp.clone(),
             duration: Some(duration),
             num_step: None,
+            _marker: std::marker::PhantomData,
         })
     }
 
@@ -289,14 +295,15 @@ impl<SP: PointProcess> PointTrajectory<SP> {
             .into());
         }
         Ok(Self {
-            sp: Arc::new(sp),
+            sp: sp.clone(),
             duration: None,
             num_step: Some(num_step),
+            _marker: std::marker::PhantomData,
         })
     }
 
     /// Simulate the trajectory with duration
-    pub fn simulate_with_duration(&self) -> XResult<(Vec<f64>, Vec<f64>)> {
+    pub fn simulate_with_duration(&self) -> XResult<(Vec<V>, Vec<T>)> {
         if self.duration.is_none() {
             return Err(SimulationError::InvalidParameters(
                 "The `duration` must be provided".to_string(),
@@ -304,9 +311,9 @@ impl<SP: PointProcess> PointTrajectory<SP> {
             .into());
         }
         let duration = self.duration.unwrap();
-        if duration <= 0.0 {
+        if duration <= V::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `duration` must be positive, got {duration}"
+                "The `duration` must be positive, got {duration:?}"
             ))
             .into());
         }
@@ -314,7 +321,7 @@ impl<SP: PointProcess> PointTrajectory<SP> {
     }
 
     /// Simulate with number of steps
-    pub fn simulate_with_step(&self) -> XResult<(Vec<f64>, Vec<f64>)> {
+    pub fn simulate_with_step(&self) -> XResult<(Vec<V>, Vec<T>)> {
         if self.num_step.is_none() {
             return Err(SimulationError::InvalidParameters(
                 "num_step must be provided".to_string(),

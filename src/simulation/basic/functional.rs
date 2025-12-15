@@ -4,21 +4,21 @@
 //! - Occupation time [OccupationTime]
 
 use crate::{
-    FloatExt, SimulationError, XResult,
+    FloatExt, RealExt, SimulationError, XResult,
     simulation::prelude::{ContinuousProcess, PointProcess},
 };
 use rayon::prelude::*;
 
 /// First passage time
 #[derive(Debug, Clone)]
-pub struct FirstPassageTime<'a, SP, T: FloatExt = f64> {
+pub struct FirstPassageTime<'a, SP, T: RealExt = f64> {
     /// The stochastic process
     sp: &'a SP,
     /// The domain that the first passage time is interested in
     domain: (T, T),
 }
 
-impl<'a, SP: Send + Sync, T: FloatExt> FirstPassageTime<'a, SP, T> {
+impl<'a, SP: Send + Sync, T: RealExt> FirstPassageTime<'a, SP, T> {
     /// Create a new first passage time
     ///
     /// # Arguments
@@ -208,16 +208,16 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> FirstPassageTime<'a, SP, T> {
 
 /// Occupation time
 #[derive(Debug, Clone)]
-pub struct OccupationTime<'a, SP, T: FloatExt = f64> {
+pub struct OccupationTime<'a, SP, T: RealExt = f64, V: FloatExt = T> {
     /// The stochastic process
     sp: &'a SP,
     /// The domain that the occupation time is interested in
     domain: (T, T),
     /// The duration of the simulation
-    duration: T,
+    duration: V,
 }
 
-impl<'a, SP: Send + Sync, T: FloatExt> OccupationTime<'a, SP, T> {
+impl<'a, SP: Send + Sync, T: RealExt, V: FloatExt> OccupationTime<'a, SP, T, V> {
     /// Create a new occupation time
     ///
     /// # Arguments
@@ -235,14 +235,14 @@ impl<'a, SP: Send + Sync, T: FloatExt> OccupationTime<'a, SP, T> {
     /// let sp = Bm::default();
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// ```
-    pub fn new(sp: &'a SP, domain: (T, T), duration: T) -> XResult<Self> {
+    pub fn new(sp: &'a SP, domain: (T, T), duration: V) -> XResult<Self> {
         if domain.0 >= domain.1 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{domain:?}`"
             ))
             .into());
         }
-        if duration <= T::zero() {
+        if duration <= V::zero() {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got `{duration:?}`"
             ))
@@ -381,29 +381,33 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> OccupationTime<'a, SP, T> {
     }
 }
 
-impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
+impl<'a, SP, T: RealExt> FirstPassageTime<'a, SP, T> {
     /// Simulate the first passage time
     ///
     /// # Arguments
     ///
     /// * `max_duration` - The maximum duration of the simulation.
-    pub fn simulate_p(&self, max_duration: impl Into<f64>) -> XResult<Option<f64>> {
-        let max_duration = max_duration.into();
-        if max_duration <= 0.0 {
+    pub fn simulate_p<V: FloatExt>(&self, max_duration: V) -> XResult<Option<V>>
+    where
+        SP: PointProcess<T, V> + Clone,
+    {
+        if max_duration <= V::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{max_duration}`"
+                "The `max_duration` must be positive, got `{max_duration:?}`"
             ))
             .into());
         }
         let (a, b) = self.domain;
-        let find = |x: &[f64]| x.iter().position(|&x| x <= a || x >= b);
-        let mut duration = (max_duration / 10.0).min(10.0);
+        let find = |x: &[T]| x.iter().position(|&x| x <= a || x >= b);
+        let ten = V::from(10).unwrap();
+        let two = V::from(2).unwrap();
+        let mut duration = (max_duration / ten).min(ten);
         loop {
             let (t, x) = self.sp.simulate_with_duration(duration)?;
             if let Some(index) = find(&x) {
                 return Ok(Some(t[index]));
             }
-            duration *= 2.0;
+            duration *= two;
             if duration > max_duration {
                 duration = max_duration;
                 let (t, x) = self.sp.simulate_with_duration(duration)?;
@@ -423,16 +427,18 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `max_duration` - The maximum duration of the simulation.
-    pub fn raw_moment_p(
+    pub fn raw_moment_p<V: FloatExt>(
         &self,
         order: i32,
         particles: usize,
-        max_duration: impl Into<f64>,
-    ) -> XResult<Option<f64>> {
-        let max_duration = max_duration.into();
-        if max_duration <= 0.0 {
+        max_duration: V,
+    ) -> XResult<Option<f64>>
+    where
+        SP: PointProcess<T, V> + Clone,
+    {
+        if max_duration <= V::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{max_duration}`"
+                "The `max_duration` must be positive, got `{max_duration:?}`"
             ))
             .into());
         }
@@ -452,7 +458,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
             .map(|_| {
                 self.simulate_p(max_duration)
                     .unwrap()
-                    .map(|t| t.powi(order))
+                    .map(|t| t.to_f64().unwrap().powi(order))
             })
             .filter_map(|x| x)
             .collect::<Vec<_>>();
@@ -466,16 +472,18 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `max_duration` - The maximum duration of the simulation.
-    pub fn central_moment_p(
+    pub fn central_moment_p<V: FloatExt>(
         &self,
         order: i32,
         particles: usize,
-        max_duration: impl Into<f64>,
-    ) -> XResult<Option<f64>> {
-        let max_duration = max_duration.into();
-        if max_duration <= 0.0 {
+        max_duration: V,
+    ) -> XResult<Option<f64>>
+    where
+        SP: PointProcess<T, V> + Clone,
+    {
+        if max_duration <= V::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `max_duration` must be positive, got `{max_duration}`"
+                "The `max_duration` must be positive, got `{max_duration:?}`"
             ))
             .into());
         }
@@ -498,7 +506,7 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
             .map(|_| {
                 self.simulate_p(max_duration)
                     .unwrap()
-                    .map(|t| (t - mean).powi(order))
+                    .map(|t| (t.to_f64().unwrap() - mean).powi(order))
             })
             .filter_map(|x| x)
             .collect::<Vec<_>>();
@@ -507,8 +515,8 @@ impl<'a, SP: PointProcess> FirstPassageTime<'a, SP> {
     }
 }
 
-impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
-    pub fn simulate_p(&self) -> XResult<f64> {
+impl<'a, SP: PointProcess<T, V>, T: RealExt, V: FloatExt> OccupationTime<'a, SP, T, V> {
+    pub fn simulate_p(&self) -> XResult<V> {
         let (t, x) = self.sp.simulate_with_duration(self.duration)?;
         let (a, b) = self.domain;
 
@@ -538,7 +546,7 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
             .into_par_iter()
             .map(|_| {
                 let occupation_time = self.simulate_p().unwrap();
-                occupation_time.powi(order)
+                occupation_time.to_f64().unwrap().powi(order)
             })
             .sum::<f64>()
             / particles as f64;
@@ -566,7 +574,7 @@ impl<'a, SP: PointProcess> OccupationTime<'a, SP> {
             .into_par_iter()
             .map(|_| {
                 let occupation_time = self.simulate_p().unwrap();
-                (occupation_time - mean).powi(order)
+                (occupation_time.to_f64().unwrap() - mean).powi(order)
             })
             .sum::<f64>()
             / particles as f64;
@@ -584,7 +592,7 @@ fn average<T: FloatExt>(values: Vec<T>) -> Option<T> {
     }
 }
 
-fn oc<T: FloatExt>(t: &[T], x: &[T], a: T, b: T) -> T {
+fn oc<T: RealExt, V: FloatExt>(t: &[V], x: &[T], a: T, b: T) -> V {
     x.windows(2)
         .zip(t.windows(2))
         .map(|(x_pair, t_pair)| {
@@ -592,7 +600,7 @@ fn oc<T: FloatExt>(t: &[T], x: &[T], a: T, b: T) -> T {
             if in_domain {
                 t_pair[1] - t_pair[0]
             } else {
-                T::zero()
+                V::zero()
             }
         })
         .sum()

@@ -377,7 +377,7 @@ impl<SP: DiscreteProcess<T, U> + Clone, T: RealExt, U: IntExt> Moment
     }
 }
 
-impl<SP: PointProcess> Moment for PointTrajectory<SP> {
+impl<SP: PointProcess<T, V> + Clone, T: RealExt, V: FloatExt> Moment for PointTrajectory<SP, T, V> {
     fn msd(&self, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
@@ -398,7 +398,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let delta_x = match self.sp.displacement(duration) {
-                    Ok(delta_x) => delta_x,
+                    Ok(delta_x) => delta_x.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 delta_x * delta_x
@@ -433,7 +433,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let end_position = match self.sp.end(duration) {
-                    Ok(end_position) => end_position,
+                    Ok(end_position) => end_position.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 if order == 1 {
@@ -466,7 +466,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let end_position = match self.sp.end(duration) {
-                    Ok(end_position) => end_position,
+                    Ok(end_position) => end_position.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 if order == 1 {
@@ -505,7 +505,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let end_position = match self.sp.end(duration) {
-                    Ok(end_position) => end_position,
+                    Ok(end_position) => end_position.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 if order == 1.0 {
@@ -538,7 +538,7 @@ impl<SP: PointProcess> Moment for PointTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let end_position = match self.sp.end(duration) {
-                    Ok(end_position) => end_position,
+                    Ok(end_position) => end_position.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 if order == 1.0 {
