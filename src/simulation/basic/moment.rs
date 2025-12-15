@@ -1,4 +1,4 @@
-use crate::{FloatExt, SimulationError, XResult, simulation::prelude::*};
+use crate::{FloatExt, RealExt, SimulationError, XResult, simulation::prelude::*};
 use rayon::prelude::*;
 
 /// Moment trait
@@ -216,7 +216,9 @@ impl<T: FloatExt, SP: ContinuousProcess<T> + Clone> Moment<T> for ContinuousTraj
     }
 }
 
-impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
+impl<SP: DiscreteProcess<T, U> + Clone, T: RealExt, U: IntExt> Moment
+    for DiscreteTrajectory<SP, T, U>
+{
     fn msd(&self, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
@@ -231,7 +233,7 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let delta_x = match self.sp.displacement(num_step) {
-                    Ok(delta_x) => delta_x,
+                    Ok(delta_x) => delta_x.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 delta_x * delta_x
@@ -260,7 +262,7 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let end_position = match self.sp.end(num_step) {
-                    Ok(end_position) => end_position,
+                    Ok(end_position) => end_position.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 if order == 1 {
@@ -293,7 +295,7 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let end_position = match self.sp.end(num_step) {
-                    Ok(end_position) => end_position,
+                    Ok(end_position) => end_position.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 if order == 1 {
@@ -326,7 +328,7 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let end_position = match self.sp.end(num_step) {
-                    Ok(end_position) => end_position,
+                    Ok(end_position) => end_position.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 if order == 1.0 {
@@ -359,7 +361,7 @@ impl<SP: DiscreteProcess + Clone> Moment for DiscreteTrajectory<SP> {
             .into_par_iter()
             .map(|_| {
                 let end_position = match self.sp.end(num_step) {
-                    Ok(end_position) => end_position,
+                    Ok(end_position) => end_position.to_f64().unwrap(),
                     Err(e) => panic!("{}", e),
                 };
                 if order == 1.0 {

@@ -29,7 +29,35 @@ impl<T> FloatExt for T where
 pub trait IntExt: num_traits::PrimInt + std::fmt::Debug + Send + Sync + std::iter::Sum {}
 impl<T> IntExt for T where T: num_traits::PrimInt + std::fmt::Debug + Send + Sync + std::iter::Sum {}
 
+pub trait RealExt:
+    num_traits::Num
+    + num_traits::NumCast
+    + std::fmt::Debug
+    + Send
+    + Sync
+    + Copy
+    + PartialOrd
+    + Neg<Output = Self>
+    + std::iter::Sum
+{
+}
+
+impl<T> RealExt for T where
+    T: num_traits::Num
+        + num_traits::NumCast
+        + std::fmt::Debug
+        + Send
+        + Sync
+        + Copy
+        + PartialOrd
+        + Neg<Output = Self>
+        + std::iter::Sum
+{
+}
+
 mod error;
+use std::ops::Neg;
+
 pub use error::*;
 
 /// Random number generation module
