@@ -7,7 +7,6 @@ use crate::{
     random::stable::{self, sample_standard_alpha, sample_standard_alpha_one},
     simulation::prelude::*,
 };
-use num_traits::FloatConst;
 use rand::prelude::*;
 use rand_distr::{Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -76,7 +75,7 @@ impl<T: FloatExt> AsymmetricLevy<T> {
     }
 }
 
-impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for AsymmetricLevy<T>
+impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for AsymmetricLevy<T>
 where
     Exp1: Distribution<T>,
 {
@@ -141,7 +140,7 @@ where
 /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
 /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
 /// ```
-pub fn simulate_asymmetric_levy<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_asymmetric_levy<T: FloatExt + SampleUniform>(
     start_position: T,
     alpha: T,
     beta: T,
@@ -230,7 +229,7 @@ impl<T: FloatExt> Levy<T> {
     }
 }
 
-impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for Levy<T>
+impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for Levy<T>
 where
     Exp1: Distribution<T>,
 {
@@ -288,7 +287,7 @@ where
 ///
 /// let (t, x) = simulate_levy(0.0, 1.5, 1.0, 0.1).unwrap();
 /// ```
-pub fn simulate_levy<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_levy<T: FloatExt + SampleUniform>(
     start_position: T,
     alpha: T,
     duration: T,

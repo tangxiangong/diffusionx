@@ -249,7 +249,7 @@ where
 ///
 /// let (t, x) = simulate_invsubordinator(0.5, 1.0, 0.1).unwrap();
 /// ```
-pub fn simulate_invsubordinator<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_invsubordinator<T: FloatExt + SampleUniform>(
     alpha: T,
     duration: T,
     time_step: T,

@@ -4,7 +4,6 @@ use crate::{
     simulation::prelude::*,
     utils::{cumsum, linear_interpolate},
 };
-use num_traits::FloatConst;
 use rand::{prelude::*, rng};
 use rand_distr::{Exp1, uniform::SampleUniform};
 use rayon::prelude::*;
@@ -106,7 +105,7 @@ impl<T: FloatExt> LevyWalk<T> {
     /// ```
     pub fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<T>, Vec<T>)>
     where
-        T: FloatConst + SampleUniform,
+        T: SampleUniform,
         Exp1: Distribution<T>,
     {
         simulate_levy_walk_with_step(self.alpha, self.velocity, num_step, self.start_position)
@@ -119,14 +118,14 @@ impl<T: FloatExt> LevyWalk<T> {
     /// * `duration` - The duration of the simulation.
     pub fn simulate_with_duration(&self, duration: T) -> XResult<(Vec<T>, Vec<T>)>
     where
-        T: FloatConst + SampleUniform,
+        T: SampleUniform,
         Exp1: Distribution<T>,
     {
         simulate_levy_walk_with_duration(self.alpha, self.velocity, duration, self.start_position)
     }
 }
 
-impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for LevyWalk<T>
+impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for LevyWalk<T>
 where
     Exp1: Distribution<T>,
 {
@@ -194,7 +193,7 @@ where
 ///
 /// let (t, x) = simulate_levy_walk_with_step(0.5, 1.0, 1000, 0.0).unwrap();
 /// ```
-pub fn simulate_levy_walk_with_step<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_levy_walk_with_step<T: FloatExt + SampleUniform>(
     alpha: T,
     velocity: T,
     num_step: usize,
@@ -244,7 +243,7 @@ where
 ///
 /// let (t, x) = simulate_levy_walk_with_duration(0.5, 1.0, 10.0, 0.0).unwrap();
 /// ```
-pub fn simulate_levy_walk_with_duration<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_levy_walk_with_duration<T: FloatExt + SampleUniform>(
     alpha: T,
     velocity: T,
     duration: T,

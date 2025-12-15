@@ -6,7 +6,6 @@ use crate::{
     simulation::prelude::*,
     utils::cumsum,
 };
-use num_traits::FloatConst;
 use rand::{Rng, rng};
 use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
 use rayon::prelude::*;
@@ -246,7 +245,7 @@ impl<T: FloatExt> RandomWalk<T> {
     }
 }
 
-impl<T: FloatExt + FloatConst + SampleUniform, U: IntExt> DiscreteProcess<T, U> for RandomWalk<T>
+impl<T: FloatExt + SampleUniform, U: IntExt> DiscreteProcess<T, U> for RandomWalk<T>
 where
     Exp1: Distribution<T>,
     std::ops::Range<U>: rayon::iter::IntoParallelIterator,
@@ -307,7 +306,7 @@ where
 ///
 /// let (t, x) = simulate_random_walk(0.5, 1.0, 0.0, 1000).unwrap();
 /// ```
-pub fn simulate_random_walk<T: FloatExt + FloatConst + SampleUniform, U: IntExt>(
+pub fn simulate_random_walk<T: FloatExt + SampleUniform, U: IntExt>(
     probability: T,
     alpha: T,
     start_position: T,

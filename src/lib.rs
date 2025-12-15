@@ -6,6 +6,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 pub trait FloatExt:
     num_traits::Float
+    + num_traits::FloatConst
     + std::fmt::Debug
     + Send
     + Sync
@@ -17,6 +18,7 @@ pub trait FloatExt:
 
 impl<T> FloatExt for T where
     T: num_traits::Float
+        + num_traits::FloatConst
         + std::fmt::Debug
         + Send
         + Sync

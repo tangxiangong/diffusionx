@@ -1,7 +1,6 @@
 //! Poisson distribution random number generation
 
 use crate::{FloatExt, IntExt, XError, XResult};
-use num_traits::FloatConst;
 use rand::prelude::*;
 use rand_distr::{Exp1, StandardNormal, StandardUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -52,7 +51,6 @@ impl<T: FloatExt> Poisson<T> {
     /// Generate a vector of Poisson random numbers
     pub fn samples<U: IntExt>(&self, n: usize) -> XResult<Vec<U>>
     where
-        T: FloatConst,
         StandardUniform: Distribution<T>,
         Exp1: Distribution<T>,
         StandardNormal: Distribution<T>,
@@ -74,7 +72,7 @@ impl<T: FloatExt> Poisson<T> {
 ///
 /// let random = rand(1.0).unwrap();
 /// ```
-pub fn rand<T: FloatExt + FloatConst, U: IntExt>(lambda: T) -> XResult<U>
+pub fn rand<T: FloatExt, U: IntExt>(lambda: T) -> XResult<U>
 where
     StandardUniform: Distribution<T>,
     Exp1: Distribution<T>,
@@ -99,7 +97,7 @@ where
 ///
 /// let randoms = rands(1.0, 10).unwrap();
 /// ```
-pub fn rands<T: FloatExt + FloatConst, U: IntExt>(lambda: T, n: usize) -> XResult<Vec<U>>
+pub fn rands<T: FloatExt, U: IntExt>(lambda: T, n: usize) -> XResult<Vec<U>>
 where
     StandardUniform: Distribution<T>,
     Exp1: Distribution<T>,
