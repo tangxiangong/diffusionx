@@ -44,8 +44,8 @@ impl<CP: ContinuousProcess<T> + Clone, T: FloatExt> Visualize for ContinuousTraj
     }
 }
 
-impl<P: PointProcess<T, V> + Clone, T: RealExt, V: FloatExt> Visualize
-    for PointTrajectory<P, T, V>
+impl<P: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> Visualize
+    for PointTrajectory<P, T, X>
 {
     /// Plot the point trajectory.
     fn plot(&self, config: &PlotConfig) -> XResult<()> {
