@@ -257,7 +257,7 @@ mod tests {
     #[ignore]
     fn test_stair() {
         let duration = 10.0;
-        let process = Poisson::new(1.0).unwrap();
+        let process: Poisson<f64, u32> = Poisson::new(1.0).unwrap();
         let traj = process.duration(duration).unwrap();
         let config = PlotConfigBuilder::default()
             .backend(PlotterBackend::SVG)

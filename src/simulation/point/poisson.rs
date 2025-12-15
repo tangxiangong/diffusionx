@@ -1,15 +1,20 @@
 //! Poisson process simulation
 
-use crate::{SimulationError, XResult, random::exponential, simulation::prelude::*, utils::cumsum};
+use rand_distr::{Distribution, Exp1};
+
+use crate::{
+    RealExt, SimulationError, XResult, random::exponential, simulation::prelude::*, utils::cumsum,
+};
 
 /// Poisson process
 #[derive(Debug, Clone)]
-pub struct Poisson {
+pub struct Poisson<T: FloatExt, X: RealExt = T> {
     /// The rate of the Poisson process
-    lambda: f64,
+    lambda: T,
+    _marker: std::marker::PhantomData<X>,
 }
 
-impl Poisson {
+impl<T: FloatExt, X: RealExt> Poisson<T, X> {
     /// Create a new `Poisson`
     ///
     /// # Arguments
@@ -23,26 +28,31 @@ impl Poisson {
     ///
     /// let poisson = Poisson::new(1.0).unwrap();
     /// ```
-    pub fn new(lambda: impl Into<f64>) -> XResult<Self> {
-        let lambda = lambda.into();
-        if lambda <= 0.0 {
+    pub fn new(lambda: T) -> XResult<Self> {
+        if lambda <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `lambda` must be greater than 0, but got {lambda}"
+                "The `lambda` must be greater than 0, but got {lambda:?}"
             ))
             .into());
         }
-        Ok(Self { lambda })
+        Ok(Self {
+            lambda,
+            _marker: std::marker::PhantomData,
+        })
     }
 
     /// Get the rate
-    pub fn get_lambda(&self) -> f64 {
+    pub fn get_lambda(&self) -> T {
         self.lambda
     }
 }
 
-impl PointProcess for Poisson {
-    fn start(&self) -> f64 {
-        0.0
+impl<T: FloatExt, X: RealExt> PointProcess<T, X> for Poisson<T, X>
+where
+    Exp1: Distribution<T>,
+{
+    fn start(&self) -> X {
+        X::zero()
     }
 
     /// Simulate the Poisson process with a given number of steps
@@ -59,7 +69,7 @@ impl PointProcess for Poisson {
     /// let poisson = Poisson::new(1.0).unwrap();
     /// let (t, x) = poisson.simulate_with_step(1000).unwrap();
     /// ```
-    fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
+    fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<T>, Vec<X>)> {
         simulate_poisson_with_step(self.lambda, num_step)
     }
 }
@@ -78,16 +88,24 @@ impl PointProcess for Poisson {
 ///
 /// let (t, x) = simulate_poisson_with_step(1.0, 1000).unwrap();
 /// ```
-pub fn simulate_poisson_with_step(lambda: f64, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if lambda <= 0.0 {
+pub fn simulate_poisson_with_step<T: FloatExt, X: RealExt>(
+    lambda: T,
+    num_step: usize,
+) -> XResult<(Vec<T>, Vec<X>)>
+where
+    Exp1: Distribution<T>,
+{
+    if lambda <= T::zero() {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `lambda` must be greater than 0, got {lambda}"
+            "The `lambda` must be greater than 0, got {lambda:?}"
         ))
         .into());
     }
     let durations = exponential::rands(lambda, num_step)?;
-    let t = cumsum(0.0, &durations);
-    let x = (0..=num_step).map(|i| i as f64).collect::<Vec<_>>();
+    let t = cumsum(T::zero(), &durations);
+    let x = (0..=num_step)
+        .map(|i| X::from(i).unwrap())
+        .collect::<Vec<_>>();
     Ok((t, x))
 }
 
@@ -142,21 +160,21 @@ mod tests {
 
     #[test]
     fn test_raw_moment() {
-        let poisson = Poisson::new(1.0).unwrap();
+        let poisson: Poisson<f64, u32> = Poisson::new(1.0).unwrap();
         let moment = poisson.raw_moment(100.0, 1, 100).unwrap();
         assert!(moment > 0.0);
     }
 
     #[test]
     fn test_central_moment() {
-        let poisson = Poisson::new(1.0).unwrap();
+        let poisson: Poisson<f64, u32> = Poisson::new(1.0).unwrap();
         let _moment = poisson.central_moment(100.0, 1, 100).unwrap();
         // assert!(moment > 0.0);
     }
 
     #[test]
     fn test_simulate_with_step() {
-        let poisson = Poisson::new(1.0).unwrap();
+        let poisson: Poisson<f64, u32> = Poisson::new(1.0).unwrap();
         let (t, x) = poisson.simulate_with_step(100).unwrap();
         assert!(t.len() == 101);
         assert!(x.len() == 101);
@@ -164,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_simulate_with_duration() {
-        let poisson = Poisson::new(1.0).unwrap();
+        let poisson: Poisson<f64, u32> = Poisson::new(1.0).unwrap();
         let (t, _) = poisson.simulate_with_duration(100.0).unwrap();
         assert!(*t.last().unwrap() <= 100.0);
     }

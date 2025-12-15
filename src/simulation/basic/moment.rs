@@ -216,8 +216,8 @@ impl<T: FloatExt, SP: ContinuousProcess<T> + Clone> Moment<T> for ContinuousTraj
     }
 }
 
-impl<SP: DiscreteProcess<T, U> + Clone, T: RealExt, U: IntExt> Moment
-    for DiscreteTrajectory<SP, T, U>
+impl<SP: DiscreteProcess<N, X> + Clone, N: IntExt, X: RealExt> Moment
+    for DiscreteTrajectory<SP, N, X>
 {
     fn msd(&self, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
@@ -377,7 +377,7 @@ impl<SP: DiscreteProcess<T, U> + Clone, T: RealExt, U: IntExt> Moment
     }
 }
 
-impl<SP: PointProcess<T, V> + Clone, T: RealExt, V: FloatExt> Moment for PointTrajectory<SP, T, V> {
+impl<SP: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> Moment for PointTrajectory<SP, T, X> {
     fn msd(&self, particles: usize, _: f64) -> XResult<f64> {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(

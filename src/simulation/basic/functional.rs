@@ -208,16 +208,16 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> FirstPassageTime<'a, SP, T> {
 
 /// Occupation time
 #[derive(Debug, Clone)]
-pub struct OccupationTime<'a, SP, T: RealExt = f64, V: FloatExt = T> {
+pub struct OccupationTime<'a, SP, T: FloatExt = f64, X: RealExt = T> {
     /// The stochastic process
     sp: &'a SP,
     /// The domain that the occupation time is interested in
-    domain: (T, T),
+    domain: (X, X),
     /// The duration of the simulation
-    duration: V,
+    duration: T,
 }
 
-impl<'a, SP: Send + Sync, T: RealExt, V: FloatExt> OccupationTime<'a, SP, T, V> {
+impl<'a, SP: Send + Sync, T: FloatExt, X: RealExt> OccupationTime<'a, SP, T, X> {
     /// Create a new occupation time
     ///
     /// # Arguments
@@ -235,14 +235,14 @@ impl<'a, SP: Send + Sync, T: RealExt, V: FloatExt> OccupationTime<'a, SP, T, V> 
     /// let sp = Bm::default();
     /// let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
     /// ```
-    pub fn new(sp: &'a SP, domain: (T, T), duration: V) -> XResult<Self> {
+    pub fn new(sp: &'a SP, domain: (X, X), duration: T) -> XResult<Self> {
         if domain.0 >= domain.1 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `domain` must be a valid interval, i.e., `domain.0 < domain.1`, got `{domain:?}`"
             ))
             .into());
         }
-        if duration <= V::zero() {
+        if duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be positive, got `{duration:?}`"
             ))
@@ -381,26 +381,26 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> OccupationTime<'a, SP, T> {
     }
 }
 
-impl<'a, SP, T: RealExt> FirstPassageTime<'a, SP, T> {
+impl<'a, SP, X: RealExt> FirstPassageTime<'a, SP, X> {
     /// Simulate the first passage time
     ///
     /// # Arguments
     ///
     /// * `max_duration` - The maximum duration of the simulation.
-    pub fn simulate_p<V: FloatExt>(&self, max_duration: V) -> XResult<Option<V>>
+    pub fn simulate_p<T: FloatExt>(&self, max_duration: T) -> XResult<Option<T>>
     where
-        SP: PointProcess<T, V> + Clone,
+        SP: PointProcess<T, X> + Clone,
     {
-        if max_duration <= V::zero() {
+        if max_duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `max_duration` must be positive, got `{max_duration:?}`"
             ))
             .into());
         }
         let (a, b) = self.domain;
-        let find = |x: &[T]| x.iter().position(|&x| x <= a || x >= b);
-        let ten = V::from(10).unwrap();
-        let two = V::from(2).unwrap();
+        let find = |x: &[X]| x.iter().position(|&x| x <= a || x >= b);
+        let ten = T::from(10).unwrap();
+        let two = T::from(2).unwrap();
         let mut duration = (max_duration / ten).min(ten);
         loop {
             let (t, x) = self.sp.simulate_with_duration(duration)?;
@@ -427,16 +427,16 @@ impl<'a, SP, T: RealExt> FirstPassageTime<'a, SP, T> {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `max_duration` - The maximum duration of the simulation.
-    pub fn raw_moment_p<V: FloatExt>(
+    pub fn raw_moment_p<T: FloatExt>(
         &self,
         order: i32,
         particles: usize,
-        max_duration: V,
+        max_duration: T,
     ) -> XResult<Option<f64>>
     where
-        SP: PointProcess<T, V> + Clone,
+        SP: PointProcess<T, X> + Clone,
     {
-        if max_duration <= V::zero() {
+        if max_duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `max_duration` must be positive, got `{max_duration:?}`"
             ))
@@ -472,16 +472,16 @@ impl<'a, SP, T: RealExt> FirstPassageTime<'a, SP, T> {
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
     /// * `max_duration` - The maximum duration of the simulation.
-    pub fn central_moment_p<V: FloatExt>(
+    pub fn central_moment_p<T: FloatExt>(
         &self,
         order: i32,
         particles: usize,
-        max_duration: V,
+        max_duration: T,
     ) -> XResult<Option<f64>>
     where
-        SP: PointProcess<T, V> + Clone,
+        SP: PointProcess<T, X> + Clone,
     {
-        if max_duration <= V::zero() {
+        if max_duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `max_duration` must be positive, got `{max_duration:?}`"
             ))
@@ -515,8 +515,8 @@ impl<'a, SP, T: RealExt> FirstPassageTime<'a, SP, T> {
     }
 }
 
-impl<'a, SP: PointProcess<T, V>, T: RealExt, V: FloatExt> OccupationTime<'a, SP, T, V> {
-    pub fn simulate_p(&self) -> XResult<V> {
+impl<'a, SP: PointProcess<T, X>, T: FloatExt, X: RealExt> OccupationTime<'a, SP, T, X> {
+    pub fn simulate_p(&self) -> XResult<T> {
         let (t, x) = self.sp.simulate_with_duration(self.duration)?;
         let (a, b) = self.domain;
 

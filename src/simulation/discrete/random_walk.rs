@@ -96,7 +96,8 @@ impl<T: RealExt> LatticeRandomWalk<T> {
     }
 }
 
-impl<N: IntExt, X: RealExt> DiscreteProcess<N, X> for LatticeRandomWalk<X>
+impl<N: IntExt, X: RealExt + std::ops::Neg<Output = X>> DiscreteProcess<N, X>
+    for LatticeRandomWalk<X>
 where
     std::ops::Range<N>: rayon::iter::IntoParallelIterator,
 {
@@ -140,7 +141,7 @@ where
 ///
 /// let (t, x) = simulate_lattice_random_walk(0.5, 0.5, 0.0, 1000).unwrap();
 /// ```
-pub fn simulate_lattice_random_walk<N: IntExt, X: RealExt>(
+pub fn simulate_lattice_random_walk<N: IntExt, X: RealExt + std::ops::Neg<Output = X>>(
     step_size: X,
     probability: X,
     start_position: X,
