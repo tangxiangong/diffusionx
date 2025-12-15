@@ -1,12 +1,12 @@
 use crate::{IntExt, RealExt, SimulationError, XResult, simulation::prelude::Moment};
 
 /// Discrete process trait
-pub trait DiscreteProcess<T: RealExt = f64, U: IntExt = usize>: Send + Sync {
+pub trait DiscreteProcess<N: IntExt = usize, X: RealExt = f64>: Send + Sync {
     /// Get the starting position
-    fn start(&self) -> T;
+    fn start(&self) -> X;
 
     /// Get the ending position
-    fn end(&self, num_step: U) -> XResult<T> {
+    fn end(&self, num_step: N) -> XResult<X> {
         Ok(self.start() + self.displacement(num_step)?)
     }
 
@@ -15,7 +15,7 @@ pub trait DiscreteProcess<T: RealExt = f64, U: IntExt = usize>: Send + Sync {
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the simulation.
-    fn displacement(&self, num_step: U) -> XResult<T> {
+    fn displacement(&self, num_step: N) -> XResult<X> {
         let x = self.simulate(num_step)?;
         let first_position = x.first();
         let end_position = x.last();
@@ -30,7 +30,7 @@ pub trait DiscreteProcess<T: RealExt = f64, U: IntExt = usize>: Send + Sync {
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the simulation.
-    fn simulate(&self, num_step: U) -> XResult<Vec<T>>;
+    fn simulate(&self, num_step: N) -> XResult<Vec<X>>;
 
     /// Get the mean of the discrete process
     ///
@@ -38,9 +38,9 @@ pub trait DiscreteProcess<T: RealExt = f64, U: IntExt = usize>: Send + Sync {
     ///
     /// * `num_step` - The number of steps of the simulation.
     /// * `particles` - The number of particles.
-    fn mean(&self, num_step: U, particles: usize) -> XResult<f64>
+    fn mean(&self, num_step: N, particles: usize) -> XResult<f64>
     where
-        Self: DiscreteTrajectoryTrait<T, U>,
+        Self: DiscreteTrajectoryTrait<N, X>,
     {
         let traj = self.step(num_step)?;
         traj.raw_moment(1, particles, 0.1)
@@ -52,9 +52,9 @@ pub trait DiscreteProcess<T: RealExt = f64, U: IntExt = usize>: Send + Sync {
     ///
     /// * `num_step` - The number of steps of the simulation.
     /// * `particles` - The number of particles.
-    fn msd(&self, num_step: U, particles: usize) -> XResult<f64>
+    fn msd(&self, num_step: N, particles: usize) -> XResult<f64>
     where
-        Self: DiscreteTrajectoryTrait<T, U>,
+        Self: DiscreteTrajectoryTrait<N, X>,
     {
         let traj = self.step(num_step)?;
         traj.msd(particles, 0.1)
@@ -67,9 +67,9 @@ pub trait DiscreteProcess<T: RealExt = f64, U: IntExt = usize>: Send + Sync {
     /// * `num_step` - The number of steps.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn raw_moment(&self, num_step: U, order: i32, particles: usize) -> XResult<f64>
+    fn raw_moment(&self, num_step: N, order: i32, particles: usize) -> XResult<f64>
     where
-        Self: DiscreteTrajectoryTrait<T, U>,
+        Self: DiscreteTrajectoryTrait<N, X>,
     {
         let traj = self.step(num_step)?;
         traj.raw_moment(order, particles, 0.1)
@@ -82,9 +82,9 @@ pub trait DiscreteProcess<T: RealExt = f64, U: IntExt = usize>: Send + Sync {
     /// * `num_step` - The number of steps.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn central_moment(&self, num_step: U, order: i32, particles: usize) -> XResult<f64>
+    fn central_moment(&self, num_step: N, order: i32, particles: usize) -> XResult<f64>
     where
-        Self: DiscreteTrajectoryTrait<T, U>,
+        Self: DiscreteTrajectoryTrait<N, X>,
     {
         let traj = self.step(num_step)?;
         traj.central_moment(order, particles, 0.1)
@@ -97,9 +97,9 @@ pub trait DiscreteProcess<T: RealExt = f64, U: IntExt = usize>: Send + Sync {
     /// * `num_step` - The number of steps.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn frac_raw_moment(&self, num_step: U, order: f64, particles: usize) -> XResult<f64>
+    fn frac_raw_moment(&self, num_step: N, order: f64, particles: usize) -> XResult<f64>
     where
-        Self: DiscreteTrajectoryTrait<T, U>,
+        Self: DiscreteTrajectoryTrait<N, X>,
     {
         let traj = self.step(num_step)?;
         traj.frac_raw_moment(order, particles, 0.1)
@@ -112,30 +112,30 @@ pub trait DiscreteProcess<T: RealExt = f64, U: IntExt = usize>: Send + Sync {
     /// * `num_step` - The number of steps.
     /// * `order` - The order of the moment.
     /// * `particles` - The number of particles.
-    fn frac_central_moment(&self, num_step: U, order: f64, particles: usize) -> XResult<f64>
+    fn frac_central_moment(&self, num_step: N, order: f64, particles: usize) -> XResult<f64>
     where
-        Self: DiscreteTrajectoryTrait<T, U>,
+        Self: DiscreteTrajectoryTrait<N, X>,
     {
         let traj = self.step(num_step)?;
         traj.frac_central_moment(order, particles, 0.1)
     }
 }
 
-pub trait DiscreteTrajectoryTrait<T: RealExt = f64, U: IntExt = usize>:
-    DiscreteProcess<T, U> + Clone
+pub trait DiscreteTrajectoryTrait<N: IntExt = usize, X: RealExt = f64>:
+    DiscreteProcess<N, X> + Clone
 {
     /// Create a `DiscreteTrajectory` with given number of steps
     ///
     /// # Arguments
     ///
     /// * `num_step` - The number of steps of the trajectory
-    fn step(&self, num_step: U) -> XResult<DiscreteTrajectory<Self, T, U>> {
+    fn step(&self, num_step: N) -> XResult<DiscreteTrajectory<Self, N, X>> {
         let traj = DiscreteTrajectory::new(self.clone(), num_step)?;
         Ok(traj)
     }
 }
 
-impl<SP: DiscreteProcess<T, U> + Clone, T: RealExt, U: IntExt> DiscreteTrajectoryTrait<T, U>
+impl<SP: DiscreteProcess<N, X> + Clone, N: IntExt, X: RealExt> DiscreteTrajectoryTrait<N, X>
     for SP
 {
 }
@@ -143,21 +143,21 @@ impl<SP: DiscreteProcess<T, U> + Clone, T: RealExt, U: IntExt> DiscreteTrajector
 /// Discrete trajectory
 #[derive(Debug, Clone)]
 pub struct DiscreteTrajectory<
-    SP: DiscreteProcess<T, U> + Clone,
-    T: RealExt = f64,
-    U: IntExt = usize,
+    SP: DiscreteProcess<N, X> + Clone,
+    N: IntExt = usize,
+    X: RealExt = f64,
 > {
     /// The discrete process
     pub(crate) sp: SP,
     /// The number of steps
-    pub(crate) num_step: U,
-    pub(crate) _marker: std::marker::PhantomData<T>,
+    pub(crate) num_step: N,
+    pub(crate) _marker: std::marker::PhantomData<X>,
 }
 
-impl<SP: DiscreteProcess<T, U> + Clone, T: RealExt, U: IntExt> DiscreteTrajectory<SP, T, U> {
+impl<SP: DiscreteProcess<N, X> + Clone, N: IntExt, X: RealExt> DiscreteTrajectory<SP, N, X> {
     /// Create a new `DiscreteTrajetory` with given `DiscreteProcess` and num of steps.
-    pub fn new(sp: SP, num_step: U) -> XResult<Self> {
-        if num_step == U::zero() {
+    pub fn new(sp: SP, num_step: N) -> XResult<Self> {
+        if num_step == N::zero() {
             return Err(SimulationError::InvalidParameters(
                 "num_step must be positive".to_string(),
             )
@@ -176,12 +176,12 @@ impl<SP: DiscreteProcess<T, U> + Clone, T: RealExt, U: IntExt> DiscreteTrajector
     }
 
     /// Get the number of steps of the trajectory
-    pub fn get_num_step(&self) -> U {
+    pub fn get_num_step(&self) -> N {
         self.num_step
     }
 
     /// Simulate method
-    pub fn simulate(&self) -> XResult<Vec<T>> {
+    pub fn simulate(&self) -> XResult<Vec<X>> {
         self.sp.simulate(self.num_step)
     }
 }

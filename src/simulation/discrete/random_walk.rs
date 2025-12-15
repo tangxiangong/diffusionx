@@ -96,15 +96,15 @@ impl<T: RealExt> LatticeRandomWalk<T> {
     }
 }
 
-impl<T: RealExt, U: IntExt> DiscreteProcess<T, U> for LatticeRandomWalk<T>
+impl<N: IntExt, X: RealExt> DiscreteProcess<N, X> for LatticeRandomWalk<X>
 where
-    std::ops::Range<U>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: rayon::iter::IntoParallelIterator,
 {
-    fn start(&self) -> T {
+    fn start(&self) -> X {
         self.start_position
     }
 
-    fn simulate(&self, num_step: U) -> XResult<Vec<T>> {
+    fn simulate(&self, num_step: N) -> XResult<Vec<X>> {
         simulate_lattice_random_walk(
             self.step_size,
             self.probability,
@@ -113,9 +113,9 @@ where
         )
     }
 
-    fn displacement(&self, num_step: U) -> XResult<T> {
+    fn displacement(&self, num_step: N) -> XResult<X> {
         let prob = self.probability.to_f64().unwrap();
-        let delta_x = (U::zero()..num_step)
+        let delta_x = (N::zero()..num_step)
             .into_par_iter()
             .map_init(rng, |r, _| r.random_bool(prob))
             .map(|x| if x { self.step_size } else { -self.step_size })
@@ -140,17 +140,17 @@ where
 ///
 /// let (t, x) = simulate_lattice_random_walk(0.5, 0.5, 0.0, 1000).unwrap();
 /// ```
-pub fn simulate_lattice_random_walk<T: RealExt, U: IntExt>(
-    step_size: T,
-    probability: T,
-    start_position: T,
-    num_step: U,
-) -> XResult<Vec<T>>
+pub fn simulate_lattice_random_walk<N: IntExt, X: RealExt>(
+    step_size: X,
+    probability: X,
+    start_position: X,
+    num_step: N,
+) -> XResult<Vec<X>>
 where
-    std::ops::Range<U>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: rayon::iter::IntoParallelIterator,
 {
     let prob = probability.to_f64().unwrap();
-    let delta_x: Vec<T> = (U::zero()..num_step)
+    let delta_x: Vec<X> = (N::zero()..num_step)
         .into_par_iter()
         .map_init(rng, |r, _| r.random_bool(prob))
         .map(|x| if x { step_size } else { -step_size })
@@ -245,24 +245,24 @@ impl<T: FloatExt> RandomWalk<T> {
     }
 }
 
-impl<T: FloatExt + SampleUniform, U: IntExt> DiscreteProcess<T, U> for RandomWalk<T>
+impl<N: IntExt, X: FloatExt + SampleUniform> DiscreteProcess<N, X> for RandomWalk<X>
 where
-    Exp1: Distribution<T>,
-    std::ops::Range<U>: rayon::iter::IntoParallelIterator,
+    Exp1: Distribution<X>,
+    std::ops::Range<N>: rayon::iter::IntoParallelIterator,
 {
-    fn start(&self) -> T {
+    fn start(&self) -> X {
         self.start_position
     }
 
-    fn simulate(&self, num_step: U) -> XResult<Vec<T>> {
+    fn simulate(&self, num_step: N) -> XResult<Vec<X>> {
         simulate_random_walk(self.probability, self.alpha, self.start_position, num_step)
     }
 
-    fn displacement(&self, num_step: U) -> XResult<T> {
+    fn displacement(&self, num_step: N) -> XResult<X> {
         let prob = self.probability.to_f64().unwrap();
 
-        let delta_x = if self.alpha == T::one() {
-            (U::zero()..num_step)
+        let delta_x = if self.alpha == X::one() {
+            (N::zero()..num_step)
                 .into_par_iter()
                 .map_init(rng, |r, _| r.random_bool(prob))
                 .map(|x| {
@@ -274,7 +274,7 @@ where
                 })
                 .sum()
         } else {
-            (U::zero()..num_step)
+            (N::zero()..num_step)
                 .into_par_iter()
                 .map_init(rng, |r, _| r.random_bool(prob))
                 .map(|x| {
@@ -306,19 +306,19 @@ where
 ///
 /// let (t, x) = simulate_random_walk(0.5, 1.0, 0.0, 1000).unwrap();
 /// ```
-pub fn simulate_random_walk<T: FloatExt + SampleUniform, U: IntExt>(
-    probability: T,
-    alpha: T,
-    start_position: T,
-    num_step: U,
-) -> XResult<Vec<T>>
+pub fn simulate_random_walk<N: IntExt, X: FloatExt + SampleUniform>(
+    probability: X,
+    alpha: X,
+    start_position: X,
+    num_step: N,
+) -> XResult<Vec<X>>
 where
-    Exp1: Distribution<T>,
-    std::ops::Range<U>: rayon::iter::IntoParallelIterator,
+    Exp1: Distribution<X>,
+    std::ops::Range<N>: rayon::iter::IntoParallelIterator,
 {
     let prob = probability.to_f64().unwrap();
-    let delta_x: Vec<T> = if alpha == T::one() {
-        (U::zero()..num_step)
+    let delta_x: Vec<_> = if alpha == X::one() {
+        (N::zero()..num_step)
             .into_par_iter()
             .map_init(rng, |r, _| r.random_bool(prob))
             .map(|x| {
@@ -330,7 +330,7 @@ where
             })
             .collect()
     } else {
-        (U::zero()..num_step)
+        (N::zero()..num_step)
             .into_par_iter()
             .map_init(rng, |r, _| r.random_bool(prob))
             .map(|x| {
