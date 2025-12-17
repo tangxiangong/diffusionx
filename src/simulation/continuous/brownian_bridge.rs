@@ -2,6 +2,7 @@
 
 use crate::{
     FloatExt, SimulationError, XResult, check_duration_time_step,
+    random::PAR_THRESHOLD,
     simulation::{continuous::Bm, prelude::*},
 };
 use rand_distr::{Distribution, StandardNormal};
@@ -81,11 +82,17 @@ where
         Some(x) => *x,
         None => return Err(SimulationError::Unknown.into()),
     };
-    let x = traj
-        .into_par_iter()
-        .zip(t.par_iter())
-        .map(|(traj_i, &t_i)| traj_i - end_position * t_i / duration)
-        .collect();
+    let x = if t.len() < PAR_THRESHOLD {
+        traj.into_iter()
+            .zip(t.iter())
+            .map(|(traj_i, &t_i)| traj_i - end_position * t_i / duration)
+            .collect()
+    } else {
+        traj.into_par_iter()
+            .zip(t.par_iter())
+            .map(|(traj_i, &t_i)| traj_i - end_position * t_i / duration)
+            .collect()
+    };
     Ok((t, x))
 }
 

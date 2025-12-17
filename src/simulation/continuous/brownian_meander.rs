@@ -2,6 +2,7 @@
 
 use crate::{
     FloatExt, SimulationError, XResult, check_duration_time_step,
+    random::PAR_THRESHOLD,
     simulation::{continuous::Bm, prelude::*},
     utils::float_eq,
 };
@@ -103,24 +104,45 @@ where
             bm_t[last_hint_index]
         };
         let coe = T::one() / (T::one() - tau).sqrt();
-        Ok(bm_t
-            .par_iter()
-            .map(|&t_i| {
-                let time = t_i * (T::one() - tau) + tau;
-                let right_index = bm_t
-                    .iter()
-                    .position(|&t| t > time)
-                    .unwrap_or(bm_t.len() - 1);
-                let left_index = right_index - 1;
-                let left_time = bm_t[left_index];
-                let right_time = bm_t[right_index];
-                let left_value = bm_traj[left_index];
-                let right_value = bm_traj[right_index];
-                let k = (left_value - right_value) / (left_time - right_time);
-                let value = k * (time - left_time) + left_value;
-                value.abs() * coe
-            })
-            .sum())
+        if bm_t.len() < PAR_THRESHOLD {
+            Ok(bm_t
+                .iter()
+                .map(|&t_i| {
+                    let time = t_i * (T::one() - tau) + tau;
+                    let right_index = bm_t
+                        .iter()
+                        .position(|&t| t > time)
+                        .unwrap_or(bm_t.len() - 1);
+                    let left_index = right_index - 1;
+                    let left_time = bm_t[left_index];
+                    let right_time = bm_t[right_index];
+                    let left_value = bm_traj[left_index];
+                    let right_value = bm_traj[right_index];
+                    let k = (left_value - right_value) / (left_time - right_time);
+                    let value = k * (time - left_time) + left_value;
+                    value.abs() * coe
+                })
+                .sum())
+        } else {
+            Ok(bm_t
+                .par_iter()
+                .map(|&t_i| {
+                    let time = t_i * (T::one() - tau) + tau;
+                    let right_index = bm_t
+                        .iter()
+                        .position(|&t| t > time)
+                        .unwrap_or(bm_t.len() - 1);
+                    let left_index = right_index - 1;
+                    let left_time = bm_t[left_index];
+                    let right_time = bm_t[right_index];
+                    let left_value = bm_traj[left_index];
+                    let right_value = bm_traj[right_index];
+                    let k = (left_value - right_value) / (left_time - right_time);
+                    let value = k * (time - left_time) + left_value;
+                    value.abs() * coe
+                })
+                .sum())
+        }
     }
 }
 

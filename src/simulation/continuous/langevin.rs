@@ -1,8 +1,7 @@
 //! Langevin equation simulation
 
-use rand_distr::{Distribution, StandardNormal};
-
 use crate::{FloatExt, XResult, check_duration_time_step, random::normal, simulation::prelude::*};
+use rand_distr::{Distribution, StandardNormal};
 
 /// Langevin equation
 ///

@@ -2,6 +2,7 @@
 
 use crate::{
     FloatExt, SimulationError, XResult, check_duration_time_step,
+    random::PAR_THRESHOLD,
     simulation::{continuous::Bm, prelude::*},
 };
 use rand_distr::{Distribution, StandardNormal};
@@ -88,11 +89,17 @@ where
         let bm = Bm::default();
         let (t, b) = bm.simulate(duration, time_step)?;
         let tmp = self.mu - self.sigma * self.sigma / T::from(2).unwrap();
-        let x = t
-            .into_par_iter()
-            .zip(b)
-            .map(|(t_i, b_i)| self.start_position * (tmp * t_i + self.sigma * b_i).exp())
-            .sum::<T>();
+        let x = if t.len() < PAR_THRESHOLD {
+            t.into_iter()
+                .zip(b)
+                .map(|(t_i, b_i)| self.start_position * (tmp * t_i + self.sigma * b_i).exp())
+                .sum::<T>()
+        } else {
+            t.into_par_iter()
+                .zip(b)
+                .map(|(t_i, b_i)| self.start_position * (tmp * t_i + self.sigma * b_i).exp())
+                .sum::<T>()
+        };
         Ok(x)
     }
 }
@@ -134,11 +141,17 @@ where
     let bm = Bm::default();
     let (t, b) = bm.simulate(duration, time_step)?;
     let tmp = mu - sigma * sigma / T::from(2).unwrap();
-    let x = t
-        .par_iter()
-        .zip(b)
-        .map(|(&t_i, b_i)| start_position * (tmp * t_i + sigma * b_i).exp())
-        .collect();
+    let x = if t.len() < PAR_THRESHOLD {
+        t.iter()
+            .zip(b)
+            .map(|(&t_i, b_i)| start_position * (tmp * t_i + sigma * b_i).exp())
+            .collect()
+    } else {
+        t.par_iter()
+            .zip(b)
+            .map(|(&t_i, b_i)| start_position * (tmp * t_i + sigma * b_i).exp())
+            .collect()
+    };
     Ok((t, x))
 }
 
