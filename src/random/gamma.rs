@@ -13,7 +13,7 @@
 //! - $\theta > 0$: scale parameter
 //!
 
-use crate::{FloatExt, XError, XResult};
+use crate::{FloatExt, XError, XResult, random::PAR_THRESHOLD};
 use rand::prelude::*;
 use rand_distr::{Exp1, Open01, StandardNormal};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -151,13 +151,18 @@ where
 {
     let gamma = rand_distr::Gamma::new(shape, scale)
         .map_err(|e| XError::InvalidParameters(e.to_string()))?;
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.sample(gamma),
-        )
-        .collect())
+    if n <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        Ok((0..n).map(|_| rng.sample(gamma)).collect())
+    } else {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(gamma),
+            )
+            .collect())
+    }
 }
 
 #[cfg(test)]

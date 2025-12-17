@@ -12,6 +12,9 @@
 //! - Uniform distribution
 //! - Gamma distribution
 
+pub(crate) const PAR_THRESHOLD: usize = 50_000;
+pub(crate) const STABLE_PAR_THRESHOLD: usize = 1_000;
+
 pub mod exponential;
 pub mod gamma;
 pub mod normal;

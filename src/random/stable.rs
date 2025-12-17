@@ -35,7 +35,7 @@
 //! SFB 649 Discussion Paper, No. 2005-008, Humboldt University of Berlin, Collaborative Research
 //! Center 649 - Economic Risk, Berlin](https://hdl.handle.net/10419/25027)
 
-use crate::{FloatExt, StableError, XResult};
+use crate::{FloatExt, StableError, XResult, random::STABLE_PAR_THRESHOLD};
 use rand::{Rng, prelude::*};
 use rand_distr::{Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -43,7 +43,7 @@ use rayon::prelude::*;
 
 /// Precomputed constants for stable distribution sampling
 #[derive(Debug, Clone, Copy)]
-struct StableConstants<T: FloatExt = f64> {
+pub(crate) struct StableConstants<T: FloatExt = f64> {
     /// 1.0 / alpha
     inv_alpha: T,
     /// (1.0 - alpha) / alpha
@@ -56,7 +56,7 @@ struct StableConstants<T: FloatExt = f64> {
 
 impl<T: FloatExt> StableConstants<T> {
     #[inline]
-    fn new(alpha: T, beta: T) -> Self {
+    pub fn new(alpha: T, beta: T) -> Self {
         let inv_alpha = T::one() / alpha;
         let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
         let tmp = beta * (alpha * T::FRAC_PI_2()).tan();
@@ -156,7 +156,7 @@ where
 
 /// Sample standard stable random number with precomputed constants
 #[inline]
-fn sample_standard_alpha_with_constants<T, R: Rng + ?Sized>(
+pub(crate) fn sample_standard_alpha_with_constants<T, R: Rng + ?Sized>(
     c: &StableConstants<T>,
     alpha: T,
     rng: &mut R,
@@ -465,7 +465,18 @@ where
         if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
             panic!("Invalid stability index");
         }
-        sample_standard_alpha(self.0, T::zero(), rng)
+        if (alpha - T::one()).abs() > T::epsilon() {
+            let inv_alpha = T::one() / alpha;
+            let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
+            sample_sys_standard_alpha_with_constants(
+                inv_alpha,
+                one_minus_alpha_div_alpha,
+                alpha,
+                rng,
+            )
+        } else {
+            sample_sys_standard_alpha_one(rng)
+        }
     }
 }
 
@@ -526,22 +537,36 @@ where
         return Err(StableError::InvalidSkewness.into());
     }
     if (alpha - T::one()).abs() < T::epsilon() {
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_standard_alpha_one(alpha, beta, r),
-            )
-            .collect())
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| sample_standard_alpha_one(alpha, beta, &mut rng))
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| sample_standard_alpha_one(alpha, beta, r),
+                )
+                .collect())
+        }
     } else {
         let constants = StableConstants::new(alpha, beta);
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
-            )
-            .collect())
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| sample_standard_alpha_with_constants(&constants, alpha, &mut rng))
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+                )
+                .collect())
+        }
     }
 }
 
@@ -617,28 +642,49 @@ where
     }
     if (alpha - T::one()).abs() < T::epsilon() {
         let correction = two * beta * sigma * sigma.ln() / T::PI();
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| {
-                    let std_sample = sample_standard_alpha_one(alpha, beta, r);
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| {
+                    let std_sample = sample_standard_alpha_one(alpha, beta, &mut rng);
                     sigma * std_sample + mu + correction
-                },
-            )
-            .collect())
+                })
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| {
+                        let std_sample = sample_standard_alpha_one(alpha, beta, r);
+                        sigma * std_sample + mu + correction
+                    },
+                )
+                .collect())
+        }
     } else {
         let constants = StableConstants::new(alpha, beta);
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| {
-                    let std_sample = sample_standard_alpha_with_constants(&constants, alpha, r);
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| {
+                    let std_sample =
+                        sample_standard_alpha_with_constants(&constants, alpha, &mut rng);
                     sigma * std_sample + mu
-                },
-            )
-            .collect())
+                })
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| {
+                        let std_sample = sample_standard_alpha_with_constants(&constants, alpha, r);
+                        sigma * std_sample + mu
+                    },
+                )
+                .collect())
+        }
     }
 }
 
@@ -691,13 +737,55 @@ where
         return Err(StableError::InvalidSkewIndex.into());
     }
     let constants = StableConstants::new(alpha, T::one());
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
-        )
-        .collect())
+    if n <= STABLE_PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        Ok((0..n)
+            .map(|_| sample_standard_alpha_with_constants(&constants, alpha, &mut rng))
+            .collect())
+    } else {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+            )
+            .collect())
+    }
+}
+
+/// Sample symmetric standard stable random number with precomputed constants
+#[inline]
+pub(crate) fn sample_sys_standard_alpha_with_constants<T, R: Rng + ?Sized>(
+    inv_alpha: T,
+    one_minus_alpha_div_alpha: T,
+    alpha: T,
+    rng: &mut R,
+) -> T
+where
+    T: FloatExt + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
+    let w: T = rng.sample(Exp1);
+    let cos_v = v.cos();
+    // alpha * sin(v + b) / cos(v)^(1/alpha)
+    let c1 = alpha * v.sin() / cos_v.powf(inv_alpha);
+    // ((cos(v - alpha*(v+b)) / w))^((1-alpha)/alpha)
+    let c2 = ((v - alpha * v).cos() / w).powf(one_minus_alpha_div_alpha);
+    c1 * c2
+}
+
+/// Sample standard stable random number when alpha is 1
+#[inline]
+pub(crate) fn sample_sys_standard_alpha_one<T, R: Rng + ?Sized>(rng: &mut R) -> T
+where
+    T: FloatExt + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
+
+    let half_pi = T::FRAC_PI_2();
+    half_pi * v.tan() * half_pi
 }
 
 /// Sample the symmetric standard Lévy stable distribution random number
@@ -754,16 +842,24 @@ where
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_standard_alpha_one(alpha, T::zero(), r),
+                |r, _| sample_sys_standard_alpha_one(r),
             )
             .collect())
     } else {
-        let constants = StableConstants::new(alpha, T::zero());
+        let inv_alpha = T::one() / alpha;
+        let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
         Ok((0..n)
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+                |r, _| {
+                    sample_sys_standard_alpha_with_constants(
+                        inv_alpha,
+                        one_minus_alpha_div_alpha,
+                        alpha,
+                        r,
+                    )
+                },
             )
             .collect())
     }

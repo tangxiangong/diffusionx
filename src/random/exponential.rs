@@ -9,7 +9,7 @@
 //! \end{cases}
 //! $$
 
-use crate::{FloatExt, XError, XResult};
+use crate::{FloatExt, XError, XResult, random::PAR_THRESHOLD};
 use rand::prelude::*;
 use rand_distr::{Exp, Exp1};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -118,13 +118,18 @@ where
     Exp1: Distribution<T>,
 {
     let dist = Exp1;
-    (0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.sample(dist),
-        )
-        .collect()
+    if n <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        (0..n).map(|_| rng.sample(dist)).collect()
+    } else {
+        (0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(dist),
+            )
+            .collect()
+    }
 }
 
 /// Generate an exponential random number
@@ -168,13 +173,18 @@ where
     Exp1: Distribution<T>,
 {
     let exp = Exp::new(lambda)?;
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.sample(exp),
-        )
-        .collect())
+    if n <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        Ok((0..n).map(|_| rng.sample(exp)).collect())
+    } else {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(exp),
+            )
+            .collect())
+    }
 }
 
 #[cfg(test)]

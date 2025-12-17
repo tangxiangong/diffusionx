@@ -1,7 +1,7 @@
 //! Normal random number generation
 //! For other stable distributions, see [crate::random::stable].
 
-use crate::{FloatExt, XError, XResult};
+use crate::{FloatExt, XError, XResult, random::PAR_THRESHOLD};
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -118,13 +118,18 @@ where
     StandardNormal: Distribution<T>,
 {
     let dist = rand_distr::StandardNormal;
-    (0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.sample(dist),
-        )
-        .collect()
+    if n <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        (0..n).map(|_| rng.sample(dist)).collect()
+    } else {
+        (0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(dist),
+            )
+            .collect()
+    }
 }
 
 /// Generate a normal random number
@@ -170,13 +175,18 @@ where
     StandardNormal: Distribution<T>,
 {
     let normal = rand_distr::Normal::new(mean, std_dev)?;
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.sample(normal),
-        )
-        .collect())
+    if n <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        Ok((0..n).map(|_| rng.sample(normal)).collect())
+    } else {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(normal),
+            )
+            .collect())
+    }
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 //! Uniform random number generation
 
-use crate::{FloatExt, XError, XResult};
+use crate::{FloatExt, XError, XResult, random::PAR_THRESHOLD};
 use rand::{
     distr::{
         StandardUniform,
@@ -46,13 +46,18 @@ where
     StandardUniform: Distribution<T>,
 {
     let dist = StandardUniform;
-    (0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.sample(dist),
-        )
-        .collect()
+    if n <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        (0..n).map(|_| rng.sample(dist)).collect()
+    } else {
+        (0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(dist),
+            )
+            .collect()
+    }
 }
 
 /// Generate a random number from a range
@@ -92,14 +97,18 @@ where
     <T as SampleUniform>::Sampler: Send + Sync,
 {
     let uniform = Uniform::new(range.start, range.end)?;
-    let result = (0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.sample(uniform),
-        )
-        .collect();
-    Ok(result)
+    if n <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        Ok((0..n).map(|_| rng.sample(uniform)).collect())
+    } else {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(uniform),
+            )
+            .collect())
+    }
 }
 
 /// Generate a random number from an inclusive range
@@ -139,14 +148,18 @@ where
     <T as SampleUniform>::Sampler: Send + Sync,
 {
     let uniform = Uniform::new_inclusive(range.start(), range.end())?;
-    let result = (0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.sample(uniform),
-        )
-        .collect();
-    Ok(result)
+    if n <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        Ok((0..n).map(|_| rng.sample(uniform)).collect())
+    } else {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.sample(uniform),
+            )
+            .collect())
+    }
 }
 
 /// Generate a boolean random number
@@ -182,14 +195,18 @@ pub fn bool_rands(p: f64, n: usize) -> XResult<Vec<bool>> {
     if !(0.0..=1.0).contains(&p) {
         return Err(XError::BoolSampleError);
     }
-    let result = (0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| r.random_bool(p),
-        )
-        .collect();
-    Ok(result)
+    if n <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        Ok((0..n).map(|_| rng.random_bool(p)).collect())
+    } else {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.random_bool(p),
+            )
+            .collect())
+    }
 }
 
 #[cfg(test)]
