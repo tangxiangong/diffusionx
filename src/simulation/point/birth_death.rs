@@ -2,11 +2,13 @@
 
 use crate::{
     RealExt, SimulationError, XResult,
-    random::{exponential, uniform},
+    random::{PAR_THRESHOLD, exponential},
     simulation::prelude::*,
     utils::cumsum,
 };
+use rand::{Rng, SeedableRng};
 use rand_distr::{Distribution, Exp1};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Birth-death process
@@ -140,10 +142,24 @@ where
     let durations = exponential::rands(lambda + mu, num_step)?;
     let prob = (lambda / (lambda + mu)).to_f64().unwrap();
     let t = cumsum(T::zero(), &durations);
-    let directions = uniform::bool_rands(prob, num_step)?
-        .into_par_iter()
-        .map(|b| if b { X::one() } else { -X::one() })
-        .collect::<Vec<_>>();
+    let directions = if num_step <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        (0..num_step)
+            .map(|_| {
+                let dir = rng.random_bool(prob);
+                if dir { X::one() } else { -X::one() }
+            })
+            .collect::<Vec<_>>()
+    } else {
+        (0..num_step)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.random_bool(prob),
+            )
+            .map(|b| if b { X::one() } else { -X::one() })
+            .collect::<Vec<_>>()
+    };
     let x = cumsum(X::zero(), &directions);
     Ok((t, x))
 }

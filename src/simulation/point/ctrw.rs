@@ -1,13 +1,12 @@
 //! Continuous time random walk simulation
 
-use rand_distr::{Distribution, Exp1, StandardNormal, uniform::SampleUniform};
-
 use crate::{
     SimulationError, XResult,
     random::{exponential, normal, stable},
     simulation::prelude::*,
     utils::cumsum,
 };
+use rand_distr::{Distribution, Exp1, StandardNormal, uniform::SampleUniform};
 
 /// Continuous time random walk
 ///

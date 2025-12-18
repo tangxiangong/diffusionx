@@ -1,10 +1,9 @@
 //! Poisson process simulation
 
-use rand_distr::{Distribution, Exp1};
-
 use crate::{
     RealExt, SimulationError, XResult, random::exponential, simulation::prelude::*, utils::cumsum,
 };
+use rand_distr::{Distribution, Exp1};
 
 /// Poisson process
 #[derive(Debug, Clone)]

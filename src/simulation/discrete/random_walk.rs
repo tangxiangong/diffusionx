@@ -2,12 +2,13 @@
 
 use crate::{
     RealExt, SimulationError, XResult,
-    random::{exponential, stable},
+    random::{PAR_THRESHOLD, exponential, stable},
     simulation::prelude::*,
     utils::cumsum,
 };
-use rand::{Rng, rng};
+use rand::{Rng, SeedableRng};
 use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Lattice random walk
@@ -100,6 +101,7 @@ impl<N: IntExt, X: RealExt + std::ops::Neg<Output = X>> DiscreteProcess<N, X>
     for LatticeRandomWalk<X>
 where
     std::ops::Range<N>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: std::iter::IntoIterator,
 {
     fn start(&self) -> X {
         self.start_position
@@ -116,11 +118,23 @@ where
 
     fn displacement(&self, num_step: N) -> XResult<X> {
         let prob = self.probability.to_f64().unwrap();
-        let delta_x = (N::zero()..num_step)
-            .into_par_iter()
-            .map_init(rng, |r, _| r.random_bool(prob))
-            .map(|x| if x { self.step_size } else { -self.step_size })
-            .sum();
+        let delta_x = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            (N::zero()..num_step)
+                .into_iter()
+                .map(|_| rng.random_bool(prob))
+                .map(|x| if x { self.step_size } else { -self.step_size })
+                .sum()
+        } else {
+            (N::zero()..num_step)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| r.random_bool(prob),
+                )
+                .map(|x| if x { self.step_size } else { -self.step_size })
+                .sum()
+        };
         Ok(delta_x)
     }
 }
@@ -149,13 +163,26 @@ pub fn simulate_lattice_random_walk<N: IntExt, X: RealExt + std::ops::Neg<Output
 ) -> XResult<Vec<X>>
 where
     std::ops::Range<N>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: std::iter::IntoIterator,
 {
     let prob = probability.to_f64().unwrap();
-    let delta_x: Vec<X> = (N::zero()..num_step)
-        .into_par_iter()
-        .map_init(rng, |r, _| r.random_bool(prob))
-        .map(|x| if x { step_size } else { -step_size })
-        .collect();
+    let delta_x: Vec<X> = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        (N::zero()..num_step)
+            .into_iter()
+            .map(|_| rng.random_bool(prob))
+            .map(|x| if x { step_size } else { -step_size })
+            .collect()
+    } else {
+        (N::zero()..num_step)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.random_bool(prob),
+            )
+            .map(|x| if x { step_size } else { -step_size })
+            .collect()
+    };
 
     let x = cumsum(start_position, &delta_x);
     Ok(x)
@@ -250,6 +277,7 @@ impl<N: IntExt, X: FloatExt + SampleUniform> DiscreteProcess<N, X> for RandomWal
 where
     Exp1: Distribution<X>,
     std::ops::Range<N>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: std::iter::IntoIterator,
 {
     fn start(&self) -> X {
         self.start_position
@@ -262,10 +290,40 @@ where
     fn displacement(&self, num_step: N) -> XResult<X> {
         let prob = self.probability.to_f64().unwrap();
 
-        let delta_x = if self.alpha == X::one() {
+        let delta_x = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
+            let mut r = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            if self.alpha == X::one() {
+                (N::zero()..num_step)
+                    .into_iter()
+                    .map(|_| {
+                        let dir = r.random_bool(prob);
+                        if dir {
+                            exponential::standard_rand().abs()
+                        } else {
+                            -exponential::standard_rand().abs()
+                        }
+                    })
+                    .sum()
+            } else {
+                (N::zero()..num_step)
+                    .into_iter()
+                    .map(|_| {
+                        let dir = r.random_bool(prob);
+                        if dir {
+                            stable::skew_rand(self.alpha).unwrap().abs()
+                        } else {
+                            -stable::skew_rand(self.alpha).unwrap().abs()
+                        }
+                    })
+                    .sum()
+            }
+        } else if self.alpha == X::one() {
             (N::zero()..num_step)
                 .into_par_iter()
-                .map_init(rng, |r, _| r.random_bool(prob))
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| r.random_bool(prob),
+                )
                 .map(|x| {
                     if x {
                         exponential::standard_rand().abs()
@@ -277,7 +335,10 @@ where
         } else {
             (N::zero()..num_step)
                 .into_par_iter()
-                .map_init(rng, |r, _| r.random_bool(prob))
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| r.random_bool(prob),
+                )
                 .map(|x| {
                     if x {
                         stable::skew_rand(self.alpha).unwrap().abs()
@@ -316,12 +377,43 @@ pub fn simulate_random_walk<N: IntExt, X: FloatExt + SampleUniform>(
 where
     Exp1: Distribution<X>,
     std::ops::Range<N>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: std::iter::IntoIterator,
 {
     let prob = probability.to_f64().unwrap();
-    let delta_x: Vec<_> = if alpha == X::one() {
+    let delta_x: Vec<_> = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
+        let mut r = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        if alpha == X::one() {
+            (N::zero()..num_step)
+                .into_iter()
+                .map(|_| {
+                    let dir = r.random_bool(prob);
+                    if dir {
+                        exponential::standard_rand().abs()
+                    } else {
+                        -exponential::standard_rand().abs()
+                    }
+                })
+                .collect()
+        } else {
+            (N::zero()..num_step)
+                .into_iter()
+                .map(|_| {
+                    let dir = r.random_bool(prob);
+                    if dir {
+                        stable::skew_rand(alpha).unwrap().abs()
+                    } else {
+                        -stable::skew_rand(alpha).unwrap().abs()
+                    }
+                })
+                .collect()
+        }
+    } else if alpha == X::one() {
         (N::zero()..num_step)
             .into_par_iter()
-            .map_init(rng, |r, _| r.random_bool(prob))
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.random_bool(prob),
+            )
             .map(|x| {
                 if x {
                     exponential::standard_rand().abs()
@@ -333,7 +425,10 @@ where
     } else {
         (N::zero()..num_step)
             .into_par_iter()
-            .map_init(rng, |r, _| r.random_bool(prob))
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.random_bool(prob),
+            )
             .map(|x| {
                 if x {
                     stable::skew_rand(alpha).unwrap().abs()
