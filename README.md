@@ -273,3 +273,5 @@ additional terms or conditions.
 
 ---
 Dedicated to my brief yet unforgettable years in LZU and to XX.
+
+Once I dreamt that we were dear to each other, I woke to find that we were strangers. Alas, in dreams, I wouldn’t even dare to long for such closeness.
