@@ -1,12 +1,14 @@
 //! Random walk simulation
 
 use crate::{
-    SimulationError, XResult,
-    random::{exponential, stable},
+    RealExt, SimulationError, XResult,
+    random::{PAR_THRESHOLD, exponential, stable},
     simulation::prelude::*,
     utils::cumsum,
 };
-use rand::{Rng, rng};
+use rand::{Rng, SeedableRng};
+use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Lattice random walk
@@ -24,26 +26,26 @@ use rayon::prelude::*;
 /// - $a$ is the step size
 /// - $d_n^{(p)}$ is the direction of the step, which is either $+1$ or $-1$ with probability $p$ or $1-p$ respectively
 #[derive(Clone, Debug)]
-pub struct LatticeRandomWalk {
+pub struct LatticeRandomWalk<T: RealExt = f64> {
     /// The step size
-    step_size: f64,
+    step_size: T,
     /// The probability of the step in the positive direction
-    probability: f64,
+    probability: T,
     /// The starting position
-    start_position: f64,
+    start_position: T,
 }
 
-impl Default for LatticeRandomWalk {
+impl<T: RealExt> Default for LatticeRandomWalk<T> {
     fn default() -> Self {
         Self {
-            step_size: 1.0,
-            probability: 0.5,
-            start_position: 0.0,
+            step_size: T::one(),
+            probability: T::from(0.5).unwrap(),
+            start_position: T::zero(),
         }
     }
 }
 
-impl LatticeRandomWalk {
+impl<T: RealExt> LatticeRandomWalk<T> {
     /// Create a new `LatticeRandomWalk`
     ///
     /// # Arguments
@@ -59,23 +61,16 @@ impl LatticeRandomWalk {
     ///
     /// let rw = LatticeRandomWalk::new(1.0, 0.5, 0.0).unwrap();
     /// ```
-    pub fn new(
-        step_size: impl Into<f64>,
-        probability: impl Into<f64>,
-        start_position: impl Into<f64>,
-    ) -> XResult<Self> {
-        let step_size = step_size.into();
-        let probability = probability.into();
-        let start_position = start_position.into();
-        if probability <= 0.0 || probability > 1.0 {
+    pub fn new(step_size: T, probability: T, start_position: T) -> XResult<Self> {
+        if probability <= T::zero() || probability > T::one() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `probability` must be between 0 and 1, got {probability}"
+                "The `probability` must be between 0 and 1, got {probability:?}"
             ))
             .into());
         }
-        if step_size <= 0.0 {
+        if step_size <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `step_size` must be greater than 0, got {step_size}"
+                "The `step_size` must be greater than 0, got {step_size:?}"
             ))
             .into());
         }
@@ -87,27 +82,32 @@ impl LatticeRandomWalk {
     }
 
     /// Get the step size
-    pub fn step_size(&self) -> f64 {
+    pub fn step_size(&self) -> T {
         self.step_size
     }
 
     /// Get the probability of the step in the positive direction
-    pub fn probability(&self) -> f64 {
+    pub fn probability(&self) -> T {
         self.probability
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn start_position(&self) -> T {
         self.start_position
     }
 }
 
-impl DiscreteProcess for LatticeRandomWalk {
-    fn start(&self) -> f64 {
+impl<N: IntExt, X: RealExt + std::ops::Neg<Output = X>> DiscreteProcess<N, X>
+    for LatticeRandomWalk<X>
+where
+    std::ops::Range<N>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: std::iter::IntoIterator,
+{
+    fn start(&self) -> X {
         self.start_position
     }
 
-    fn simulate(&self, num_step: usize) -> XResult<DiscretePair> {
+    fn simulate(&self, num_step: N) -> XResult<Vec<X>> {
         simulate_lattice_random_walk(
             self.step_size,
             self.probability,
@@ -116,12 +116,25 @@ impl DiscreteProcess for LatticeRandomWalk {
         )
     }
 
-    fn displacement(&self, num_step: usize) -> XResult<f64> {
-        let delta_x = (0..num_step)
-            .into_par_iter()
-            .map_init(rng, |r, _| r.random_bool(self.probability))
-            .map(|x| if x { self.step_size } else { -self.step_size })
-            .sum();
+    fn displacement(&self, num_step: N) -> XResult<X> {
+        let prob = self.probability.to_f64().unwrap();
+        let delta_x = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            (N::zero()..num_step)
+                .into_iter()
+                .map(|_| rng.random_bool(prob))
+                .map(|x| if x { self.step_size } else { -self.step_size })
+                .sum()
+        } else {
+            (N::zero()..num_step)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| r.random_bool(prob),
+                )
+                .map(|x| if x { self.step_size } else { -self.step_size })
+                .sum()
+        };
         Ok(delta_x)
     }
 }
@@ -142,20 +155,37 @@ impl DiscreteProcess for LatticeRandomWalk {
 ///
 /// let (t, x) = simulate_lattice_random_walk(0.5, 0.5, 0.0, 1000).unwrap();
 /// ```
-pub fn simulate_lattice_random_walk(
-    step_size: f64,
-    probability: f64,
-    start_position: f64,
-    num_step: usize,
-) -> XResult<(Vec<usize>, Vec<f64>)> {
-    let delta_x: Vec<f64> = (0..num_step)
-        .into_par_iter()
-        .map_init(rng, |r, _| r.random_bool(probability))
-        .map(|x| if x { step_size } else { -step_size })
-        .collect();
-    let t = (0..=num_step).collect();
+pub fn simulate_lattice_random_walk<N: IntExt, X: RealExt + std::ops::Neg<Output = X>>(
+    step_size: X,
+    probability: X,
+    start_position: X,
+    num_step: N,
+) -> XResult<Vec<X>>
+where
+    std::ops::Range<N>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: std::iter::IntoIterator,
+{
+    let prob = probability.to_f64().unwrap();
+    let delta_x: Vec<X> = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        (N::zero()..num_step)
+            .into_iter()
+            .map(|_| rng.random_bool(prob))
+            .map(|x| if x { step_size } else { -step_size })
+            .collect()
+    } else {
+        (N::zero()..num_step)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.random_bool(prob),
+            )
+            .map(|x| if x { step_size } else { -step_size })
+            .collect()
+    };
+
     let x = cumsum(start_position, &delta_x);
-    Ok((t, x))
+    Ok(x)
 }
 
 /// Random walk
@@ -172,26 +202,26 @@ pub fn simulate_lattice_random_walk(
 /// - $X_0$ is the initial position
 /// - $a_i$ is the step size
 #[derive(Clone, Debug)]
-pub struct RandomWalk {
+pub struct RandomWalk<T: FloatExt = f64> {
     /// The probability of the step in the positive direction
-    probability: f64,
+    probability: T,
     /// The alpha parameter of the stable distribution
-    alpha: f64,
+    alpha: T,
     /// The starting position
-    start_position: f64,
+    start_position: T,
 }
 
-impl Default for RandomWalk {
+impl<T: FloatExt> Default for RandomWalk<T> {
     fn default() -> Self {
         Self {
-            probability: 0.5,
-            alpha: 2.0,
-            start_position: 0.0,
+            probability: T::from(0.5).unwrap(),
+            alpha: T::from(2).unwrap(),
+            start_position: T::zero(),
         }
     }
 }
 
-impl RandomWalk {
+impl<T: FloatExt> RandomWalk<T> {
     /// Create a new `RandomWalk`
     ///
     /// # Arguments
@@ -207,23 +237,16 @@ impl RandomWalk {
     ///
     /// let rw = RandomWalk::new(0.5, 1.0, 0.0).unwrap();
     /// ```
-    pub fn new(
-        probability: impl Into<f64>,
-        alpha: impl Into<f64>,
-        start_position: impl Into<f64>,
-    ) -> XResult<Self> {
-        let probability = probability.into();
-        let alpha = alpha.into();
-        let start_position = start_position.into();
-        if probability <= 0.0 || probability > 1.0 {
+    pub fn new(probability: T, alpha: T, start_position: T) -> XResult<Self> {
+        if probability <= T::zero() || probability > T::one() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `probability` must be between 0 and 1, got {probability}"
+                "The `probability` must be between 0 and 1, got {probability:?}"
             ))
             .into());
         }
-        if alpha <= 0.0 || alpha > 2.0 {
+        if alpha <= T::zero() || alpha > T::from(2).unwrap() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be between 0 and 2, got {alpha}"
+                "The `alpha` must be between 0 and 2, got {alpha:?}"
             ))
             .into());
         }
@@ -235,48 +258,96 @@ impl RandomWalk {
     }
 
     /// Get the probability of the step in the positive direction
-    pub fn probability(&self) -> f64 {
+    pub fn probability(&self) -> T {
         self.probability
     }
 
     /// Get the alpha parameter of the stable distribution
-    pub fn alpha(&self) -> f64 {
+    pub fn alpha(&self) -> T {
         self.alpha
     }
 
     /// Get the starting position
-    pub fn start_position(&self) -> f64 {
+    pub fn start_position(&self) -> T {
         self.start_position
     }
 }
 
-impl DiscreteProcess for RandomWalk {
-    fn start(&self) -> f64 {
+impl<N: IntExt, X: FloatExt + SampleUniform> DiscreteProcess<N, X> for RandomWalk<X>
+where
+    Exp1: Distribution<X>,
+    std::ops::Range<N>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: std::iter::IntoIterator,
+{
+    fn start(&self) -> X {
         self.start_position
     }
 
-    fn simulate(&self, num_step: usize) -> XResult<DiscretePair> {
+    fn simulate(&self, num_step: N) -> XResult<Vec<X>> {
         simulate_random_walk(self.probability, self.alpha, self.start_position, num_step)
     }
 
-    fn displacement(&self, num_step: usize) -> XResult<f64> {
-        let jump_lengths = if self.alpha == 1.0 {
-            exponential::rands(1.0, num_step)?
+    fn displacement(&self, num_step: N) -> XResult<X> {
+        let prob = self.probability.to_f64().unwrap();
+
+        let delta_x = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
+            let mut r = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            if self.alpha == X::one() {
+                (N::zero()..num_step)
+                    .into_iter()
+                    .map(|_| {
+                        let dir = r.random_bool(prob);
+                        if dir {
+                            exponential::standard_rand().abs()
+                        } else {
+                            -exponential::standard_rand().abs()
+                        }
+                    })
+                    .sum()
+            } else {
+                (N::zero()..num_step)
+                    .into_iter()
+                    .map(|_| {
+                        let dir = r.random_bool(prob);
+                        if dir {
+                            stable::skew_rand(self.alpha).unwrap().abs()
+                        } else {
+                            -stable::skew_rand(self.alpha).unwrap().abs()
+                        }
+                    })
+                    .sum()
+            }
+        } else if self.alpha == X::one() {
+            (N::zero()..num_step)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| r.random_bool(prob),
+                )
+                .map(|x| {
+                    if x {
+                        exponential::standard_rand().abs()
+                    } else {
+                        -exponential::standard_rand().abs()
+                    }
+                })
+                .sum()
         } else {
-            stable::skew_rands(self.alpha, num_step)?
+            (N::zero()..num_step)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| r.random_bool(prob),
+                )
+                .map(|x| {
+                    if x {
+                        stable::skew_rand(self.alpha).unwrap().abs()
+                    } else {
+                        -stable::skew_rand(self.alpha).unwrap().abs()
+                    }
+                })
+                .sum()
         };
-        let delta_x = (0..num_step)
-            .into_par_iter()
-            .map_init(rng, |r, _| r.random_bool(self.probability))
-            .zip(jump_lengths)
-            .map(|(x, jump_length)| {
-                if x {
-                    jump_length.abs()
-                } else {
-                    -jump_length.abs()
-                }
-            })
-            .sum();
         Ok(delta_x)
     }
 }
@@ -297,32 +368,78 @@ impl DiscreteProcess for RandomWalk {
 ///
 /// let (t, x) = simulate_random_walk(0.5, 1.0, 0.0, 1000).unwrap();
 /// ```
-pub fn simulate_random_walk(
-    probability: f64,
-    alpha: f64,
-    start_position: f64,
-    num_step: usize,
-) -> XResult<(Vec<usize>, Vec<f64>)> {
-    let jump_lengths = if alpha == 1.0 {
-        exponential::rands(1.0, num_step)?
+pub fn simulate_random_walk<N: IntExt, X: FloatExt + SampleUniform>(
+    probability: X,
+    alpha: X,
+    start_position: X,
+    num_step: N,
+) -> XResult<Vec<X>>
+where
+    Exp1: Distribution<X>,
+    std::ops::Range<N>: rayon::iter::IntoParallelIterator,
+    std::ops::Range<N>: std::iter::IntoIterator,
+{
+    let prob = probability.to_f64().unwrap();
+    let delta_x: Vec<_> = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
+        let mut r = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        if alpha == X::one() {
+            (N::zero()..num_step)
+                .into_iter()
+                .map(|_| {
+                    let dir = r.random_bool(prob);
+                    if dir {
+                        exponential::standard_rand().abs()
+                    } else {
+                        -exponential::standard_rand().abs()
+                    }
+                })
+                .collect()
+        } else {
+            (N::zero()..num_step)
+                .into_iter()
+                .map(|_| {
+                    let dir = r.random_bool(prob);
+                    if dir {
+                        stable::skew_rand(alpha).unwrap().abs()
+                    } else {
+                        -stable::skew_rand(alpha).unwrap().abs()
+                    }
+                })
+                .collect()
+        }
+    } else if alpha == X::one() {
+        (N::zero()..num_step)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.random_bool(prob),
+            )
+            .map(|x| {
+                if x {
+                    exponential::standard_rand().abs()
+                } else {
+                    -exponential::standard_rand().abs()
+                }
+            })
+            .collect()
     } else {
-        stable::skew_rands(alpha, num_step)?
+        (N::zero()..num_step)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| r.random_bool(prob),
+            )
+            .map(|x| {
+                if x {
+                    stable::skew_rand(alpha).unwrap().abs()
+                } else {
+                    -stable::skew_rand(alpha).unwrap().abs()
+                }
+            })
+            .collect()
     };
-    let delta_x: Vec<f64> = (0..num_step)
-        .into_par_iter()
-        .map_init(rng, |r, _| r.random_bool(probability))
-        .zip(jump_lengths)
-        .map(|(x, jump_length)| {
-            if x {
-                jump_length.abs()
-            } else {
-                -jump_length.abs()
-            }
-        })
-        .collect();
-    let t = (0..=num_step).collect();
     let x = cumsum(start_position, &delta_x);
-    Ok((t, x))
+    Ok(x)
 }
 
 #[cfg(test)]
@@ -331,33 +448,32 @@ mod tests {
 
     #[test]
     fn test_simulate_lattice_random_walk() {
-        let rw = LatticeRandomWalk::default();
-        let (t, x) = rw.simulate(1000).unwrap();
-        assert_eq!(t.len(), 1001);
+        let rw: LatticeRandomWalk<f64> = LatticeRandomWalk::default();
+        let x = rw.simulate(1000).unwrap();
         assert_eq!(x.len(), 1001);
     }
 
     #[test]
     fn test_mean() {
-        let rw = LatticeRandomWalk::default();
+        let rw: LatticeRandomWalk<f64> = LatticeRandomWalk::default();
         let _mean = rw.mean(1000, 1000).unwrap();
     }
 
     #[test]
     fn test_msd() {
-        let rw = LatticeRandomWalk::default();
+        let rw: LatticeRandomWalk<f64> = LatticeRandomWalk::default();
         let _msd = rw.msd(1000, 1000).unwrap();
     }
 
     #[test]
     fn test_raw_moment() {
-        let rw = LatticeRandomWalk::default();
+        let rw: LatticeRandomWalk<f64> = LatticeRandomWalk::default();
         let _moment = rw.raw_moment(1000, 1, 1000).unwrap();
     }
 
     #[test]
     fn test_central_moment() {
-        let rw = LatticeRandomWalk::default();
+        let rw: LatticeRandomWalk<f64> = LatticeRandomWalk::default();
         let _moment = rw.central_moment(1000, 2, 1000).unwrap();
     }
 

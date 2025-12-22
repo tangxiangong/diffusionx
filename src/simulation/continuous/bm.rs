@@ -1,7 +1,8 @@
 //! Brownian motion simulation
 
 use crate::{
-    FloatExt, SimulationError, XResult, check_duration_time_step, random::normal,
+    FloatExt, SimulationError, XResult, check_duration_time_step,
+    random::{PAR_THRESHOLD, normal},
     simulation::prelude::*,
 };
 use rand::prelude::*;
@@ -81,13 +82,18 @@ where
         let num_steps = (duration / time_step).ceil().to_usize().unwrap();
         let std_dev = (two * self.diffusion_coefficient * time_step).sqrt();
         let normal = rand_distr::Normal::new(T::zero(), std_dev)?;
-        let mut delta_x = (0..num_steps - 1)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| r.sample(normal),
-            )
-            .sum();
+        let mut delta_x = if num_steps < PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            (0..num_steps - 1).map(|_| rng.sample(normal)).sum()
+        } else {
+            (0..num_steps - 1)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| r.sample(normal),
+                )
+                .sum()
+        };
         let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
         delta_x +=
             (two * self.diffusion_coefficient * last_step).sqrt() * normal::standard_rand::<T>();

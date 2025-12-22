@@ -6,6 +6,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 pub trait FloatExt:
     num_traits::Float
+    + num_traits::FloatConst
     + std::fmt::Debug
     + Send
     + Sync
@@ -17,6 +18,7 @@ pub trait FloatExt:
 
 impl<T> FloatExt for T where
     T: num_traits::Float
+        + num_traits::FloatConst
         + std::fmt::Debug
         + Send
         + Sync
@@ -28,6 +30,30 @@ impl<T> FloatExt for T where
 
 pub trait IntExt: num_traits::PrimInt + std::fmt::Debug + Send + Sync + std::iter::Sum {}
 impl<T> IntExt for T where T: num_traits::PrimInt + std::fmt::Debug + Send + Sync + std::iter::Sum {}
+
+pub trait RealExt:
+    num_traits::Num
+    + num_traits::NumCast
+    + std::fmt::Debug
+    + Send
+    + Sync
+    + Copy
+    + PartialOrd
+    + std::iter::Sum
+{
+}
+
+impl<T> RealExt for T where
+    T: num_traits::Num
+        + num_traits::NumCast
+        + std::fmt::Debug
+        + Send
+        + Sync
+        + Copy
+        + PartialOrd
+        + std::iter::Sum
+{
+}
 
 mod error;
 pub use error::*;

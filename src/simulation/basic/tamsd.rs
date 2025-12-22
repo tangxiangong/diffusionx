@@ -1,5 +1,5 @@
 use crate::{
-    FloatExt, SimulationError, XResult, simulation::prelude::*, utils::flatten_interpolate,
+    FloatExt, RealExt, SimulationError, XResult, simulation::prelude::*, utils::flatten_interpolate,
 };
 use gauss_quad::GaussLegendre;
 use rayon::prelude::*;
@@ -177,24 +177,33 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
     }
 }
 
-impl<'a, SP: PointProcess> TAMSD<'a, SP> {
+impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
     /// Simulate the TAMSD
     ///
     /// # Arguments
     ///
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn simulate_p(&self, time_step: f64, quad_order: usize) -> XResult<f64> {
+    pub fn simulate_p<X: RealExt>(&self, time_step: T, quad_order: usize) -> XResult<f64>
+    where
+        SP: PointProcess<T, X> + Clone,
+    {
         let legendre_quad = GaussLegendre::new(quad_order)?;
         let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
         let duration = self.duration;
         let slag = self.delta;
-        let nodes_weights = nodes_weights_transform(0.0, duration - slag, nodes_weights_pairs);
+        let nodes_weights = nodes_weights_transform(
+            0.0,
+            (duration - slag).to_f64().unwrap(),
+            nodes_weights_pairs,
+        );
         let result = nodes_weights
             .into_par_iter()
             .map(|(node, weight)| -> XResult<f64> {
-                let slag_length = (slag / time_step).ceil() as usize;
-                let (t, x) = self.process.simulate_with_duration(node + slag)?;
+                let slag_length = (slag / time_step).ceil().to_usize().unwrap();
+                let (t, x) = self
+                    .process
+                    .simulate_with_duration(T::from(node).unwrap() + slag)?;
                 let (_, x) = flatten_interpolate(&t, &x, time_step)?;
                 let len = x.len();
                 let end_position = x.last();
@@ -202,15 +211,15 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
                 if end_position.is_none() || slag_position.is_none() {
                     return Err(SimulationError::Unknown.into());
                 }
-                let end_position = *end_position.unwrap();
-                let slag_position = *slag_position.unwrap();
+                let end_position = end_position.unwrap().to_f64().unwrap();
+                let slag_position = slag_position.unwrap().to_f64().unwrap();
 
                 Ok((end_position - slag_position).powi(2) * weight)
             })
             .collect::<XResult<Vec<_>>>()?
             .into_par_iter()
             .sum::<f64>()
-            / (duration - slag);
+            / (duration - slag).to_f64().unwrap();
         Ok(result)
     }
 
@@ -221,16 +230,24 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn mean_p(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+    pub fn mean_p<X: RealExt>(
+        &self,
+        particles: usize,
+        time_step: T,
+        quad_order: usize,
+    ) -> XResult<f64>
+    where
+        SP: PointProcess<T, X> + Clone,
+    {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
-        if time_step <= 0.0 {
+        if time_step <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
+                "The `time_step` must be positive, got `{time_step:?}`"
             ))
             .into());
         }
@@ -254,16 +271,24 @@ impl<'a, SP: PointProcess> TAMSD<'a, SP> {
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
-    pub fn variance_p(&self, particles: usize, time_step: f64, quad_order: usize) -> XResult<f64> {
+    pub fn variance_p<X: RealExt>(
+        &self,
+        particles: usize,
+        time_step: T,
+        quad_order: usize,
+    ) -> XResult<f64>
+    where
+        SP: PointProcess<T, X> + Clone,
+    {
         if particles == 0 {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `particles` must be positive, got {particles}"
             ))
             .into());
         }
-        if time_step <= 0.0 {
+        if time_step <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `time_step` must be positive, got `{time_step}`"
+                "The `time_step` must be positive, got `{time_step:?}`"
             ))
             .into());
         }

@@ -2,9 +2,6 @@
 //!
 //! The Cauchy process is a Lévy process with alpha = 1.
 
-use num_traits::FloatConst;
-use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
-
 use crate::{
     FloatExt, SimulationError, XResult,
     simulation::{
@@ -12,6 +9,7 @@ use crate::{
         prelude::*,
     },
 };
+use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
 
 /// Asymmetric Cauchy process
 #[derive(Debug, Clone)]
@@ -61,7 +59,7 @@ impl<T: FloatExt> AsymmetricCauchy<T> {
     }
 }
 
-impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for AsymmetricCauchy<T>
+impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for AsymmetricCauchy<T>
 where
     Exp1: Distribution<T>,
 {
@@ -124,7 +122,7 @@ impl<T: FloatExt> Cauchy<T> {
     }
 }
 
-impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for Cauchy<T>
+impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for Cauchy<T>
 where
     Exp1: Distribution<T>,
 {

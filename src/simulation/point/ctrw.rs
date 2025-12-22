@@ -6,6 +6,7 @@ use crate::{
     simulation::prelude::*,
     utils::cumsum,
 };
+use rand_distr::{Distribution, Exp1, StandardNormal, uniform::SampleUniform};
 
 /// Continuous time random walk
 ///
@@ -28,26 +29,26 @@ use crate::{
 /// CTRWs are widely used to model anomalous diffusion in complex systems, including
 /// transport in disordered media, financial time series, and biological processes.
 #[derive(Clone, Debug)]
-pub struct CTRW {
+pub struct CTRW<T: FloatExt = f64> {
     /// The alpha parameter of the stable distribution
-    alpha: f64,
+    alpha: T,
     /// The beta parameter of the stable distribution
-    beta: f64,
+    beta: T,
     /// The starting position
-    start_position: f64,
+    start_position: T,
 }
 
-impl Default for CTRW {
+impl<T: FloatExt> Default for CTRW<T> {
     fn default() -> Self {
         Self {
-            alpha: 1.0,
-            beta: 2.0,
-            start_position: 0.0,
+            alpha: T::one(),
+            beta: T::from(2).unwrap(),
+            start_position: T::zero(),
         }
     }
 }
 
-impl CTRW {
+impl<T: FloatExt> CTRW<T> {
     /// Create a new `CTRW`
     ///
     /// # Arguments
@@ -63,23 +64,16 @@ impl CTRW {
     ///
     /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
     /// ```
-    pub fn new(
-        alpha: impl Into<f64>,
-        beta: impl Into<f64>,
-        start_position: impl Into<f64>,
-    ) -> XResult<Self> {
-        let alpha = alpha.into();
-        let beta = beta.into();
-        let start_position = start_position.into();
-        if alpha <= 0.0 || alpha > 1.0 {
+    pub fn new(alpha: T, beta: T, start_position: T) -> XResult<Self> {
+        if alpha <= T::zero() || alpha > T::one() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `alpha` must be between 0 and 1, got {alpha}"
+                "The `alpha` must be between 0 and 1, got {alpha:?}"
             ))
             .into());
         }
-        if beta <= 0.0 || beta > 2.0 {
+        if beta <= T::zero() || beta > T::from(2).unwrap() {
             return Err(SimulationError::InvalidParameters(format!(
-                "The `beta` must be between 0 and 2, got {beta}"
+                "The `beta` must be between 0 and 2, got {beta:?}"
             ))
             .into());
         }
@@ -91,23 +85,27 @@ impl CTRW {
     }
 
     /// Get the stable index of the waiting time distribution
-    pub fn get_alpha(&self) -> f64 {
+    pub fn get_alpha(&self) -> T {
         self.alpha
     }
 
     /// Get the stable index of the jump length distribution
-    pub fn get_beta(&self) -> f64 {
+    pub fn get_beta(&self) -> T {
         self.beta
     }
 
     /// Get the starting position
-    pub fn get_start_position(&self) -> f64 {
+    pub fn get_start_position(&self) -> T {
         self.start_position
     }
 }
 
-impl PointProcess for CTRW {
-    fn start(&self) -> f64 {
+impl<T: FloatExt + SampleUniform> PointProcess<T> for CTRW<T>
+where
+    Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
+{
+    fn start(&self) -> T {
         self.start_position
     }
 
@@ -126,7 +124,7 @@ impl PointProcess for CTRW {
     /// let ctrw = CTRW::new(0.5, 1.0, 0.0).unwrap();
     /// let (t, x) = ctrw.simulate_with_step(1000).unwrap();
     /// ```
-    fn simulate_with_step(&self, num_step: usize) -> XResult<Pair> {
+    fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<T>, Vec<T>)> {
         simulate_ctrw_with_step(self.alpha, self.beta, num_step, self.start_position)
     }
 }
@@ -147,21 +145,25 @@ impl PointProcess for CTRW {
 ///
 /// let (t, x) = simulate_ctrw_with_step(0.5, 1.0, 1000, 0.0).unwrap();
 /// ```
-pub fn simulate_ctrw_with_step(
-    alpha: f64,
-    beta: f64,
+pub fn simulate_ctrw_with_step<T: FloatExt + SampleUniform>(
+    alpha: T,
+    beta: T,
     num_step: usize,
-    start_position: f64,
-) -> XResult<(Vec<f64>, Vec<f64>)> {
-    if alpha <= 0.0 || alpha > 1.0 {
+    start_position: T,
+) -> XResult<(Vec<T>, Vec<T>)>
+where
+    Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
+{
+    if alpha <= T::zero() || alpha > T::one() {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `alpha` must be between 0 and 1, got {alpha}"
+            "The `alpha` must be between 0 and 1, got {alpha:?}"
         ))
         .into());
     }
-    if beta <= 0.0 || beta > 2.0 {
+    if beta <= T::zero() || beta > T::from(2).unwrap() {
         return Err(SimulationError::InvalidParameters(format!(
-            "The `beta` must be between 0 and 2, got {beta}"
+            "The `beta` must be between 0 and 2, got {beta:?}"
         ))
         .into());
     }
@@ -171,17 +173,17 @@ pub fn simulate_ctrw_with_step(
         ))
         .into());
     }
-    let waiting_times = if alpha == 1.0 {
-        exponential::rands(1.0, num_step)?
+    let waiting_times = if alpha == T::one() {
+        exponential::standard_rands(num_step)
     } else {
         stable::skew_rands(alpha, num_step)?
     };
-    let jump_lengths = if beta == 2.0 {
+    let jump_lengths = if beta == T::from(2).unwrap() {
         normal::standard_rands(num_step)
     } else {
         stable::sym_standard_rands(beta, num_step)?
     };
-    let t = cumsum(0.0, &waiting_times);
+    let t = cumsum(T::zero(), &waiting_times);
     let x = cumsum(start_position, &jump_lengths);
     Ok((t, x))
 }

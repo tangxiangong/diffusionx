@@ -2,6 +2,7 @@
 
 use crate::{
     FloatExt, SimulationError, XResult, check_duration_time_step,
+    random::PAR_THRESHOLD,
     simulation::{continuous::BrownianBridge, prelude::*},
     utils::minmax,
 };
@@ -126,20 +127,37 @@ where
 
     let tau_m = bridge_t[min_traj_index];
 
-    let x = bridge_t
-        .par_iter() // Parallelize the mapping
-        .map(|&t_i| {
-            // Correct modulo calculation for tt
-            let tt = (t_i + tau_m) % T::one();
+    let x = if bridge_t.len() < PAR_THRESHOLD {
+        bridge_t
+            .iter() // Parallelize the mapping
+            .map(|&t_i| {
+                // Correct modulo calculation for tt
+                let tt = (t_i + tau_m) % T::one();
 
-            // Find the index in the original bridge time corresponding to tt
-            // Use >= for better accuracy and handle potential errors
-            let index = bridge_t.iter().position(|&t| t >= tt).unwrap();
+                // Find the index in the original bridge time corresponding to tt
+                // Use >= for better accuracy and handle potential errors
+                let index = bridge_t.iter().position(|&t| t >= tt).unwrap();
 
-            // Apply the transformation
-            bridge_traj[index] - min_traj
-        })
-        .collect(); // Collect results from parallel iterator
+                // Apply the transformation
+                bridge_traj[index] - min_traj
+            })
+            .collect()
+    } else {
+        bridge_t
+            .par_iter() // Parallelize the mapping
+            .map(|&t_i| {
+                // Correct modulo calculation for tt
+                let tt = (t_i + tau_m) % T::one();
+
+                // Find the index in the original bridge time corresponding to tt
+                // Use >= for better accuracy and handle potential errors
+                let index = bridge_t.iter().position(|&t| t >= tt).unwrap();
+
+                // Apply the transformation
+                bridge_traj[index] - min_traj
+            })
+            .collect()
+    }; // Collect results from parallel iterator
 
     Ok((bridge_t, x))
 }

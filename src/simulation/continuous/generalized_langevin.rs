@@ -5,7 +5,6 @@ use crate::{
     random::{normal, stable},
     simulation::{continuous::Subordinator, prelude::*},
 };
-use num_traits::FloatConst;
 use rand_distr::{Distribution, Exp1, StandardNormal, uniform::SampleUniform};
 
 /// Generalized Langevin equation
@@ -91,8 +90,7 @@ where
     }
 }
 
-impl<D, G, T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T>
-    for GeneralizedLangevin<D, G, T>
+impl<D, G, T: FloatExt + SampleUniform> ContinuousProcess<T> for GeneralizedLangevin<D, G, T>
 where
     D: Fn(T, T) -> T + Clone + Send + Sync,
     G: Fn(T, T) -> T + Clone + Send + Sync,
@@ -175,7 +173,7 @@ where
 /// )
 /// .unwrap();
 /// ```
-pub fn simulate_generalized_langevin<D, G, T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_generalized_langevin<D, G, T: FloatExt + SampleUniform>(
     drift: &D,
     diffusion: &G,
     start_position: T,
@@ -308,8 +306,7 @@ where
     }
 }
 
-impl<D, G, T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T>
-    for SubordinatedLangevin<D, G, T>
+impl<D, G, T: FloatExt + SampleUniform> ContinuousProcess<T> for SubordinatedLangevin<D, G, T>
 where
     D: Fn(T, T) -> T + Clone + Send + Sync,
     G: Fn(T, T) -> T + Clone + Send + Sync,
@@ -394,7 +391,7 @@ where
 /// )
 /// .unwrap();
 /// ```
-pub fn simulate_subordinated_langevin<D, G, T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_subordinated_langevin<D, G, T: FloatExt + SampleUniform>(
     drift: &D,
     diffusion: &G,
     start_position: T,

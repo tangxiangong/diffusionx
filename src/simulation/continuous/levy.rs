@@ -4,10 +4,15 @@
 
 use crate::{
     FloatExt, SimulationError, XResult, check_duration_time_step,
-    random::stable::{self, sample_standard_alpha, sample_standard_alpha_one},
+    random::{
+        STABLE_PAR_THRESHOLD,
+        stable::{
+            self, sample_standard_alpha, sample_standard_alpha_one, sample_sys_standard_alpha_one,
+            sample_sys_standard_alpha_with_constants,
+        },
+    },
     simulation::prelude::*,
 };
-use num_traits::FloatConst;
 use rand::prelude::*;
 use rand_distr::{Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -76,7 +81,7 @@ impl<T: FloatExt> AsymmetricLevy<T> {
     }
 }
 
-impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for AsymmetricLevy<T>
+impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for AsymmetricLevy<T>
 where
     Exp1: Distribution<T>,
 {
@@ -105,13 +110,20 @@ where
         } else {
             sample_standard_alpha
         };
-        let mut delta_x = (0..num_steps - 1)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| scale * generator(self.alpha, self.beta, r),
-            )
-            .sum();
+        let mut delta_x = if num_steps < STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            (0..num_steps - 1)
+                .map(|_| scale * generator(self.alpha, self.beta, &mut rng))
+                .sum()
+        } else {
+            (0..num_steps - 1)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| scale * generator(self.alpha, self.beta, r),
+                )
+                .sum()
+        };
 
         let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
         delta_x += generator(
@@ -141,7 +153,7 @@ where
 /// let levy = AsymmetricLevy::new(0.0, 1.5, 0.4).unwrap();
 /// let (t, x) = levy.simulate(10.0, 0.1).unwrap();
 /// ```
-pub fn simulate_asymmetric_levy<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_asymmetric_levy<T: FloatExt + SampleUniform>(
     start_position: T,
     alpha: T,
     beta: T,
@@ -230,7 +242,7 @@ impl<T: FloatExt> Levy<T> {
     }
 }
 
-impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for Levy<T>
+impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for Levy<T>
 where
     Exp1: Distribution<T>,
 {
@@ -248,26 +260,75 @@ where
         let num_steps = (duration / time_step).ceil().to_usize().unwrap();
         let power = T::one() / self.alpha;
         let mut scale = time_step.powf(power);
-        let generator = if self.alpha == T::one() {
-            sample_standard_alpha_one
+
+        let (inv_alpha, one_minus_alpha_div_alpha) = if (T::one() - self.alpha).abs() < T::epsilon()
+        {
+            let _inv = T::one() / self.alpha;
+            (_inv, (T::one() - self.alpha) * _inv)
         } else {
-            sample_standard_alpha
+            (T::one(), T::zero())
         };
-        let mut delta_x = (0..num_steps - 1)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| scale * generator(self.alpha, T::zero(), r),
-            )
-            .sum();
+
+        let mut delta_x = if num_steps <= STABLE_PAR_THRESHOLD {
+            if (self.alpha - T::one()).abs() < T::epsilon() {
+                let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+                (0..num_steps - 1)
+                    .map(|_| scale * sample_sys_standard_alpha_one(&mut rng))
+                    .sum()
+            } else {
+                let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+                (0..num_steps - 1)
+                    .map(|_| {
+                        scale
+                            * sample_sys_standard_alpha_with_constants(
+                                inv_alpha,
+                                one_minus_alpha_div_alpha,
+                                self.alpha,
+                                &mut rng,
+                            )
+                    })
+                    .sum()
+            }
+        } else if (self.alpha - T::one()).abs() < T::epsilon() {
+            (0..num_steps - 1)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| scale * sample_sys_standard_alpha_one(r),
+                )
+                .sum()
+        } else {
+            (0..num_steps - 1)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| {
+                        scale
+                            * sample_sys_standard_alpha_with_constants(
+                                inv_alpha,
+                                one_minus_alpha_div_alpha,
+                                self.alpha,
+                                r,
+                            )
+                    },
+                )
+                .sum()
+        };
 
         let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
         scale = last_step.powf(power);
-        delta_x += generator(
-            self.alpha,
-            T::zero(),
-            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-        ) * scale;
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        let xi = if (self.alpha - T::one()).abs() < T::epsilon() {
+            sample_sys_standard_alpha_one(&mut rng)
+        } else {
+            sample_sys_standard_alpha_with_constants(
+                inv_alpha,
+                one_minus_alpha_div_alpha,
+                self.alpha,
+                &mut rng,
+            )
+        };
+        delta_x += xi * scale;
         Ok(delta_x)
     }
 }
@@ -288,7 +349,7 @@ where
 ///
 /// let (t, x) = simulate_levy(0.0, 1.5, 1.0, 0.1).unwrap();
 /// ```
-pub fn simulate_levy<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_levy<T: FloatExt + SampleUniform>(
     start_position: T,
     alpha: T,
     duration: T,

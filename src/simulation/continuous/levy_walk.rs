@@ -1,12 +1,12 @@
 use crate::{
     FloatExt, SimulationError, XResult, check_duration_time_step,
-    random::{exponential, stable},
+    random::{PAR_THRESHOLD, exponential, stable},
     simulation::prelude::*,
     utils::{cumsum, linear_interpolate},
 };
-use num_traits::FloatConst;
-use rand::{prelude::*, rng};
+use rand::prelude::*;
 use rand_distr::{Exp1, uniform::SampleUniform};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
 /// Lévy walk
@@ -106,7 +106,7 @@ impl<T: FloatExt> LevyWalk<T> {
     /// ```
     pub fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<T>, Vec<T>)>
     where
-        T: FloatConst + SampleUniform,
+        T: SampleUniform,
         Exp1: Distribution<T>,
     {
         simulate_levy_walk_with_step(self.alpha, self.velocity, num_step, self.start_position)
@@ -119,14 +119,14 @@ impl<T: FloatExt> LevyWalk<T> {
     /// * `duration` - The duration of the simulation.
     pub fn simulate_with_duration(&self, duration: T) -> XResult<(Vec<T>, Vec<T>)>
     where
-        T: FloatConst + SampleUniform,
+        T: SampleUniform,
         Exp1: Distribution<T>,
     {
         simulate_levy_walk_with_duration(self.alpha, self.velocity, duration, self.start_position)
     }
 }
 
-impl<T: FloatExt + FloatConst + SampleUniform> ContinuousProcess<T> for LevyWalk<T>
+impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for LevyWalk<T>
 where
     Exp1: Distribution<T>,
 {
@@ -194,7 +194,7 @@ where
 ///
 /// let (t, x) = simulate_levy_walk_with_step(0.5, 1.0, 1000, 0.0).unwrap();
 /// ```
-pub fn simulate_levy_walk_with_step<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_levy_walk_with_step<T: FloatExt + SampleUniform>(
     alpha: T,
     velocity: T,
     num_step: usize,
@@ -208,21 +208,45 @@ where
     } else {
         stable::skew_rands(alpha, num_step)?
     };
-    let directions = (0..num_step)
-        .into_par_iter()
-        .map_init(rng, |r, _| {
-            if r.random_bool(0.5) {
-                velocity
-            } else {
-                -velocity
-            }
-        })
-        .collect::<Vec<_>>();
-    let jump_lengths = waiting_times
-        .par_iter()
-        .zip(directions)
-        .map(|(&waiting_time, direction)| waiting_time * direction)
-        .collect::<Vec<_>>();
+    let directions = if num_step < PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        (0..num_step)
+            .map(|_| {
+                if rng.random_bool(0.5) {
+                    velocity
+                } else {
+                    -velocity
+                }
+            })
+            .collect::<Vec<_>>()
+    } else {
+        (0..num_step)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| {
+                    if r.random_bool(0.5) {
+                        velocity
+                    } else {
+                        -velocity
+                    }
+                },
+            )
+            .collect::<Vec<_>>()
+    };
+    let jump_lengths = if waiting_times.len() < PAR_THRESHOLD {
+        waiting_times
+            .iter()
+            .zip(directions)
+            .map(|(&waiting_time, direction)| waiting_time * direction)
+            .collect::<Vec<_>>()
+    } else {
+        waiting_times
+            .par_iter()
+            .zip(directions)
+            .map(|(&waiting_time, direction)| waiting_time * direction)
+            .collect::<Vec<_>>()
+    };
     let t = cumsum(T::zero(), &waiting_times);
     let x = cumsum(start_position, &jump_lengths);
     Ok((t, x))
@@ -244,7 +268,7 @@ where
 ///
 /// let (t, x) = simulate_levy_walk_with_duration(0.5, 1.0, 10.0, 0.0).unwrap();
 /// ```
-pub fn simulate_levy_walk_with_duration<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_levy_walk_with_duration<T: FloatExt + SampleUniform>(
     alpha: T,
     velocity: T,
     duration: T,

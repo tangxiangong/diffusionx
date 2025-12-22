@@ -40,17 +40,17 @@ inline float simd_reduce_sum(float val) {
 inline float threadgroup_reduce_sum(float val, threadgroup float* simd_sums, uint tid, uint tg_size) {
     // Reduce within SIMD group
     val = simd_reduce_sum(val);
-    
+
     uint lane = tid % SIMD_SIZE;
     uint simd_id = tid / SIMD_SIZE;
-    
+
     // First lane of each SIMD group stores its sum
     if (lane == 0) {
         simd_sums[simd_id] = val;
     }
-    
+
     threadgroup_barrier(mem_flags::mem_threadgroup);
-    
+
     // First SIMD group reduces all SIMD sums
     float block_sum = 0.0f;
     if (simd_id == 0) {
@@ -60,7 +60,7 @@ inline float threadgroup_reduce_sum(float val, threadgroup float* simd_sums, uin
         }
         block_sum = simd_reduce_sum(block_sum);
     }
-    
+
     return block_sum;
 }
 
@@ -81,12 +81,12 @@ struct PhiloxState {
 inline uint4 philox_round(uint4 ctr, uint2 key) {
     constexpr uint PHILOX_M4x32_0 = 0xD2511F53;
     constexpr uint PHILOX_M4x32_1 = 0xCD9E8D57;
-    
+
     uint hi0 = mulhi(PHILOX_M4x32_0, ctr.x);
     uint lo0 = PHILOX_M4x32_0 * ctr.x;
     uint hi1 = mulhi(PHILOX_M4x32_1, ctr.z);
     uint lo1 = PHILOX_M4x32_1 * ctr.z;
-    
+
     return uint4(hi1 ^ ctr.y ^ key.x, lo1, hi0 ^ ctr.w ^ key.y, lo0);
 }
 
@@ -115,13 +115,13 @@ inline PhiloxState philox_init(ulong seed, uint idx) {
 inline uint4 philox_generate(thread PhiloxState& state) {
     uint4 ctr = state.counter;
     uint2 key = state.key;
-    
+
     // 10 rounds
     for (int i = 0; i < 10; i++) {
         ctr = philox_round(ctr, key);
         key = philox_bump_key(key);
     }
-    
+
     // Increment counter
     state.counter.x += 1;
     if (state.counter.x == 0) {
@@ -133,7 +133,7 @@ inline uint4 philox_generate(thread PhiloxState& state) {
             }
         }
     }
-    
+
     return ctr;
 }
 
@@ -152,10 +152,10 @@ inline float philox_uniform(thread PhiloxState& state) {
 inline float philox_normal(thread PhiloxState& state) {
     float u1 = philox_uniform(state);
     float u2 = philox_uniform(state);
-    
+
     float r = sqrt(-2.0f * log(u1));
     float theta = 2.0f * M_PI_F * u2;
-    
+
     return r * cos(theta);
 }
 
@@ -201,10 +201,10 @@ inline float xorshift_uniform(thread XorshiftState& state) {
 inline float xorshift_normal(thread XorshiftState& state) {
     float u1 = xorshift_uniform(state);
     float u2 = xorshift_uniform(state);
-    
+
     float r = sqrt(-2.0f * log(u1));
     float theta = 2.0f * M_PI_F * u2;
-    
+
     return r * cos(theta);
 }
 
@@ -222,13 +222,13 @@ inline float powi(float base, int exp) {
     if (exp == 0) return 1.0f;
     if (exp == 1) return base;
     if (exp == 2) return base * base;
-    
+
     bool negative_exp = exp < 0;
     if (negative_exp) exp = -exp;
-    
+
     float result = 1.0f;
     float current = base;
-    
+
     while (exp > 0) {
         if (exp & 1) {
             result *= current;
@@ -236,6 +236,6 @@ inline float powi(float base, int exp) {
         current *= current;
         exp >>= 1;
     }
-    
+
     return negative_exp ? (1.0f / result) : result;
 }

@@ -35,8 +35,7 @@
 //! SFB 649 Discussion Paper, No. 2005-008, Humboldt University of Berlin, Collaborative Research
 //! Center 649 - Economic Risk, Berlin](https://hdl.handle.net/10419/25027)
 
-use crate::{FloatExt, StableError, XResult};
-use num_traits::FloatConst;
+use crate::{FloatExt, StableError, XResult, random::STABLE_PAR_THRESHOLD};
 use rand::{Rng, prelude::*};
 use rand_distr::{Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -44,7 +43,7 @@ use rayon::prelude::*;
 
 /// Precomputed constants for stable distribution sampling
 #[derive(Debug, Clone, Copy)]
-struct StableConstants<T: FloatExt = f64> {
+pub(crate) struct StableConstants<T: FloatExt = f64> {
     /// 1.0 / alpha
     inv_alpha: T,
     /// (1.0 - alpha) / alpha
@@ -55,9 +54,9 @@ struct StableConstants<T: FloatExt = f64> {
     s: T,
 }
 
-impl<T: FloatExt + FloatConst> StableConstants<T> {
+impl<T: FloatExt> StableConstants<T> {
     #[inline]
-    fn new(alpha: T, beta: T) -> Self {
+    pub fn new(alpha: T, beta: T) -> Self {
         let inv_alpha = T::one() / alpha;
         let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
         let tmp = beta * (alpha * T::FRAC_PI_2()).tan();
@@ -135,7 +134,7 @@ impl<T: FloatExt> StandardStable<T> {
     /// ```
     pub fn samples(&self, n: usize) -> XResult<Vec<T>>
     where
-        T: FloatConst + SampleUniform,
+        T: SampleUniform,
         Exp1: Distribution<T>,
     {
         standard_rands(self.alpha, self.beta, n)
@@ -143,7 +142,7 @@ impl<T: FloatExt> StandardStable<T> {
 }
 
 /// Sample standard stable random number when alpha is not 1
-pub(crate) fn sample_standard_alpha<T: FloatExt + FloatConst + SampleUniform, R: Rng + ?Sized>(
+pub(crate) fn sample_standard_alpha<T: FloatExt + SampleUniform, R: Rng + ?Sized>(
     alpha: T,
     beta: T,
     rng: &mut R,
@@ -157,13 +156,13 @@ where
 
 /// Sample standard stable random number with precomputed constants
 #[inline]
-fn sample_standard_alpha_with_constants<T, R: Rng + ?Sized>(
+pub(crate) fn sample_standard_alpha_with_constants<T, R: Rng + ?Sized>(
     c: &StableConstants<T>,
     alpha: T,
     rng: &mut R,
 ) -> T
 where
-    T: FloatExt + FloatConst + SampleUniform,
+    T: FloatExt + SampleUniform,
     Exp1: Distribution<T>,
 {
     let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
@@ -181,7 +180,7 @@ where
 #[inline]
 pub(crate) fn sample_standard_alpha_one<T, R: Rng + ?Sized>(_alpha: T, beta: T, rng: &mut R) -> T
 where
-    T: FloatExt + FloatConst + SampleUniform,
+    T: FloatExt + SampleUniform,
     Exp1: Distribution<T>,
 {
     let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
@@ -193,7 +192,7 @@ where
 }
 
 /// Sample from the standard Lévy stable distribution
-impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for StandardStable<T>
+impl<T: FloatExt + SampleUniform> Distribution<T> for StandardStable<T>
 where
     Exp1: Distribution<T>,
 {
@@ -301,7 +300,7 @@ impl<T: FloatExt> Stable<T> {
     /// ```
     pub fn samples(&self, n: usize) -> XResult<Vec<T>>
     where
-        T: FloatConst + SampleUniform,
+        T: SampleUniform,
         Exp1: Distribution<T>,
     {
         rands(self.alpha, self.beta, self.sigma, self.mu, n)
@@ -309,7 +308,7 @@ impl<T: FloatExt> Stable<T> {
 }
 
 /// Sample from the Lévy stable distribution
-impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for Stable<T>
+impl<T: FloatExt + SampleUniform> Distribution<T> for Stable<T>
 where
     Exp1: Distribution<T>,
 {
@@ -373,7 +372,7 @@ impl<T: FloatExt> StandardSkewStable<T> {
     /// ```
     pub fn samples(&self, n: usize) -> XResult<Vec<T>>
     where
-        T: FloatConst + SampleUniform,
+        T: SampleUniform,
         Exp1: Distribution<T>,
     {
         skew_rands(self.0, n)
@@ -385,7 +384,7 @@ impl<T: FloatExt> StandardSkewStable<T> {
 /// # Panic
 ///
 /// if the skew index is invalid
-impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for StandardSkewStable<T>
+impl<T: FloatExt + SampleUniform> Distribution<T> for StandardSkewStable<T>
 where
     Exp1: Distribution<T>,
 {
@@ -445,7 +444,7 @@ impl<T: FloatExt> SymmetricStandardStable<T> {
     /// ```
     pub fn samples(&self, n: usize) -> XResult<Vec<T>>
     where
-        T: FloatConst + SampleUniform,
+        T: SampleUniform,
         Exp1: Distribution<T>,
     {
         sym_standard_rands(self.0, n)
@@ -457,7 +456,7 @@ impl<T: FloatExt> SymmetricStandardStable<T> {
 /// # Panic
 ///
 /// if the stability index is invalid
-impl<T: FloatExt + FloatConst + SampleUniform> Distribution<T> for SymmetricStandardStable<T>
+impl<T: FloatExt + SampleUniform> Distribution<T> for SymmetricStandardStable<T>
 where
     Exp1: Distribution<T>,
 {
@@ -466,7 +465,18 @@ where
         if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
             panic!("Invalid stability index");
         }
-        sample_standard_alpha(self.0, T::zero(), rng)
+        if (alpha - T::one()).abs() > T::epsilon() {
+            let inv_alpha = T::one() / alpha;
+            let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
+            sample_sys_standard_alpha_with_constants(
+                inv_alpha,
+                one_minus_alpha_div_alpha,
+                alpha,
+                rng,
+            )
+        } else {
+            sample_sys_standard_alpha_one(rng)
+        }
     }
 }
 
@@ -487,7 +497,7 @@ where
 /// let r = standard_rand(alpha, beta).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn standard_rand<T: FloatExt + FloatConst + SampleUniform>(alpha: T, beta: T) -> XResult<T>
+pub fn standard_rand<T: FloatExt + SampleUniform>(alpha: T, beta: T) -> XResult<T>
 where
     Exp1: Distribution<T>,
 {
@@ -517,7 +527,7 @@ where
 /// ```
 pub fn standard_rands<T>(alpha: T, beta: T, n: usize) -> XResult<Vec<T>>
 where
-    T: FloatExt + FloatConst + SampleUniform,
+    T: FloatExt + SampleUniform,
     Exp1: Distribution<T>,
 {
     if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
@@ -527,22 +537,36 @@ where
         return Err(StableError::InvalidSkewness.into());
     }
     if (alpha - T::one()).abs() < T::epsilon() {
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_standard_alpha_one(alpha, beta, r),
-            )
-            .collect())
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| sample_standard_alpha_one(alpha, beta, &mut rng))
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| sample_standard_alpha_one(alpha, beta, r),
+                )
+                .collect())
+        }
     } else {
         let constants = StableConstants::new(alpha, beta);
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
-            )
-            .collect())
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| sample_standard_alpha_with_constants(&constants, alpha, &mut rng))
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+                )
+                .collect())
+        }
     }
 }
 
@@ -567,12 +591,7 @@ where
 /// let r = rand(alpha, beta, sigma, mu).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn rand<T: FloatExt + FloatConst + SampleUniform>(
-    alpha: T,
-    beta: T,
-    sigma: T,
-    mu: T,
-) -> XResult<T>
+pub fn rand<T: FloatExt + SampleUniform>(alpha: T, beta: T, sigma: T, mu: T) -> XResult<T>
 where
     Exp1: Distribution<T>,
 {
@@ -605,7 +624,7 @@ where
 /// ```
 pub fn rands<T>(alpha: T, beta: T, sigma: T, mu: T, n: usize) -> XResult<Vec<T>>
 where
-    T: FloatExt + FloatConst + SampleUniform,
+    T: FloatExt + SampleUniform,
     Exp1: Distribution<T>,
 {
     let two = T::from(2).unwrap();
@@ -623,28 +642,49 @@ where
     }
     if (alpha - T::one()).abs() < T::epsilon() {
         let correction = two * beta * sigma * sigma.ln() / T::PI();
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| {
-                    let std_sample = sample_standard_alpha_one(alpha, beta, r);
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| {
+                    let std_sample = sample_standard_alpha_one(alpha, beta, &mut rng);
                     sigma * std_sample + mu + correction
-                },
-            )
-            .collect())
+                })
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| {
+                        let std_sample = sample_standard_alpha_one(alpha, beta, r);
+                        sigma * std_sample + mu + correction
+                    },
+                )
+                .collect())
+        }
     } else {
         let constants = StableConstants::new(alpha, beta);
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| {
-                    let std_sample = sample_standard_alpha_with_constants(&constants, alpha, r);
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| {
+                    let std_sample =
+                        sample_standard_alpha_with_constants(&constants, alpha, &mut rng);
                     sigma * std_sample + mu
-                },
-            )
-            .collect())
+                })
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| {
+                        let std_sample = sample_standard_alpha_with_constants(&constants, alpha, r);
+                        sigma * std_sample + mu
+                    },
+                )
+                .collect())
+        }
     }
 }
 
@@ -663,7 +703,7 @@ where
 /// let r = skew_rand(alpha).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn skew_rand<T: FloatExt + FloatConst + SampleUniform>(alpha: T) -> XResult<T>
+pub fn skew_rand<T: FloatExt + SampleUniform>(alpha: T) -> XResult<T>
 where
     Exp1: Distribution<T>,
 {
@@ -690,20 +730,62 @@ where
 /// ```
 pub fn skew_rands<T>(alpha: T, n: usize) -> XResult<Vec<T>>
 where
-    T: FloatExt + FloatConst + SampleUniform,
+    T: FloatExt + SampleUniform,
     Exp1: Distribution<T>,
 {
     if alpha <= T::zero() || alpha >= T::one() || alpha.is_nan() {
         return Err(StableError::InvalidSkewIndex.into());
     }
     let constants = StableConstants::new(alpha, T::one());
-    Ok((0..n)
-        .into_par_iter()
-        .map_init(
-            || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-            |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
-        )
-        .collect())
+    if n <= STABLE_PAR_THRESHOLD {
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        Ok((0..n)
+            .map(|_| sample_standard_alpha_with_constants(&constants, alpha, &mut rng))
+            .collect())
+    } else {
+        Ok((0..n)
+            .into_par_iter()
+            .map_init(
+                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+            )
+            .collect())
+    }
+}
+
+/// Sample symmetric standard stable random number with precomputed constants
+#[inline]
+pub(crate) fn sample_sys_standard_alpha_with_constants<T, R: Rng + ?Sized>(
+    inv_alpha: T,
+    one_minus_alpha_div_alpha: T,
+    alpha: T,
+    rng: &mut R,
+) -> T
+where
+    T: FloatExt + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
+    let w: T = rng.sample(Exp1);
+    let cos_v = v.cos();
+    // alpha * sin(v + b) / cos(v)^(1/alpha)
+    let c1 = alpha * v.sin() / cos_v.powf(inv_alpha);
+    // ((cos(v - alpha*(v+b)) / w))^((1-alpha)/alpha)
+    let c2 = ((v - alpha * v).cos() / w).powf(one_minus_alpha_div_alpha);
+    c1 * c2
+}
+
+/// Sample standard stable random number when alpha is 1
+#[inline]
+pub(crate) fn sample_sys_standard_alpha_one<T, R: Rng + ?Sized>(rng: &mut R) -> T
+where
+    T: FloatExt + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
+
+    let half_pi = T::FRAC_PI_2();
+    half_pi * v.tan() * half_pi
 }
 
 /// Sample the symmetric standard Lévy stable distribution random number
@@ -721,7 +803,7 @@ where
 /// let r = sym_standard_rand(alpha).unwrap();
 /// println!("r: {}", r);
 /// ```
-pub fn sym_standard_rand<T: FloatExt + FloatConst + SampleUniform>(alpha: T) -> XResult<T>
+pub fn sym_standard_rand<T: FloatExt + SampleUniform>(alpha: T) -> XResult<T>
 where
     Exp1: Distribution<T>,
 {
@@ -749,7 +831,7 @@ where
 /// ```
 pub fn sym_standard_rands<T>(alpha: T, n: usize) -> XResult<Vec<T>>
 where
-    T: FloatExt + FloatConst + SampleUniform,
+    T: FloatExt + SampleUniform,
     Exp1: Distribution<T>,
 {
     if alpha <= T::zero() || alpha > T::from(2).unwrap() || alpha.is_nan() {
@@ -760,16 +842,24 @@ where
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_standard_alpha_one(alpha, T::zero(), r),
+                |r, _| sample_sys_standard_alpha_one(r),
             )
             .collect())
     } else {
-        let constants = StableConstants::new(alpha, T::zero());
+        let inv_alpha = T::one() / alpha;
+        let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
         Ok((0..n)
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_standard_alpha_with_constants(&constants, alpha, r),
+                |r, _| {
+                    sample_sys_standard_alpha_with_constants(
+                        inv_alpha,
+                        one_minus_alpha_div_alpha,
+                        alpha,
+                        r,
+                    )
+                },
             )
             .collect())
     }

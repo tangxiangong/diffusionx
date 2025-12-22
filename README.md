@@ -6,9 +6,6 @@ DiffusionX
 A multi-threaded high-performance Rust library for random number generation and stochastic process simulation, with optional GPU acceleration.
 </p>
 <p align="center">
-Dedicated to my brief yet unforgettable years in LZU and to XX.
-</p>
-<p align="center">
 English | <a href="README-zh.md">简体中文</a>
 </p>
 <p align="center">
@@ -274,3 +271,7 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
 additional terms or conditions.
 
+---
+Dedicated to my brief yet unforgettable years in LZU and to XX.
+
+Once I dreamt that we were dear to each other, I woke to find that we were strangers. Alas, in dreams, I wouldn’t even dare to long for such closeness.

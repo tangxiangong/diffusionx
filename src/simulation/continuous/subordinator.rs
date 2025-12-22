@@ -2,7 +2,10 @@
 
 use crate::{
     FloatExt, SimulationError, XResult, check_duration_time_step,
-    random::stable::{self, sample_standard_alpha},
+    random::{
+        STABLE_PAR_THRESHOLD,
+        stable::{self, sample_standard_alpha},
+    },
     simulation::prelude::*,
 };
 use num_traits::FloatConst;
@@ -71,13 +74,20 @@ where
         let power = T::one() / self.alpha;
         let mut scale = time_step.powf(power);
         let generator = sample_standard_alpha;
-        let mut delta_x = (0..num_steps - 1)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| scale * generator(self.alpha, T::one(), r),
-            )
-            .sum();
+        let mut delta_x = if num_steps < STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            (0..num_steps - 1)
+                .map(|_| scale * generator(self.alpha, T::one(), &mut rng))
+                .sum()
+        } else {
+            (0..num_steps - 1)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| scale * generator(self.alpha, T::one(), r),
+                )
+                .sum()
+        };
 
         let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
         scale = last_step.powf(power);
@@ -249,7 +259,7 @@ where
 ///
 /// let (t, x) = simulate_invsubordinator(0.5, 1.0, 0.1).unwrap();
 /// ```
-pub fn simulate_invsubordinator<T: FloatExt + FloatConst + SampleUniform>(
+pub fn simulate_invsubordinator<T: FloatExt + SampleUniform>(
     alpha: T,
     duration: T,
     time_step: T,

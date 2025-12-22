@@ -5,3 +5,4 @@ Cargo.lock
 *.rs.bak
 tmp/
 .idea
+.vscode/

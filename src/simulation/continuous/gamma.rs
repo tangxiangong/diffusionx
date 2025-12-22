@@ -1,7 +1,8 @@
 //! Gamma process simulation
 
 use crate::{
-    FloatExt, SimulationError, XError, XResult, check_duration_time_step, random::gamma,
+    FloatExt, SimulationError, XError, XResult, check_duration_time_step,
+    random::{PAR_THRESHOLD, gamma},
     simulation::prelude::*,
 };
 use rand::prelude::*;
@@ -85,13 +86,18 @@ where
         let scale = T::one() / self.rate;
         let gamma = rand_distr::Gamma::new(self.shape, scale)
             .map_err(|e| XError::InvalidParameters(e.to_string()))?;
-        let mut delta_x = (0..num_steps - 1)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| r.sample(gamma),
-            )
-            .sum();
+        let mut delta_x = if num_steps < PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            (0..num_steps - 1).map(|_| rng.sample(gamma)).sum()
+        } else {
+            (0..num_steps - 1)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| r.sample(gamma),
+                )
+                .sum()
+        };
 
         let last_step = duration - (T::from(num_steps - 1).unwrap() * time_step);
         delta_x += gamma::rand(self.shape * last_step, scale)?;
