@@ -7,8 +7,8 @@ use crate::{
     random::{
         STABLE_PAR_THRESHOLD,
         stable::{
-            self, sample_standard_alpha, sample_standard_alpha_one, sample_sys_standard_alpha_one,
-            sample_sys_standard_alpha_with_constants,
+            self, sample_standard_alpha, sample_standard_alpha_one, sample_sym_standard_alpha_one,
+            sample_sym_standard_alpha_with_constants,
         },
     },
     simulation::prelude::*,
@@ -273,14 +273,14 @@ where
             if (self.alpha - T::one()).abs() < T::epsilon() {
                 let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
                 (0..num_steps - 1)
-                    .map(|_| scale * sample_sys_standard_alpha_one(&mut rng))
+                    .map(|_| scale * sample_sym_standard_alpha_one(&mut rng))
                     .sum()
             } else {
                 let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
                 (0..num_steps - 1)
                     .map(|_| {
                         scale
-                            * sample_sys_standard_alpha_with_constants(
+                            * sample_sym_standard_alpha_with_constants(
                                 inv_alpha,
                                 one_minus_alpha_div_alpha,
                                 self.alpha,
@@ -294,7 +294,7 @@ where
                 .into_par_iter()
                 .map_init(
                     || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| scale * sample_sys_standard_alpha_one(r),
+                    |r, _| scale * sample_sym_standard_alpha_one(r),
                 )
                 .sum()
         } else {
@@ -304,7 +304,7 @@ where
                     || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
                     |r, _| {
                         scale
-                            * sample_sys_standard_alpha_with_constants(
+                            * sample_sym_standard_alpha_with_constants(
                                 inv_alpha,
                                 one_minus_alpha_div_alpha,
                                 self.alpha,
@@ -319,9 +319,9 @@ where
         scale = last_step.powf(power);
         let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
         let xi = if (self.alpha - T::one()).abs() < T::epsilon() {
-            sample_sys_standard_alpha_one(&mut rng)
+            sample_sym_standard_alpha_one(&mut rng)
         } else {
-            sample_sys_standard_alpha_with_constants(
+            sample_sym_standard_alpha_with_constants(
                 inv_alpha,
                 one_minus_alpha_div_alpha,
                 self.alpha,

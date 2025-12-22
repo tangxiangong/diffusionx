@@ -468,14 +468,14 @@ where
         if (alpha - T::one()).abs() > T::epsilon() {
             let inv_alpha = T::one() / alpha;
             let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
-            sample_sys_standard_alpha_with_constants(
+            sample_sym_standard_alpha_with_constants(
                 inv_alpha,
                 one_minus_alpha_div_alpha,
                 alpha,
                 rng,
             )
         } else {
-            sample_sys_standard_alpha_one(rng)
+            sample_sym_standard_alpha_one(rng)
         }
     }
 }
@@ -755,7 +755,7 @@ where
 
 /// Sample symmetric standard stable random number with precomputed constants
 #[inline]
-pub(crate) fn sample_sys_standard_alpha_with_constants<T, R: Rng + ?Sized>(
+pub(crate) fn sample_sym_standard_alpha_with_constants<T, R: Rng + ?Sized>(
     inv_alpha: T,
     one_minus_alpha_div_alpha: T,
     alpha: T,
@@ -777,7 +777,7 @@ where
 
 /// Sample standard stable random number when alpha is 1
 #[inline]
-pub(crate) fn sample_sys_standard_alpha_one<T, R: Rng + ?Sized>(rng: &mut R) -> T
+pub(crate) fn sample_sym_standard_alpha_one<T, R: Rng + ?Sized>(rng: &mut R) -> T
 where
     T: FloatExt + SampleUniform,
     Exp1: Distribution<T>,
@@ -842,7 +842,7 @@ where
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_sys_standard_alpha_one(r),
+                |r, _| sample_sym_standard_alpha_one(r),
             )
             .collect())
     } else {
@@ -853,7 +853,7 @@ where
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
                 |r, _| {
-                    sample_sys_standard_alpha_with_constants(
+                    sample_sym_standard_alpha_with_constants(
                         inv_alpha,
                         one_minus_alpha_div_alpha,
                         alpha,
