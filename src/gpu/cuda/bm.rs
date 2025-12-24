@@ -2,7 +2,6 @@ use crate::{
     FloatExt, XResult,
     gpu::{BM_PTX, CUDA_CTX, GPUMoment},
     simulation::continuous::Bm,
-    subscribe_gpu_function,
 };
 use cudarc::{
     driver::{CudaFunction, CudaModule},

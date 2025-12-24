@@ -5,7 +5,6 @@ use crate::{
         metal::{LEVY_METALLIB, load_library},
     },
     simulation::continuous::{Bm, Levy},
-    subscribe_metal_central_moment_gpu_function, subscribe_metal_gpu_function,
 };
 use std::sync::LazyLock;
 

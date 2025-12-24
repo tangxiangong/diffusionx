@@ -53,7 +53,6 @@ pub(crate) fn thread_config(particles: usize) -> (MTLSize, MTLSize) {
 }
 
 /// Macro to generate Metal GPU-accelerated moment calculation functions
-#[macro_export]
 macro_rules! subscribe_metal_gpu_function {
     ($library:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?)) => {
         #[allow(clippy::too_many_arguments)]
@@ -142,7 +141,6 @@ macro_rules! subscribe_metal_gpu_function {
 }
 
 /// Macro to generate Metal GPU-accelerated central moment calculation functions
-#[macro_export]
 macro_rules! subscribe_metal_central_moment_gpu_function {
     ($library:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?), $order_type:ty) => {
         #[allow(clippy::too_many_arguments)]
