@@ -9,7 +9,7 @@ keywords = ["stochastic-process", "simulation", "Monte-Carlo", "gpu"]
 version = "0.11.2"
 description = "A multi-threaded crate for random number generation and stochastic process simulation, with optional GPU acceleration."
 readme = "README.md"
-rust-version = "1.87"
+rust-version = "1.88"
 
 [package.metadata.docs.rs]
 features = ["visualize", "io"]
