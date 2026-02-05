@@ -48,7 +48,7 @@ plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }
 rand = "0.9"
 rand_distr = "0.5"
-rand_xoshiro = "0.8"
+rand_xoshiro = "0.7"
 rayon = "1.11"
 realfft = "3.5"
 thiserror = "2"
