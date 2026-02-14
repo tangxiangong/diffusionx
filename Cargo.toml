@@ -46,9 +46,9 @@ num-complex = "0.4"
 num-traits = "0.2"
 plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }
-rand = "0.9"
-rand_distr = "0.5"
-rand_xoshiro = "0.7"
+rand = "0.10"
+rand_distr = "0.6"
+rand_xoshiro = "0.8"
 rayon = "1.11"
 realfft = "3.5"
 thiserror = "2"

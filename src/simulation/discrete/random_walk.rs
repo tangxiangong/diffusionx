@@ -6,7 +6,7 @@ use crate::{
     simulation::prelude::*,
     utils::cumsum,
 };
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
