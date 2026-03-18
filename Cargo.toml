@@ -39,7 +39,7 @@ cudarc = { version = "0.19", optional = true, features = [
 ] }
 derive_builder = { version = "0.20", optional = true }
 either = { version = "1", optional = true }
-gauss-quad = "0.2.4"
+gauss-quad = "0.3.0"
 metal = { version = "0.33", optional = true }
 mimalloc = { version = "0.1", optional = true }
 num-complex = "0.4"
