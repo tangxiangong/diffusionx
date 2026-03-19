@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use crate::{
     FloatExt, RealExt, SimulationError, XResult, simulation::prelude::*, utils::flatten_interpolate,
 };
@@ -74,8 +76,10 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     pub fn simulate(&self, time_step: T, quad_order: usize) -> XResult<T> {
-        let legendre_quad = GaussLegendre::new(quad_order)?;
-        let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
+        let quad_order =
+            NonZeroUsize::new(quad_order).unwrap_or_else(|| NonZeroUsize::new(10).unwrap());
+        let legendre_quad = GaussLegendre::new(quad_order);
+        let nodes_weights_pairs = legendre_quad.into_node_weight_pairs().to_vec();
         let duration = self.duration;
         let slag = self.delta;
         let nodes_weights =
@@ -188,8 +192,10 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
     where
         SP: PointProcess<T, X> + Clone,
     {
-        let legendre_quad = GaussLegendre::new(quad_order)?;
-        let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
+        let quad_order =
+            NonZeroUsize::new(quad_order).unwrap_or_else(|| NonZeroUsize::new(10).unwrap());
+        let legendre_quad = GaussLegendre::new(quad_order);
+        let nodes_weights_pairs = legendre_quad.into_node_weight_pairs().to_vec();
         let duration = self.duration;
         let slag = self.delta;
         let nodes_weights = nodes_weights_transform(
