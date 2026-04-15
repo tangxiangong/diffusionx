@@ -32,7 +32,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("normal distribution f32", |b| {
         b.iter(|| {
-            let _ = normal::standard_rands::<f64>(black_box(N));
+            let _ = normal::standard_rands::<f32>(black_box(N));
         })
     });
 
