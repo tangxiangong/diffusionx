@@ -2,7 +2,8 @@
 
 use crate::{
     RealExt, SimulationError, XResult,
-    random::{PAR_THRESHOLD, exponential, stable},
+    random::stable::{StableConstants, sample_standard_alpha_with_constants},
+    random::{PAR_THRESHOLD, exponential},
     simulation::prelude::*,
     utils::cumsum,
 };
@@ -298,22 +299,22 @@ where
                     .map(|_| {
                         let dir = r.random_bool(prob);
                         if dir {
-                            exponential::standard_rand().abs()
+                            exponential::standard_rand_with_rng(&mut r).abs()
                         } else {
-                            -exponential::standard_rand().abs()
+                            -exponential::standard_rand_with_rng(&mut r).abs()
                         }
                     })
                     .sum()
             } else {
+                let constants = StableConstants::new(self.alpha, X::one());
                 (N::zero()..num_step)
                     .into_iter()
                     .map(|_| {
                         let dir = r.random_bool(prob);
-                        if dir {
-                            stable::skew_rand(self.alpha).unwrap().abs()
-                        } else {
-                            -stable::skew_rand(self.alpha).unwrap().abs()
-                        }
+                        let jump =
+                            sample_standard_alpha_with_constants(&constants, self.alpha, &mut r)
+                                .abs();
+                        if dir { jump } else { -jump }
                     })
                     .sum()
             }
@@ -322,30 +323,24 @@ where
                 .into_par_iter()
                 .map_init(
                     || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| r.random_bool(prob),
+                    |r, _| {
+                        let jump = exponential::standard_rand_with_rng(r).abs();
+                        if r.random_bool(prob) { jump } else { -jump }
+                    },
                 )
-                .map(|x| {
-                    if x {
-                        exponential::standard_rand().abs()
-                    } else {
-                        -exponential::standard_rand().abs()
-                    }
-                })
                 .sum()
         } else {
+            let constants = StableConstants::new(self.alpha, X::one());
             (N::zero()..num_step)
                 .into_par_iter()
                 .map_init(
                     || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| r.random_bool(prob),
+                    |r, _| {
+                        let jump =
+                            sample_standard_alpha_with_constants(&constants, self.alpha, r).abs();
+                        if r.random_bool(prob) { jump } else { -jump }
+                    },
                 )
-                .map(|x| {
-                    if x {
-                        stable::skew_rand(self.alpha).unwrap().abs()
-                    } else {
-                        -stable::skew_rand(self.alpha).unwrap().abs()
-                    }
-                })
                 .sum()
         };
         Ok(delta_x)
@@ -387,23 +382,19 @@ where
                 .into_iter()
                 .map(|_| {
                     let dir = r.random_bool(prob);
-                    if dir {
-                        exponential::standard_rand().abs()
-                    } else {
-                        -exponential::standard_rand().abs()
-                    }
+                    let jump = exponential::standard_rand_with_rng(&mut r).abs();
+                    if dir { jump } else { -jump }
                 })
                 .collect()
         } else {
+            let constants = StableConstants::new(alpha, X::one());
             (N::zero()..num_step)
                 .into_iter()
                 .map(|_| {
                     let dir = r.random_bool(prob);
-                    if dir {
-                        stable::skew_rand(alpha).unwrap().abs()
-                    } else {
-                        -stable::skew_rand(alpha).unwrap().abs()
-                    }
+                    let jump =
+                        sample_standard_alpha_with_constants(&constants, alpha, &mut r).abs();
+                    if dir { jump } else { -jump }
                 })
                 .collect()
         }
@@ -412,30 +403,23 @@ where
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| r.random_bool(prob),
+                |r, _| {
+                    let jump = exponential::standard_rand_with_rng(r).abs();
+                    if r.random_bool(prob) { jump } else { -jump }
+                },
             )
-            .map(|x| {
-                if x {
-                    exponential::standard_rand().abs()
-                } else {
-                    -exponential::standard_rand().abs()
-                }
-            })
             .collect()
     } else {
+        let constants = StableConstants::new(alpha, X::one());
         (N::zero()..num_step)
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| r.random_bool(prob),
+                |r, _| {
+                    let jump = sample_standard_alpha_with_constants(&constants, alpha, r).abs();
+                    if r.random_bool(prob) { jump } else { -jump }
+                },
             )
-            .map(|x| {
-                if x {
-                    stable::skew_rand(alpha).unwrap().abs()
-                } else {
-                    -stable::skew_rand(alpha).unwrap().abs()
-                }
-            })
             .collect()
     };
     let x = cumsum(start_position, &delta_x);
