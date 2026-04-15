@@ -137,18 +137,25 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> FirstPassageTime<'a, SP, T> {
             .into());
         }
 
-        // Collect all valid FPT values
-        let valid_values = (0..particles)
+        let (sum, count) = (0..particles)
             .into_par_iter()
-            .map(|_| {
-                self.simulate(max_duration, time_step)
-                    .unwrap()
-                    .map(|t| t.powi(order))
-            })
-            .filter_map(|x| x)
-            .collect::<Vec<_>>();
+            .try_fold(
+                || (T::zero(), 0usize),
+                |(sum, count), _| -> XResult<(T, usize)> {
+                    Ok(match self.simulate(max_duration, time_step)? {
+                        Some(t) => (sum + t.powi(order), count + 1),
+                        None => (sum, count),
+                    })
+                },
+            )
+            .try_reduce(
+                || (T::zero(), 0usize),
+                |(sum_a, count_a), (sum_b, count_b)| {
+                    Ok::<(T, usize), crate::XError>((sum_a + sum_b, count_a + count_b))
+                },
+            )?;
 
-        Ok(average(valid_values))
+        Ok(average_from_sum_count(sum, count))
     }
 
     /// Get the central moment of the first passage time
@@ -192,17 +199,25 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> FirstPassageTime<'a, SP, T> {
             return Ok(None);
         }
         let mean = mean.unwrap();
-        let valid_values = (0..particles)
+        let (sum, count) = (0..particles)
             .into_par_iter()
-            .map(|_| {
-                self.simulate(max_duration, time_step)
-                    .unwrap()
-                    .map(|t| (t - mean).powi(order))
-            })
-            .filter_map(|x| x)
-            .collect::<Vec<_>>();
+            .try_fold(
+                || (T::zero(), 0usize),
+                |(sum, count), _| -> XResult<(T, usize)> {
+                    Ok(match self.simulate(max_duration, time_step)? {
+                        Some(t) => (sum + (t - mean).powi(order), count + 1),
+                        None => (sum, count),
+                    })
+                },
+            )
+            .try_reduce(
+                || (T::zero(), 0usize),
+                |(sum_a, count_a), (sum_b, count_b)| {
+                    Ok::<(T, usize), crate::XError>((sum_a + sum_b, count_a + count_b))
+                },
+            )?;
 
-        Ok(average(valid_values))
+        Ok(average_from_sum_count(sum, count))
     }
 }
 
@@ -323,15 +338,14 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> OccupationTime<'a, SP, T> {
             .into());
         }
 
-        let result = (0..particles)
+        let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
-                let occupation_time = self.simulate(time_step).unwrap();
-                occupation_time.powi(order)
+                let occupation_time = self.simulate(time_step)?;
+                Ok::<T, crate::XError>(occupation_time.powi(order))
             })
-            .sum::<T>()
-            / T::from(particles).unwrap();
-        Ok(result)
+            .try_reduce(T::zero, |a, b| Ok::<T, crate::XError>(a + b))?;
+        Ok(sum / T::from(particles).unwrap())
     }
 
     /// Get the central moment of the occupation time
@@ -369,15 +383,14 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> OccupationTime<'a, SP, T> {
             .into());
         }
         let mean = self.raw_moment(order, particles, time_step)?;
-        let result = (0..particles)
+        let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
-                let occupation_time = self.simulate(time_step).unwrap();
-                (occupation_time - mean).powi(order)
+                let occupation_time = self.simulate(time_step)?;
+                Ok::<T, crate::XError>((occupation_time - mean).powi(order))
             })
-            .sum::<T>()
-            / T::from(particles).unwrap();
-        Ok(result)
+            .try_reduce(T::zero, |a, b| Ok::<T, crate::XError>(a + b))?;
+        Ok(sum / T::from(particles).unwrap())
     }
 }
 
@@ -452,17 +465,24 @@ impl<'a, SP, X: RealExt> FirstPassageTime<'a, SP, X> {
             return Ok(Some(1.0));
         }
 
-        // 使用元组来同时跟踪总和和有效样本数
-        let valid_values = (0..particles)
+        let (sum, count) = (0..particles)
             .into_par_iter()
-            .map(|_| {
-                self.simulate_p(max_duration)
-                    .unwrap()
-                    .map(|t| t.to_f64().unwrap().powi(order))
-            })
-            .filter_map(|x| x)
-            .collect::<Vec<_>>();
-        Ok(average(valid_values))
+            .try_fold(
+                || (0.0, 0usize),
+                |(sum, count), _| -> XResult<(f64, usize)> {
+                    Ok(match self.simulate_p(max_duration)? {
+                        Some(t) => (sum + t.to_f64().unwrap().powi(order), count + 1),
+                        None => (sum, count),
+                    })
+                },
+            )
+            .try_reduce(
+                || (0.0, 0usize),
+                |(sum_a, count_a), (sum_b, count_b)| {
+                    Ok::<(f64, usize), crate::XError>((sum_a + sum_b, count_a + count_b))
+                },
+            )?;
+        Ok(average_from_sum_count(sum, count))
     }
 
     /// Get the central moment of the first passage time
@@ -501,17 +521,25 @@ impl<'a, SP, X: RealExt> FirstPassageTime<'a, SP, X> {
             return Ok(None);
         }
         let mean = mean.unwrap();
-        let valid_values = (0..particles)
+        let (sum, count) = (0..particles)
             .into_par_iter()
-            .map(|_| {
-                self.simulate_p(max_duration)
-                    .unwrap()
-                    .map(|t| (t.to_f64().unwrap() - mean).powi(order))
-            })
-            .filter_map(|x| x)
-            .collect::<Vec<_>>();
+            .try_fold(
+                || (0.0, 0usize),
+                |(sum, count), _| -> XResult<(f64, usize)> {
+                    Ok(match self.simulate_p(max_duration)? {
+                        Some(t) => (sum + (t.to_f64().unwrap() - mean).powi(order), count + 1),
+                        None => (sum, count),
+                    })
+                },
+            )
+            .try_reduce(
+                || (0.0, 0usize),
+                |(sum_a, count_a), (sum_b, count_b)| {
+                    Ok::<(f64, usize), crate::XError>((sum_a + sum_b, count_a + count_b))
+                },
+            )?;
 
-        Ok(average(valid_values))
+        Ok(average_from_sum_count(sum, count))
     }
 }
 
@@ -542,15 +570,14 @@ impl<'a, SP: PointProcess<T, X>, T: FloatExt, X: RealExt> OccupationTime<'a, SP,
             return Ok(1.0);
         }
 
-        let result = (0..particles)
+        let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
-                let occupation_time = self.simulate_p().unwrap();
-                occupation_time.to_f64().unwrap().powi(order)
+                let occupation_time = self.simulate_p()?;
+                Ok::<f64, crate::XError>(occupation_time.to_f64().unwrap().powi(order))
             })
-            .sum::<f64>()
-            / particles as f64;
-        Ok(result)
+            .try_reduce(|| 0.0, |a, b| Ok::<f64, crate::XError>(a + b))?;
+        Ok(sum / particles as f64)
     }
 
     /// Get the central moment of the occupation time
@@ -570,24 +597,21 @@ impl<'a, SP: PointProcess<T, X>, T: FloatExt, X: RealExt> OccupationTime<'a, SP,
             .into());
         }
         let mean = self.raw_moment_p(order, particles)?;
-        let result = (0..particles)
+        let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
-                let occupation_time = self.simulate_p().unwrap();
-                (occupation_time.to_f64().unwrap() - mean).powi(order)
+                let occupation_time = self.simulate_p()?;
+                Ok::<f64, crate::XError>((occupation_time.to_f64().unwrap() - mean).powi(order))
             })
-            .sum::<f64>()
-            / particles as f64;
-        Ok(result)
+            .try_reduce(|| 0.0, |a, b| Ok::<f64, crate::XError>(a + b))?;
+        Ok(sum / particles as f64)
     }
 }
 
-fn average<T: FloatExt>(values: Vec<T>) -> Option<T> {
-    if values.is_empty() {
+fn average_from_sum_count<T: FloatExt>(sum: T, count: usize) -> Option<T> {
+    if count == 0 {
         None
     } else {
-        let count = values.len();
-        let sum = values.into_par_iter().sum::<T>();
         Some(sum / T::from(count).unwrap())
     }
 }
