@@ -84,7 +84,7 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
         let slag = self.delta;
         let nodes_weights =
             nodes_weights_transform(T::zero(), duration - slag, nodes_weights_pairs);
-        let result = nodes_weights
+        let sum = nodes_weights
             .into_par_iter()
             .map(|(node, weight)| -> XResult<T> {
                 let slag_length = (slag / time_step).ceil().to_usize().unwrap();
@@ -100,10 +100,8 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
 
                 Ok((end_position - slag_position).powi(2) * weight)
             })
-            .collect::<XResult<Vec<T>>>()?
-            .into_par_iter()
-            .sum::<T>()
-            / (duration - slag);
+            .try_reduce(T::zero, |a, b| Ok::<T, crate::XError>(a + b))?;
+        let result = sum / (duration - slag);
         Ok(result)
     }
 
@@ -135,11 +133,11 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
             .into());
         }
 
-        Ok((0..particles)
+        let sum = (0..particles)
             .into_par_iter()
-            .map(|_| self.simulate(time_step, quad_order).unwrap())
-            .sum::<T>()
-            / T::from(particles).unwrap())
+            .map(|_| self.simulate(time_step, quad_order))
+            .try_reduce(T::zero, |a, b| Ok::<T, crate::XError>(a + b))?;
+        Ok(sum / T::from(particles).unwrap())
     }
 
     /// Get the variance of the TAMSD
@@ -169,15 +167,14 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
             .into());
         }
         let mean = self.mean(particles, time_step, quad_order)?;
-        Ok((0..particles)
+        let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
-                let value = self.simulate(time_step, quad_order).unwrap();
-                (value - mean).powi(2)
+                let value = self.simulate(time_step, quad_order)?;
+                Ok::<T, crate::XError>((value - mean).powi(2))
             })
-            .into_par_iter()
-            .sum::<T>()
-            / T::from(particles).unwrap())
+            .try_reduce(T::zero, |a, b| Ok::<T, crate::XError>(a + b))?;
+        Ok(sum / T::from(particles).unwrap())
     }
 }
 
@@ -203,7 +200,7 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
             (duration - slag).to_f64().unwrap(),
             nodes_weights_pairs,
         );
-        let result = nodes_weights
+        let sum = nodes_weights
             .into_par_iter()
             .map(|(node, weight)| -> XResult<f64> {
                 let slag_length = (slag / time_step).ceil().to_usize().unwrap();
@@ -222,10 +219,8 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
 
                 Ok((end_position - slag_position).powi(2) * weight)
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
-            .sum::<f64>()
-            / (duration - slag).to_f64().unwrap();
+            .try_reduce(|| 0.0, |a, b| Ok::<f64, crate::XError>(a + b))?;
+        let result = sum / (duration - slag).to_f64().unwrap();
         Ok(result)
     }
 
@@ -263,11 +258,11 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
             ))
             .into());
         }
-        Ok((0..particles)
+        let sum = (0..particles)
             .into_par_iter()
-            .map(|_| self.simulate_p(time_step, quad_order).unwrap())
-            .sum::<f64>()
-            / particles as f64)
+            .map(|_| self.simulate_p(time_step, quad_order))
+            .try_reduce(|| 0.0, |a, b| Ok::<f64, crate::XError>(a + b))?;
+        Ok(sum / particles as f64)
     }
 
     /// Get the variance of the TAMSD
@@ -305,14 +300,14 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
             .into());
         }
         let mean = self.mean_p(particles, time_step, quad_order)?;
-        Ok((0..particles)
+        let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
-                let value = self.simulate_p(time_step, quad_order).unwrap();
-                (value - mean).powi(2)
+                let value = self.simulate_p(time_step, quad_order)?;
+                Ok::<f64, crate::XError>((value - mean).powi(2))
             })
-            .sum::<f64>()
-            / particles as f64)
+            .try_reduce(|| 0.0, |a, b| Ok::<f64, crate::XError>(a + b))?;
+        Ok(sum / particles as f64)
     }
 }
 
