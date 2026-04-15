@@ -3,7 +3,7 @@ use crate::{
     gpu::metal::{METAL_DEVICE, METAL_QUEUE, RANDOM_METALLIB, load_library, thread_config},
 };
 use metal::MTLResourceOptions;
-use rand::Rng;
+use rand::RngExt;
 use std::sync::LazyLock;
 
 static LIBRARY: LazyLock<XResult<metal::Library>> = LazyLock::new(|| load_library(RANDOM_METALLIB));

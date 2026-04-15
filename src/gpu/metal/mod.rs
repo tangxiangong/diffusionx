@@ -84,7 +84,7 @@ macro_rules! subscribe_metal_gpu_function {
             }
 
             let mut rng = rand::rng();
-            use rand::Rng;
+            use rand::RngExt;
             let seed: u64 = rng.random();
             let particles_u32 = particles as u32;
 
@@ -176,7 +176,7 @@ macro_rules! subscribe_metal_central_moment_gpu_function {
             }
 
             let mut rng = rand::rng();
-            use rand::Rng;
+            use rand::RngExt;
             let seed: u64 = rng.random();
             let particles_u32 = particles as u32;
 
