@@ -5,7 +5,6 @@ use crate::{
         metal::{OU_METALLIB, load_library},
     },
     simulation::continuous::OrnsteinUhlenbeck as OU,
-    
 };
 use std::sync::LazyLock;
 
