@@ -1,4 +1,7 @@
-#[cfg(any(feature = "cuda", feature = "metal"))]
+#[cfg(any(
+    all(feature = "cuda", not(feature = "metal")),
+    all(feature = "metal", not(feature = "cuda"))
+))]
 use std::{env, path::PathBuf, process::Command};
 
 #[cfg(not(any(feature = "cuda", feature = "metal")))]
@@ -9,7 +12,7 @@ fn main() {
     panic!("Cannot enable both CUDA and Metal features");
 }
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", not(feature = "metal")))]
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
@@ -46,7 +49,7 @@ fn main() {
     }
 }
 
-#[cfg(feature = "metal")]
+#[cfg(all(feature = "metal", not(feature = "cuda")))]
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
