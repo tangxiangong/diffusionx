@@ -97,6 +97,16 @@ where
     Exp1: Distribution<T>,
 {
     let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    standard_rand_with_rng(&mut rng)
+}
+
+#[inline]
+pub(crate) fn standard_rand_with_rng<T, R>(rng: &mut R) -> T
+where
+    T: FloatExt,
+    R: Rng + ?Sized,
+    Exp1: Distribution<T>,
+{
     rng.sample(Exp1)
 }
 
