@@ -66,8 +66,12 @@ macro_rules! subscribe_metal_gpu_function {
 
             let device = $crate::gpu::metal::METAL_DEVICE.as_ref()?;
             let queue = $crate::gpu::metal::METAL_QUEUE.as_ref()?;
-            let library = $library.as_ref()?;
-            let pipeline = $crate::gpu::metal::get_pipeline(library, $kernel_name)?;
+            static PIPELINE: std::sync::LazyLock<XResult<metal::ComputePipelineState>> =
+                std::sync::LazyLock::new(|| {
+                    let library = $library.as_ref()?;
+                    $crate::gpu::metal::get_pipeline(library, $kernel_name)
+                });
+            let pipeline = PIPELINE.as_ref()?;
 
             let (thread_groups, threads_per_group) = $crate::gpu::metal::thread_config(particles);
 
@@ -91,7 +95,7 @@ macro_rules! subscribe_metal_gpu_function {
             let command_buffer = queue.new_command_buffer();
             let encoder = command_buffer.new_compute_command_encoder();
 
-            encoder.set_compute_pipeline_state(&pipeline);
+            encoder.set_compute_pipeline_state(pipeline);
 
             // Set buffers
             let mut buffer_index = 0u64;
@@ -155,8 +159,12 @@ macro_rules! subscribe_metal_central_moment_gpu_function {
 
             let device = $crate::gpu::metal::METAL_DEVICE.as_ref()?;
             let queue = $crate::gpu::metal::METAL_QUEUE.as_ref()?;
-            let library = $library.as_ref()?;
-            let pipeline = $crate::gpu::metal::get_pipeline(library, $kernel_name)?;
+            static PIPELINE: std::sync::LazyLock<XResult<metal::ComputePipelineState>> =
+                std::sync::LazyLock::new(|| {
+                    let library = $library.as_ref()?;
+                    $crate::gpu::metal::get_pipeline(library, $kernel_name)
+                });
+            let pipeline = PIPELINE.as_ref()?;
 
             let (thread_groups, threads_per_group) = $crate::gpu::metal::thread_config(particles);
 
@@ -183,7 +191,7 @@ macro_rules! subscribe_metal_central_moment_gpu_function {
             let command_buffer = queue.new_command_buffer();
             let encoder = command_buffer.new_compute_command_encoder();
 
-            encoder.set_compute_pipeline_state(&pipeline);
+            encoder.set_compute_pipeline_state(pipeline);
 
             // Set buffers - order matches kernel signature: out, order, mean, params..., particles, seed
             let mut buffer_index = 0u64;
