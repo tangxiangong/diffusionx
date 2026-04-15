@@ -1,7 +1,9 @@
 //! Ornstein-Uhlenbeck process simulation
 
 use crate::{FloatExt, XResult, check_duration_time_step, random::normal, simulation::prelude::*};
+use rand::SeedableRng;
 use rand_distr::{Distribution, StandardNormal};
+use rand_xoshiro::Xoshiro256PlusPlus;
 
 /// Ornstein–Uhlenbeck process
 ///
@@ -89,27 +91,22 @@ where
     fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
-        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
-
-        let mut scale = time_step.sqrt();
-
-        let mut current_x = self.start_position;
-        let mut mu;
-
-        let noises = normal::standard_rands::<T>(num_steps - 1);
-
-        for xi in noises {
-            mu = -self.theta * current_x;
-            current_x += mu * time_step + self.sigma * xi * scale;
-        }
-
-        let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
-        scale = last_step.sqrt();
-        mu = -self.theta * current_x;
-        current_x += mu * last_step + self.sigma * normal::standard_rand::<T>() * scale;
-
+        let (decay, std_dev) = ou_step_params(self.theta, self.sigma, duration);
+        let current_x = self.start_position * decay + std_dev * normal::standard_rand::<T>();
         Ok(current_x - self.start_position)
     }
+}
+
+#[inline]
+fn ou_step_params<T: FloatExt>(theta: T, sigma: T, dt: T) -> (T, T) {
+    if theta.abs() <= T::epsilon() {
+        return (T::one(), sigma.abs() * dt.sqrt());
+    }
+
+    let two = T::from(2).unwrap();
+    let decay = (-theta * dt).exp();
+    let variance = sigma * sigma * (T::one() - (-two * theta * dt).exp()) / (two * theta);
+    (decay, variance.max(T::zero()).sqrt())
 }
 
 /// Simulate the Ornstein-Uhlenbeck process
@@ -155,26 +152,23 @@ where
     t.push(T::zero());
     x.push(start_position);
 
-    let mut scale = time_step.sqrt();
-
     let mut current_t = T::zero();
     let mut current_x = start_position;
-    let mut mu;
 
-    let noises = normal::standard_rands::<T>(num_steps - 1);
-
-    for xi in noises {
-        mu = -theta * current_x;
-        current_x += mu * time_step + sigma * xi * scale;
+    let (step_decay, step_std_dev) = ou_step_params(theta, sigma, time_step);
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    for _ in 0..num_steps - 1 {
+        current_x = current_x * step_decay
+            + step_std_dev * normal::standard_rand_with_rng::<T, _>(&mut rng);
         current_t += time_step;
         t.push(current_t);
         x.push(current_x);
     }
 
     let last_step = duration - current_t;
-    scale = last_step.sqrt();
-    mu = -theta * current_x;
-    current_x += mu * last_step + sigma * normal::standard_rand::<T>() * scale;
+    let (last_decay, last_std_dev) = ou_step_params(theta, sigma, last_step);
+    current_x =
+        current_x * last_decay + last_std_dev * normal::standard_rand_with_rng::<T, _>(&mut rng);
     x.push(current_x);
     t.push(duration);
 

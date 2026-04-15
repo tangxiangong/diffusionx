@@ -783,9 +783,7 @@ where
     Exp1: Distribution<T>,
 {
     let v = rng.random_range(-T::FRAC_PI_2()..T::FRAC_PI_2());
-
-    let half_pi = T::FRAC_PI_2();
-    half_pi * v.tan() * half_pi
+    v.tan()
 }
 
 /// Sample the symmetric standard Lévy stable distribution random number
@@ -838,30 +836,51 @@ where
         return Err(StableError::InvalidIndex.into());
     }
     if (alpha - T::one()).abs() < T::epsilon() {
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| sample_sym_standard_alpha_one(r),
-            )
-            .collect())
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| sample_sym_standard_alpha_one(&mut rng))
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| sample_sym_standard_alpha_one(r),
+                )
+                .collect())
+        }
     } else {
         let inv_alpha = T::one() / alpha;
         let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
-        Ok((0..n)
-            .into_par_iter()
-            .map_init(
-                || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| {
+        if n <= STABLE_PAR_THRESHOLD {
+            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+            Ok((0..n)
+                .map(|_| {
                     sample_sym_standard_alpha_with_constants(
                         inv_alpha,
                         one_minus_alpha_div_alpha,
                         alpha,
-                        r,
+                        &mut rng,
                     )
-                },
-            )
-            .collect())
+                })
+                .collect())
+        } else {
+            Ok((0..n)
+                .into_par_iter()
+                .map_init(
+                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
+                    |r, _| {
+                        sample_sym_standard_alpha_with_constants(
+                            inv_alpha,
+                            one_minus_alpha_div_alpha,
+                            alpha,
+                            r,
+                        )
+                    },
+                )
+                .collect())
+        }
     }
 }
 

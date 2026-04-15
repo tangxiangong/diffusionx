@@ -1,14 +1,12 @@
 //! Brownian motion simulation
 
 use crate::{
-    FloatExt, SimulationError, XResult, check_duration_time_step,
-    random::{PAR_THRESHOLD, normal},
+    FloatExt, SimulationError, XResult, check_duration_time_step, random::normal,
     simulation::prelude::*,
 };
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_xoshiro::Xoshiro256PlusPlus;
-use rayon::prelude::*;
 
 /// Brownian motion
 #[derive(Debug, Clone)]
@@ -79,25 +77,8 @@ where
     fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         let two = T::from(2).unwrap();
         check_duration_time_step(duration, time_step)?;
-        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
-        let std_dev = (two * self.diffusion_coefficient * time_step).sqrt();
-        let normal = rand_distr::Normal::new(T::zero(), std_dev)?;
-        let mut delta_x = if num_steps < PAR_THRESHOLD {
-            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
-            (0..num_steps - 1).map(|_| rng.sample(normal)).sum()
-        } else {
-            (0..num_steps - 1)
-                .into_par_iter()
-                .map_init(
-                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| r.sample(normal),
-                )
-                .sum()
-        };
-        let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
-        delta_x +=
-            (two * self.diffusion_coefficient * last_step).sqrt() * normal::standard_rand::<T>();
-        Ok(delta_x)
+        let std_dev = (two * self.diffusion_coefficient * duration).sqrt();
+        Ok(std_dev * normal::standard_rand::<T>())
     }
 }
 
@@ -135,9 +116,6 @@ where
 
     let num_steps = (duration / time_step).ceil().to_usize().unwrap();
 
-    let std_dev = (two * diffusion_coefficient * time_step).sqrt();
-    let noise = normal::rands(T::zero(), std_dev, num_steps - 1)?;
-
     let mut t = Vec::with_capacity(num_steps + 1);
     t.push(T::zero());
 
@@ -146,16 +124,18 @@ where
 
     let mut current_x = start_position;
     let mut current_t = T::zero();
-    for xi in noise {
+    let step_scale = (two * diffusion_coefficient * time_step).sqrt();
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    for _ in 0..num_steps - 1 {
         current_t += time_step;
         t.push(current_t);
-        current_x += xi;
+        current_x += step_scale * normal::standard_rand_with_rng::<T, _>(&mut rng);
         x.push(current_x);
     }
 
     let last_step = duration - current_t;
     let sigma = (two * diffusion_coefficient * last_step).sqrt();
-    let xi = normal::rand(T::zero(), sigma)?;
+    let xi = sigma * normal::standard_rand_with_rng::<T, _>(&mut rng);
     current_x += xi;
     x.push(current_x);
     t.push(duration);
