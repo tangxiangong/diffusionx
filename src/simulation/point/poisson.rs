@@ -100,6 +100,12 @@ where
         ))
         .into());
     }
+    if num_step == 0 {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `num_step` must be greater than 0, got {num_step}"
+        ))
+        .into());
+    }
     let durations = exponential::rands(lambda, num_step)?;
     let t = cumsum(T::zero(), &durations);
     let x = (0..=num_step)
@@ -177,6 +183,12 @@ mod tests {
         let (t, x) = poisson.simulate_with_step(100).unwrap();
         assert!(t.len() == 101);
         assert!(x.len() == 101);
+    }
+
+    #[test]
+    fn test_simulate_with_step_rejects_zero_steps() {
+        let result = simulate_poisson_with_step::<f64, f64>(1.0, 0);
+        assert!(result.is_err());
     }
 
     #[test]

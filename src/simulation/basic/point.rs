@@ -22,6 +22,12 @@ pub trait PointProcess<T: FloatExt = f64, X: RealExt = T>: Send + Sync {
     ///
     /// * `duration` - The duration of the simulation.
     fn displacement(&self, duration: T) -> XResult<X> {
+        if duration <= T::zero() {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {duration:?}"
+            ))
+            .into());
+        }
         let mut num_step = duration.ceil().to_usize().unwrap();
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;
@@ -53,6 +59,12 @@ pub trait PointProcess<T: FloatExt = f64, X: RealExt = T>: Send + Sync {
     where
         Self: Sized,
     {
+        if duration <= T::zero() {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {duration:?}"
+            ))
+            .into());
+        }
         let mut num_step = duration.ceil().to_usize().unwrap();
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;
@@ -341,5 +353,39 @@ impl<SP: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> PointTrajectory<SP
             .into());
         }
         self.sp.simulate_with_step(num_step)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Clone)]
+    struct UnitPoint;
+
+    impl PointProcess<f64, f64> for UnitPoint {
+        fn start(&self) -> f64 {
+            0.0
+        }
+
+        fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
+            let t = (0..=num_step).map(|i| i as f64).collect::<Vec<_>>();
+            let x = vec![0.0; num_step + 1];
+            Ok((t, x))
+        }
+    }
+
+    #[test]
+    fn test_displacement_rejects_nonpositive_duration() {
+        let process = UnitPoint;
+        let result = std::panic::catch_unwind(|| process.displacement(-1.0));
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[test]
+    fn test_simulate_with_duration_rejects_nonpositive_duration() {
+        let process = UnitPoint;
+        let result = process.simulate_with_duration(0.0);
+        assert!(result.is_err());
     }
 }

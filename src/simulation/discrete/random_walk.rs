@@ -163,6 +163,19 @@ where
     std::ops::Range<N>: rayon::iter::IntoParallelIterator,
     std::ops::Range<N>: std::iter::IntoIterator,
 {
+    if probability <= X::zero() || probability > X::one() {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `probability` must be between 0 and 1, got {probability:?}"
+        ))
+        .into());
+    }
+    if step_size <= X::zero() {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `step_size` must be greater than 0, got {step_size:?}"
+        ))
+        .into());
+    }
+
     let prob = probability.to_f64().unwrap();
     let delta_x: Vec<X> = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
         let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
@@ -368,6 +381,19 @@ where
     std::ops::Range<N>: rayon::iter::IntoParallelIterator,
     std::ops::Range<N>: std::iter::IntoIterator,
 {
+    if probability <= X::zero() || probability > X::one() {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `probability` must be between 0 and 1, got {probability:?}"
+        ))
+        .into());
+    }
+    if alpha <= X::zero() || alpha > X::from(2).unwrap() {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be between 0 and 2, got {alpha:?}"
+        ))
+        .into());
+    }
+
     let prob = probability.to_f64().unwrap();
     let delta_x: Vec<_> = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
         let mut r = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
@@ -429,6 +455,22 @@ mod tests {
         let rw: LatticeRandomWalk<f64> = LatticeRandomWalk::default();
         let x = rw.simulate(1000).unwrap();
         assert_eq!(x.len(), 1001);
+    }
+
+    #[test]
+    fn test_lattice_random_walk_free_function_validates_parameters() {
+        assert!(simulate_lattice_random_walk(-1.0, 0.5, 0.0, 10).is_err());
+
+        let result = std::panic::catch_unwind(|| simulate_lattice_random_walk(1.0, 1.5, 0.0, 10));
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[test]
+    fn test_random_walk_free_function_validates_parameters() {
+        assert!(simulate_random_walk(0.5, 0.0, 0.0, 10).is_err());
+
+        let result = std::panic::catch_unwind(|| simulate_random_walk(1.5, 1.0, 0.0, 10));
+        assert!(matches!(result, Ok(Err(_))));
     }
 
     #[test]

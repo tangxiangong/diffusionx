@@ -95,20 +95,10 @@ where
 
     fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         let bm = Bm::default();
-        let (t, b) = bm.simulate(duration, time_step)?;
+        let b = bm.displacement(duration, time_step)?;
         let tmp = self.mu - self.sigma * self.sigma / T::from(2).unwrap();
-        let x = if t.len() < PAR_THRESHOLD {
-            t.into_iter()
-                .zip(b)
-                .map(|(t_i, b_i)| self.start_position * (tmp * t_i + self.sigma * b_i).exp())
-                .sum::<T>()
-        } else {
-            t.into_par_iter()
-                .zip(b)
-                .map(|(t_i, b_i)| self.start_position * (tmp * t_i + self.sigma * b_i).exp())
-                .sum::<T>()
-        };
-        Ok(x)
+        let end_position = self.start_position * (tmp * duration + self.sigma * b).exp();
+        Ok(end_position - self.start_position)
     }
 }
 
@@ -190,6 +180,16 @@ mod tests {
         let traj = gbm.duration(duration).unwrap();
         let moment = traj.raw_moment(1, 1000, time_step).unwrap();
         println!("moment: {moment:?}");
+    }
+
+    #[test]
+    fn test_displacement_is_terminal_change() {
+        let gbm = GeometricBm::new(10.0f64, 0.0, 1e-12).unwrap();
+        let displacement = gbm.displacement(1.0, 0.1).unwrap();
+        assert!(
+            displacement.abs() < 1e-6,
+            "displacement should be terminal change, got {displacement}"
+        );
     }
 
     #[test]

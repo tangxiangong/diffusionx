@@ -194,7 +194,7 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> FirstPassageTime<'a, SP, T> {
             ))
             .into());
         }
-        let mean = self.raw_moment(order, particles, max_duration, time_step)?;
+        let mean = self.raw_moment(1, particles, max_duration, time_step)?;
         if mean.is_none() {
             return Ok(None);
         }
@@ -382,7 +382,7 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> OccupationTime<'a, SP, T> {
             ))
             .into());
         }
-        let mean = self.raw_moment(order, particles, time_step)?;
+        let mean = self.raw_moment(1, particles, time_step)?;
         let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
@@ -516,7 +516,7 @@ impl<'a, SP, X: RealExt> FirstPassageTime<'a, SP, X> {
             )
             .into());
         }
-        let mean = self.raw_moment_p(order, particles, max_duration)?;
+        let mean = self.raw_moment_p(1, particles, max_duration)?;
         if mean.is_none() {
             return Ok(None);
         }
@@ -602,7 +602,7 @@ impl<'a, SP: PointProcess<T, X>, T: FloatExt, X: RealExt> OccupationTime<'a, SP,
             )
             .into());
         }
-        let mean = self.raw_moment_p(order, particles)?;
+        let mean = self.raw_moment_p(1, particles)?;
         let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
@@ -640,6 +640,80 @@ fn oc<T: RealExt, V: FloatExt>(t: &[V], x: &[T], a: T, b: T) -> V {
 mod tests {
     use super::*;
     use crate::simulation::continuous::Bm;
+
+    struct DeterministicExit;
+
+    impl ContinuousProcess<f64> for DeterministicExit {
+        fn simulate(&self, duration: f64, _: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+            if duration < 0.5 {
+                Ok((vec![0.0, duration], vec![0.0, 0.0]))
+            } else {
+                Ok((vec![0.0, 0.5, duration], vec![0.0, 2.0, 2.0]))
+            }
+        }
+
+        fn start(&self) -> f64 {
+            0.0
+        }
+    }
+
+    #[derive(Clone)]
+    struct DeterministicPointExit;
+
+    impl PointProcess<f64, f64> for DeterministicPointExit {
+        fn start(&self) -> f64 {
+            0.0
+        }
+
+        fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
+            let t = (0..=num_step).map(|i| i as f64 * 0.5).collect::<Vec<_>>();
+            let x = t
+                .iter()
+                .map(|&time| if time >= 0.5 { 2.0 } else { 0.0 })
+                .collect::<Vec<_>>();
+            Ok((t, x))
+        }
+
+        fn simulate_with_duration(&self, duration: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+            if duration < 0.5 {
+                Ok((vec![0.0, duration], vec![0.0, 0.0]))
+            } else {
+                Ok((vec![0.0, 0.5, duration], vec![0.0, 2.0, 2.0]))
+            }
+        }
+    }
+
+    struct AlwaysInside;
+
+    impl ContinuousProcess<f64> for AlwaysInside {
+        fn simulate(&self, duration: f64, _: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+            Ok((vec![0.0, duration], vec![0.0, 0.0]))
+        }
+
+        fn start(&self) -> f64 {
+            0.0
+        }
+    }
+
+    #[derive(Clone)]
+    struct AlwaysInsidePoint;
+
+    impl PointProcess<f64, f64> for AlwaysInsidePoint {
+        fn start(&self) -> f64 {
+            0.0
+        }
+
+        fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
+            let t = (0..=num_step).map(|i| i as f64).collect::<Vec<_>>();
+            let x = vec![0.0; num_step + 1];
+            Ok((t, x))
+        }
+
+        fn simulate_with_duration(&self, duration: f64) -> XResult<(Vec<f64>, Vec<f64>)> {
+            Ok((vec![0.0, duration], vec![0.0, 0.0]))
+        }
+    }
+
     #[test]
     fn test_first_passage_time() {
         let sp = Bm::default();
@@ -649,10 +723,42 @@ mod tests {
     }
 
     #[test]
+    fn test_first_passage_central_moment_uses_mean() {
+        let sp = DeterministicExit;
+        let fpt = FirstPassageTime::new(&sp, (-1.0, 1.0)).unwrap();
+        let moment = fpt.central_moment(2, 4, 2.0, 0.5).unwrap().unwrap();
+        assert_eq!(moment, 0.0);
+    }
+
+    #[test]
+    fn test_point_first_passage_central_moment_uses_mean() {
+        let sp = DeterministicPointExit;
+        let fpt = FirstPassageTime::new(&sp, (-1.0, 1.0)).unwrap();
+        let moment = fpt.central_moment_p(2, 4, 2.0).unwrap().unwrap();
+        assert_eq!(moment, 0.0);
+    }
+
+    #[test]
     fn test_occupation_time() {
         let sp = Bm::default();
         let ot = OccupationTime::new(&sp, (0.0, 1.0), 1000.0).unwrap();
         let ot_result = ot.simulate(0.1).unwrap();
         assert!(ot_result > 0.0);
+    }
+
+    #[test]
+    fn test_occupation_central_moment_uses_mean() {
+        let sp = AlwaysInside;
+        let ot = OccupationTime::new(&sp, (-1.0, 1.0), 2.0).unwrap();
+        let moment = ot.central_moment(2, 4, 1.0).unwrap();
+        assert_eq!(moment, 0.0);
+    }
+
+    #[test]
+    fn test_point_occupation_central_moment_uses_mean() {
+        let sp = AlwaysInsidePoint;
+        let ot = OccupationTime::new(&sp, (-1.0, 1.0), 2.0).unwrap();
+        let moment = ot.central_moment_p(2, 4).unwrap();
+        assert_eq!(moment, 0.0);
     }
 }

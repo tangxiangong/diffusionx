@@ -1,14 +1,10 @@
 //! Gamma process simulation
 
 use crate::{
-    FloatExt, SimulationError, XError, XResult, check_duration_time_step,
-    random::{PAR_THRESHOLD, gamma},
+    FloatExt, SimulationError, XResult, check_duration_time_step, random::gamma,
     simulation::prelude::*,
 };
-use rand::prelude::*;
 use rand_distr::{Distribution, Exp1, Open01, StandardNormal};
-use rand_xoshiro::Xoshiro256PlusPlus;
-use rayon::prelude::*;
 
 /// Gamma process
 ///
@@ -82,27 +78,8 @@ where
     fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
-        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
         let scale = T::one() / self.rate;
-        let gamma = rand_distr::Gamma::new(self.shape, scale)
-            .map_err(|e| XError::InvalidParameters(e.to_string()))?;
-        let mut delta_x = if num_steps < PAR_THRESHOLD {
-            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
-            (0..num_steps - 1).map(|_| rng.sample(gamma)).sum()
-        } else {
-            (0..num_steps - 1)
-                .into_par_iter()
-                .map_init(
-                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| r.sample(gamma),
-                )
-                .sum()
-        };
-
-        let last_step = duration - (T::from(num_steps - 1).unwrap() * time_step);
-        delta_x += gamma::rand(self.shape * last_step, scale)?;
-
-        Ok(delta_x)
+        gamma::rand(self.shape * duration, scale)
     }
 }
 
@@ -180,6 +157,16 @@ mod tests {
         let (t, x) = gamma.simulate(duration, time_step).unwrap();
         println!("t: {t:?}");
         println!("x: {x:?}");
+    }
+
+    #[test]
+    fn test_displacement_scales_shape_by_elapsed_time() {
+        let gamma = Gamma::new(1000.0, 1000.0).unwrap();
+        let displacement = gamma.displacement(1.0, 0.1).unwrap();
+        assert!(
+            displacement < 2.0,
+            "displacement should be O(shape / rate * duration), got {displacement}"
+        );
     }
 
     #[test]

@@ -45,7 +45,7 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
             .into());
         }
 
-        if duration < delta {
+        if duration <= delta {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be greater than `delta`, got duration {duration:?} and delta {delta:?}"
             ))
@@ -82,6 +82,12 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     pub fn simulate(&self, time_step: T, quad_order: usize) -> XResult<T> {
+        if time_step <= T::zero() {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step:?}`"
+            ))
+            .into());
+        }
         let quad_order =
             NonZeroUsize::new(quad_order).unwrap_or_else(|| NonZeroUsize::new(10).unwrap());
         let legendre_quad = GaussLegendre::new(quad_order);
@@ -195,6 +201,12 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
     where
         SP: PointProcess<T, X> + Clone,
     {
+        if time_step <= T::zero() {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step:?}`"
+            ))
+            .into());
+        }
         let quad_order =
             NonZeroUsize::new(quad_order).unwrap_or_else(|| NonZeroUsize::new(10).unwrap());
         let legendre_quad = GaussLegendre::new(quad_order);
@@ -334,4 +346,40 @@ fn nodes_weights_transform<T: FloatExt>(a: T, b: T, pairs: Vec<(f64, f64)>) -> V
             (new_node, new_weight)
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::simulation::{continuous::Bm, point::Poisson};
+
+    #[test]
+    fn test_new_rejects_delta_equal_to_duration() {
+        let bm = Bm::<f64>::default();
+        let result = TAMSD::new(&bm, 1.0, 1.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_simulate_rejects_nonpositive_time_step() {
+        let bm = Bm::<f64>::default();
+        let tamsd = TAMSD::new(&bm, 2.0, 1.0).unwrap();
+        let result = std::panic::catch_unwind(|| tamsd.simulate(0.0, 10));
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[test]
+    fn test_simulate_p_rejects_nonpositive_time_step() {
+        let poisson = Poisson::<f64, f64>::new(1.0).unwrap();
+        let tamsd = TAMSD::new(&poisson, 2.0, 1.0).unwrap();
+        let result = std::panic::catch_unwind(|| tamsd.simulate_p(0.0, 10));
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[test]
+    fn test_nodes_weights_transform() {
+        let pairs = vec![(0.0, 2.0)];
+        let result = nodes_weights_transform(0.0, 2.0, pairs);
+        assert_eq!(result, vec![(1.0, 2.0)]);
+    }
 }

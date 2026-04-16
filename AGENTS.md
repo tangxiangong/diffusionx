@@ -13,7 +13,7 @@ Guidance for coding agents working in `diffusionx`.
 
 - Language: Rust (edition `2024`).
 - Crate: `diffusionx`.
-- MSRV: `1.88` (`rust-version` in `Cargo.toml`).
+- MSRV: `1.87` (`rust-version` in `Cargo.toml`).
 - Library doctests: disabled (`[lib] doctest = false`).
 - Default feature: `mimalloc`.
 - Optional features: `cuda`, `metal`, `io`, `visualize`.
@@ -50,19 +50,24 @@ Run the narrowest command that validates your change first.
 
 - `cargo fmt -- --check`
 - `cargo fmt`
-- `cargo clippy --all-targets --all-features --tests --benches -- -D warnings`
+- `cargo clippy --all-targets --tests --benches -- -D warnings`
+- `cargo clippy --all-targets --features "visualize,io" --tests --benches -- -D warnings`
+- `cargo clippy --all-targets --features metal --tests --benches -- -D warnings` (requires Apple Metal toolchain)
+- `cargo clippy --all-targets --features cuda --tests --benches -- -D warnings` (requires CUDA/nvcc)
 
 Pre-commit mirrors these checks (`.pre-commit-config.yaml`) with hooks for:
 
 - `cargo fmt -- --check`
 - `cargo check --all`
-- `cargo clippy --all-targets --all-features --tests --benches -- -D warnings`
+- `cargo clippy --all-targets --tests --benches -- -D warnings`
 
 ### Tests
 
 - `cargo test --verbose`
 - `cargo test`
-- `cargo test --all-features`
+- `cargo test --features "visualize,io"`
+- `cargo test --features metal` (requires Apple Metal toolchain)
+- `cargo test --features cuda` (requires CUDA/nvcc)
 - `cargo test --lib`
 - `cargo test --features "visualize,io"`
 
