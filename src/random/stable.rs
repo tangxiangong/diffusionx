@@ -775,6 +775,21 @@ where
     c1 * c2
 }
 
+/// Symmetric standard stable sample using precomputed `inv_alpha` and
+/// `one_minus_alpha_div_alpha` from `StableConstants` (for example `StableConstants::new(alpha, T::zero())`).
+#[inline]
+pub(crate) fn sample_sym_standard_alpha_with_stable_constants<T, R: Rng + ?Sized>(
+    c: &StableConstants<T>,
+    alpha: T,
+    rng: &mut R,
+) -> T
+where
+    T: FloatExt + SampleUniform,
+    Exp1: Distribution<T>,
+{
+    sample_sym_standard_alpha_with_constants(c.inv_alpha, c.one_minus_alpha_div_alpha, alpha, rng)
+}
+
 /// Sample standard stable random number when alpha is 1
 #[inline]
 pub(crate) fn sample_sym_standard_alpha_one<T, R: Rng + ?Sized>(rng: &mut R) -> T

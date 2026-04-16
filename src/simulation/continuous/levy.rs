@@ -10,6 +10,7 @@ use crate::{
             StableConstants, sample_standard_alpha, sample_standard_alpha_one,
             sample_standard_alpha_with_constants, sample_sym_standard_alpha_one,
             sample_sym_standard_alpha_with_constants,
+            sample_sym_standard_alpha_with_stable_constants,
         },
     },
     simulation::prelude::*,
@@ -319,8 +320,15 @@ where
     let mut current_x = start_position;
     let mut current_t = T::zero();
     let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    let sym_constants = StableConstants::new(alpha, T::zero());
     for _ in 0..num_steps - 1 {
-        let xi = sample_symmetric_standard(alpha, &mut rng);
+        let xi = if (alpha - T::from(2).unwrap()).abs() < T::epsilon() {
+            T::from(2).unwrap().sqrt() * normal::standard_rand_with_rng::<T, _>(&mut rng)
+        } else if (alpha - T::one()).abs() < T::epsilon() {
+            sample_sym_standard_alpha_one(&mut rng)
+        } else {
+            sample_sym_standard_alpha_with_stable_constants(&sym_constants, alpha, &mut rng)
+        };
         current_x += xi * scale;
         x.push(current_x);
         current_t += time_step;
@@ -328,7 +336,13 @@ where
     }
     let last_step = duration - current_t;
     scale = last_step.powf(power);
-    let xi = sample_symmetric_standard(alpha, &mut rng);
+    let xi = if (alpha - T::from(2).unwrap()).abs() < T::epsilon() {
+        T::from(2).unwrap().sqrt() * normal::standard_rand_with_rng::<T, _>(&mut rng)
+    } else if (alpha - T::one()).abs() < T::epsilon() {
+        sample_sym_standard_alpha_one(&mut rng)
+    } else {
+        sample_sym_standard_alpha_with_stable_constants(&sym_constants, alpha, &mut rng)
+    };
     current_x += xi * scale;
     x.push(current_x);
     t.push(duration);
