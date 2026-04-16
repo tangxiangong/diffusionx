@@ -1,26 +1,37 @@
 use crate::{
     XResult,
-    gpu::metal::{METAL_DEVICE, METAL_QUEUE, RANDOM_METALLIB, load_library, thread_config},
+    gpu::metal::{
+        METAL_DEVICE, METAL_QUEUE, RANDOM_METALLIB, get_pipeline, load_library, thread_config,
+    },
 };
 use metal::MTLResourceOptions;
-use rand::Rng;
+use rand::RngExt;
 use std::sync::LazyLock;
 
 static LIBRARY: LazyLock<XResult<metal::Library>> = LazyLock::new(|| load_library(RANDOM_METALLIB));
+static STANDARD_STABLE_PIPELINE: LazyLock<XResult<metal::ComputePipelineState>> =
+    LazyLock::new(|| {
+        let library = LIBRARY.as_ref()?;
+        get_pipeline(library, "standard_stable_rand")
+    });
+static UNIFORM_PIPELINE: LazyLock<XResult<metal::ComputePipelineState>> = LazyLock::new(|| {
+    let library = LIBRARY.as_ref()?;
+    get_pipeline(library, "randuniform")
+});
+static NORMAL_PIPELINE: LazyLock<XResult<metal::ComputePipelineState>> = LazyLock::new(|| {
+    let library = LIBRARY.as_ref()?;
+    get_pipeline(library, "randnormal")
+});
+static EXP_PIPELINE: LazyLock<XResult<metal::ComputePipelineState>> = LazyLock::new(|| {
+    let library = LIBRARY.as_ref()?;
+    get_pipeline(library, "randexp")
+});
 
 /// Generate standard stable random numbers on Metal GPU
 pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f32>> {
     let device = METAL_DEVICE.as_ref()?;
     let queue = METAL_QUEUE.as_ref()?;
-    let library = LIBRARY.as_ref()?;
-
-    let function = library
-        .get_function("standard_stable_rand", None)
-        .map_err(|e| crate::XError::Other(format!("Function not found: {}", e)))?;
-
-    let pipeline = device
-        .new_compute_pipeline_state_with_function(&function)
-        .map_err(|e| crate::XError::Other(format!("Pipeline error: {}", e)))?;
+    let pipeline = STANDARD_STABLE_PIPELINE.as_ref()?;
 
     let (inv_alpha, one_minus_alpha_div_alpha, b, s) = if (alpha - 1.0).abs() < 1e-3 {
         (0.0f32, 0.0f32, 0.0f32, 0.0f32)
@@ -46,7 +57,7 @@ pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f
     let command_buffer = queue.new_command_buffer();
     let encoder = command_buffer.new_compute_command_encoder();
 
-    encoder.set_compute_pipeline_state(&pipeline);
+    encoder.set_compute_pipeline_state(pipeline);
     encoder.set_buffer(0, Some(&out_buffer), 0);
     encoder.set_bytes(
         1,
@@ -107,15 +118,7 @@ pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f
 pub fn metalrands(n: usize) -> XResult<Vec<f32>> {
     let device = METAL_DEVICE.as_ref()?;
     let queue = METAL_QUEUE.as_ref()?;
-    let library = LIBRARY.as_ref()?;
-
-    let function = library
-        .get_function("randuniform", None)
-        .map_err(|e| crate::XError::Other(format!("Function not found: {}", e)))?;
-
-    let pipeline = device
-        .new_compute_pipeline_state_with_function(&function)
-        .map_err(|e| crate::XError::Other(format!("Pipeline error: {}", e)))?;
+    let pipeline = UNIFORM_PIPELINE.as_ref()?;
 
     let out_buffer = device.new_buffer(
         (n * std::mem::size_of::<f32>()) as u64,
@@ -130,7 +133,7 @@ pub fn metalrands(n: usize) -> XResult<Vec<f32>> {
     let command_buffer = queue.new_command_buffer();
     let encoder = command_buffer.new_compute_command_encoder();
 
-    encoder.set_compute_pipeline_state(&pipeline);
+    encoder.set_compute_pipeline_state(pipeline);
     encoder.set_buffer(0, Some(&out_buffer), 0);
     encoder.set_bytes(
         1,
@@ -161,15 +164,7 @@ pub fn metalrands(n: usize) -> XResult<Vec<f32>> {
 pub fn metalrandn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
     let device = METAL_DEVICE.as_ref()?;
     let queue = METAL_QUEUE.as_ref()?;
-    let library = LIBRARY.as_ref()?;
-
-    let function = library
-        .get_function("randnormal", None)
-        .map_err(|e| crate::XError::Other(format!("Function not found: {}", e)))?;
-
-    let pipeline = device
-        .new_compute_pipeline_state_with_function(&function)
-        .map_err(|e| crate::XError::Other(format!("Pipeline error: {}", e)))?;
+    let pipeline = NORMAL_PIPELINE.as_ref()?;
 
     let out_buffer = device.new_buffer(
         (n * std::mem::size_of::<f32>()) as u64,
@@ -184,7 +179,7 @@ pub fn metalrandn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
     let command_buffer = queue.new_command_buffer();
     let encoder = command_buffer.new_compute_command_encoder();
 
-    encoder.set_compute_pipeline_state(&pipeline);
+    encoder.set_compute_pipeline_state(pipeline);
     encoder.set_buffer(0, Some(&out_buffer), 0);
     encoder.set_bytes(
         1,
@@ -225,15 +220,7 @@ pub fn metalrandn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
 pub fn metalrandexp(n: usize) -> XResult<Vec<f32>> {
     let device = METAL_DEVICE.as_ref()?;
     let queue = METAL_QUEUE.as_ref()?;
-    let library = LIBRARY.as_ref()?;
-
-    let function = library
-        .get_function("randexp", None)
-        .map_err(|e| crate::XError::Other(format!("Function not found: {}", e)))?;
-
-    let pipeline = device
-        .new_compute_pipeline_state_with_function(&function)
-        .map_err(|e| crate::XError::Other(format!("Pipeline error: {}", e)))?;
+    let pipeline = EXP_PIPELINE.as_ref()?;
 
     let out_buffer = device.new_buffer(
         (n * std::mem::size_of::<f32>()) as u64,
@@ -248,7 +235,7 @@ pub fn metalrandexp(n: usize) -> XResult<Vec<f32>> {
     let command_buffer = queue.new_command_buffer();
     let encoder = command_buffer.new_compute_command_encoder();
 
-    encoder.set_compute_pipeline_state(&pipeline);
+    encoder.set_compute_pipeline_state(pipeline);
     encoder.set_buffer(0, Some(&out_buffer), 0);
     encoder.set_bytes(
         1,

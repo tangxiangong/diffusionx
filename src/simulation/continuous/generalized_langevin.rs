@@ -7,11 +7,11 @@ use crate::{
 };
 use rand_distr::{Distribution, Exp1, StandardNormal, uniform::SampleUniform};
 
-/// Generalized Langevin equation
+/// Generalized Langevin equation.
 ///
-/// $$dx(t) = f(x(t), t) dt + g(x(t), t) dL_\alpha(t),\qquad x(0) = x_0$$
+/// $$dX(t) = f(X(t), t)\,dt + g(X(t), t)\,dL_\alpha(t),\qquad X(0)=x_0.$$
 ///
-/// where $L_\alpha(t)$ is the $\alpha$-stable process.
+/// where \(L_\alpha(t)\) is the symmetric \(\alpha\)-stable process.
 #[derive(Debug, Clone)]
 pub struct GeneralizedLangevin<D, G, T: FloatExt = f64>
 where
@@ -141,7 +141,11 @@ where
     }
 }
 
-/// Simulate the Generalized Langevin equation
+/// Simulate the generalized Langevin equation.
+///
+/// The simulated equation is
+///
+/// $$dX(t) = f(X(t), t)\,dt + g(X(t), t)\,dL_\alpha(t).$$
 ///
 /// # Arguments
 ///
@@ -224,11 +228,11 @@ where
     Ok((t, x))
 }
 
-/// Subordinated Langevin equation
+/// Subordinated Langevin equation.
 ///
-/// dx(t) = f(x(t), t) dS(t) + g(x(t), t) dB(S(t)), x(0) = x0
+/// $$dX(t) = f(X(t), t)\,dS(t) + g(X(t), t)\,dB(S(t)),\qquad X(0)=x_0.$$
 ///
-/// where S(t) is the `alpha`-stable subordinator.
+/// where \(S(t)\) is the alpha-stable subordinator.
 #[derive(Debug, Clone)]
 pub struct SubordinatedLangevin<D, G, T: FloatExt = f64>
 where
@@ -359,7 +363,11 @@ where
     }
 }
 
-/// Simulate the subordinated Langevin equation
+/// Simulate the subordinated Langevin equation.
+///
+/// The simulated equation is
+///
+/// $$dX(t) = f(X(t), t)\,dS(t) + g(X(t), t)\,dB(S(t)).$$
 ///
 /// # Arguments
 ///
@@ -373,7 +381,7 @@ where
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::continuous::subordinated_langevin::simulate_subordinated_langevin;
+/// use diffusionx::simulation::continuous::generalized_langevin::simulate_subordinated_langevin;
 ///
 /// let drift = |x: f64, _t: f64| x;
 /// let diffusion = |_x: f64, _t: f64| 1.0;

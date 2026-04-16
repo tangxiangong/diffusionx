@@ -1,6 +1,10 @@
 use crate::{IntExt, RealExt, SimulationError, XResult, simulation::prelude::Moment};
 
-/// Discrete process trait
+/// Common interface for discrete-time stochastic processes.
+///
+/// A discrete process returns a state sequence indexed by a requested number of
+/// steps. Default methods derive displacement and ensemble moments from repeated
+/// simulations.
 pub trait DiscreteProcess<N: IntExt = usize, X: RealExt = f64>: Send + Sync {
     /// Get the starting position
     fn start(&self) -> X;
@@ -121,6 +125,10 @@ pub trait DiscreteProcess<N: IntExt = usize, X: RealExt = f64>: Send + Sync {
     }
 }
 
+/// Extension trait for binding a discrete process to a fixed number of steps.
+///
+/// This trait is implemented for every cloneable [`DiscreteProcess`]. It provides
+/// the ergonomic `process.step(n)` constructor used by moment estimators.
 pub trait DiscreteTrajectoryTrait<N: IntExt = usize, X: RealExt = f64>:
     DiscreteProcess<N, X> + Clone
 {
@@ -155,7 +163,7 @@ pub struct DiscreteTrajectory<
 }
 
 impl<SP: DiscreteProcess<N, X> + Clone, N: IntExt, X: RealExt> DiscreteTrajectory<SP, N, X> {
-    /// Create a new `DiscreteTrajetory` with given `DiscreteProcess` and num of steps.
+    /// Create a new `DiscreteTrajectory` with a process and number of steps.
     pub fn new(sp: SP, num_step: N) -> XResult<Self> {
         if num_step == N::zero() {
             return Err(SimulationError::InvalidParameters(
@@ -180,7 +188,7 @@ impl<SP: DiscreteProcess<N, X> + Clone, N: IntExt, X: RealExt> DiscreteTrajector
         self.num_step
     }
 
-    /// Simulate method
+    /// Simulate the stored process for the stored number of steps.
     pub fn simulate(&self) -> XResult<Vec<X>> {
         self.sp.simulate(self.num_step)
     }

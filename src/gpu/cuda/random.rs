@@ -59,6 +59,7 @@ macro_rules! generate_cuda_rng {
 generate_cuda_rng!(std_stable_rands_impl, STD_STABLE_RNG, alpha: f32, beta: f32, inv_alpha: f32,
     one_minus_alpha_div_alpha: f32, b: f32, s: f32);
 
+/// Generate standard stable random numbers on the CUDA GPU.
 pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f32>> {
     let (inv_alpha, one_minus_alpha_div_alpha, b, s) = if (alpha - 1.0).abs() < 1e-3 {
         (0.0, 0.0, 0.0, 0.0)
@@ -74,6 +75,7 @@ pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f
     std_stable_rands_impl(alpha, beta, inv_alpha, one_minus_alpha_div_alpha, b, s, len)
 }
 
+/// Generate standard uniform random numbers on the CUDA GPU.
 pub fn curands(n: usize) -> XResult<Vec<f32>> {
     let stream = CUDA_STREAM.as_ref()?;
     let rng = CudaRng::new(rand::rng().random(), stream.clone())?;
@@ -83,6 +85,7 @@ pub fn curands(n: usize) -> XResult<Vec<f32>> {
     Ok(out_host)
 }
 
+/// Generate normal random numbers on the CUDA GPU.
 pub fn curandn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
     let stream = CUDA_STREAM.as_ref()?;
     let rng = CudaRng::new(rand::rng().random(), stream.clone())?;
@@ -94,6 +97,7 @@ pub fn curandn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
 
 generate_cuda_rng!(curandexp_impl, EXP_RNG,);
 
+/// Generate standard exponential random numbers on the CUDA GPU.
 pub fn curandexp(n: usize) -> XResult<Vec<f32>> {
     curandexp_impl(n)
 }

@@ -24,7 +24,6 @@ pub(crate) fn config(particles: usize) -> LaunchConfig {
     }
 }
 
-#[macro_export]
 /// Macro to generate GPU-accelerated moment calculation functions
 macro_rules! subscribe_gpu_function {
     ($module:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?)) => {
@@ -66,7 +65,6 @@ macro_rules! subscribe_gpu_function {
     };
 }
 
-#[macro_export]
 /// Macro to generate GPU-accelerated central moment calculation functions
 macro_rules! subscribe_central_moment_gpu_function {
     ($module:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?), $order_type:ty) => {
@@ -113,7 +111,11 @@ macro_rules! subscribe_central_moment_gpu_function {
     };
 }
 
+/// CUDA-accelerated Brownian motion estimators.
 pub mod bm;
+/// CUDA-accelerated Lévy process estimators.
 pub mod levy;
+/// CUDA-accelerated Ornstein-Uhlenbeck process estimators.
 pub mod ou;
+/// CUDA-accelerated random number generators.
 pub mod random;

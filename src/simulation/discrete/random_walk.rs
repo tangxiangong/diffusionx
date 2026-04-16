@@ -2,29 +2,27 @@
 
 use crate::{
     RealExt, SimulationError, XResult,
-    random::{PAR_THRESHOLD, exponential, stable},
+    random::stable::{StableConstants, sample_standard_alpha_with_constants},
+    random::{PAR_THRESHOLD, exponential},
     simulation::prelude::*,
     utils::cumsum,
 };
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
-/// Lattice random walk
+/// Lattice random walk.
 ///
 /// # Mathematical Formulation
 ///
-/// A lattice random walk is a stochastic process that describes a path consisting of a succession of constant steps.
-/// Mathematically, it can be represented as:
+/// A lattice random walk is a stochastic process whose path consists of fixed-size
+/// steps on a one-dimensional lattice:
 ///
-/// $$X_n = X_0 + d_n^{(p)} \sum_{i=1}^{n} a$$
+/// $$X_n = X_0 + a\sum_{i=1}^{n}\xi_i,$$
 ///
-/// where:
-/// - $X_n$ is the position after $n$ steps
-/// - $X_0$ is the initial position
-/// - $a$ is the step size
-/// - $d_n^{(p)}$ is the direction of the step, which is either $+1$ or $-1$ with probability $p$ or $1-p$ respectively
+/// where \(a\) is the step size and each direction \(\xi_i\) is either \(+1\)
+/// with probability \(p\) or \(-1\) with probability \(1-p\).
 #[derive(Clone, Debug)]
 pub struct LatticeRandomWalk<T: RealExt = f64> {
     /// The step size
@@ -57,7 +55,7 @@ impl<T: RealExt> LatticeRandomWalk<T> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::LatticeRandomWalk;
+    /// use diffusionx::simulation::discrete::LatticeRandomWalk;
     ///
     /// let rw = LatticeRandomWalk::new(1.0, 0.5, 0.0).unwrap();
     /// ```
@@ -151,9 +149,9 @@ where
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::lattice_random_walk::simulate_lattice_random_walk;
+/// use diffusionx::simulation::discrete::random_walk::simulate_lattice_random_walk;
 ///
-/// let (t, x) = simulate_lattice_random_walk(0.5, 0.5, 0.0, 1000).unwrap();
+/// let x = simulate_lattice_random_walk(0.5, 0.5, 0.0, 1000).unwrap();
 /// ```
 pub fn simulate_lattice_random_walk<N: IntExt, X: RealExt + std::ops::Neg<Output = X>>(
     step_size: X,
@@ -165,6 +163,19 @@ where
     std::ops::Range<N>: rayon::iter::IntoParallelIterator,
     std::ops::Range<N>: std::iter::IntoIterator,
 {
+    if probability <= X::zero() || probability > X::one() {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `probability` must be between 0 and 1, got {probability:?}"
+        ))
+        .into());
+    }
+    if step_size <= X::zero() {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `step_size` must be greater than 0, got {step_size:?}"
+        ))
+        .into());
+    }
+
     let prob = probability.to_f64().unwrap();
     let delta_x: Vec<X> = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
         let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
@@ -188,19 +199,16 @@ where
     Ok(x)
 }
 
-/// Random walk
+/// Random walk with heavy-tailed jump lengths.
 ///
 /// # Mathematical Formulation
 ///
-/// A stable random walk is a stochastic process that describes a path consisting of a succession of steps.
-/// Mathematically, it can be represented as:
+/// The path is represented by
 ///
-/// $$X_n = X_0 + \sum_{i=1}^{n} a_i$$
+/// $$X_n = X_0 + \sum_{i=1}^{n} A_i,$$
 ///
-/// where:
-/// - $X_n$ is the position after $n$ steps
-/// - $X_0$ is the initial position
-/// - $a_i$ is the step size
+/// where the jump lengths \(A_i\) are sampled from an alpha-stable law and then
+/// assigned a sign according to `probability`.
 #[derive(Clone, Debug)]
 pub struct RandomWalk<T: FloatExt = f64> {
     /// The probability of the step in the positive direction
@@ -233,7 +241,7 @@ impl<T: FloatExt> RandomWalk<T> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::RandomWalk;
+    /// use diffusionx::simulation::discrete::RandomWalk;
     ///
     /// let rw = RandomWalk::new(0.5, 1.0, 0.0).unwrap();
     /// ```
@@ -298,22 +306,22 @@ where
                     .map(|_| {
                         let dir = r.random_bool(prob);
                         if dir {
-                            exponential::standard_rand().abs()
+                            exponential::standard_rand_with_rng(&mut r).abs()
                         } else {
-                            -exponential::standard_rand().abs()
+                            -exponential::standard_rand_with_rng(&mut r).abs()
                         }
                     })
                     .sum()
             } else {
+                let constants = StableConstants::new(self.alpha, X::one());
                 (N::zero()..num_step)
                     .into_iter()
                     .map(|_| {
                         let dir = r.random_bool(prob);
-                        if dir {
-                            stable::skew_rand(self.alpha).unwrap().abs()
-                        } else {
-                            -stable::skew_rand(self.alpha).unwrap().abs()
-                        }
+                        let jump =
+                            sample_standard_alpha_with_constants(&constants, self.alpha, &mut r)
+                                .abs();
+                        if dir { jump } else { -jump }
                     })
                     .sum()
             }
@@ -322,30 +330,24 @@ where
                 .into_par_iter()
                 .map_init(
                     || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| r.random_bool(prob),
+                    |r, _| {
+                        let jump = exponential::standard_rand_with_rng(r).abs();
+                        if r.random_bool(prob) { jump } else { -jump }
+                    },
                 )
-                .map(|x| {
-                    if x {
-                        exponential::standard_rand().abs()
-                    } else {
-                        -exponential::standard_rand().abs()
-                    }
-                })
                 .sum()
         } else {
+            let constants = StableConstants::new(self.alpha, X::one());
             (N::zero()..num_step)
                 .into_par_iter()
                 .map_init(
                     || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| r.random_bool(prob),
+                    |r, _| {
+                        let jump =
+                            sample_standard_alpha_with_constants(&constants, self.alpha, r).abs();
+                        if r.random_bool(prob) { jump } else { -jump }
+                    },
                 )
-                .map(|x| {
-                    if x {
-                        stable::skew_rand(self.alpha).unwrap().abs()
-                    } else {
-                        -stable::skew_rand(self.alpha).unwrap().abs()
-                    }
-                })
                 .sum()
         };
         Ok(delta_x)
@@ -364,9 +366,9 @@ where
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::random_walk::simulate_random_walk;
+/// use diffusionx::simulation::discrete::random_walk::simulate_random_walk;
 ///
-/// let (t, x) = simulate_random_walk(0.5, 1.0, 0.0, 1000).unwrap();
+/// let x = simulate_random_walk(0.5, 1.0, 0.0, 1000).unwrap();
 /// ```
 pub fn simulate_random_walk<N: IntExt, X: FloatExt + SampleUniform>(
     probability: X,
@@ -379,6 +381,19 @@ where
     std::ops::Range<N>: rayon::iter::IntoParallelIterator,
     std::ops::Range<N>: std::iter::IntoIterator,
 {
+    if probability <= X::zero() || probability > X::one() {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `probability` must be between 0 and 1, got {probability:?}"
+        ))
+        .into());
+    }
+    if alpha <= X::zero() || alpha > X::from(2).unwrap() {
+        return Err(SimulationError::InvalidParameters(format!(
+            "The `alpha` must be between 0 and 2, got {alpha:?}"
+        ))
+        .into());
+    }
+
     let prob = probability.to_f64().unwrap();
     let delta_x: Vec<_> = if num_step.to_usize().unwrap() <= PAR_THRESHOLD {
         let mut r = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
@@ -387,23 +402,19 @@ where
                 .into_iter()
                 .map(|_| {
                     let dir = r.random_bool(prob);
-                    if dir {
-                        exponential::standard_rand().abs()
-                    } else {
-                        -exponential::standard_rand().abs()
-                    }
+                    let jump = exponential::standard_rand_with_rng(&mut r).abs();
+                    if dir { jump } else { -jump }
                 })
                 .collect()
         } else {
+            let constants = StableConstants::new(alpha, X::one());
             (N::zero()..num_step)
                 .into_iter()
                 .map(|_| {
                     let dir = r.random_bool(prob);
-                    if dir {
-                        stable::skew_rand(alpha).unwrap().abs()
-                    } else {
-                        -stable::skew_rand(alpha).unwrap().abs()
-                    }
+                    let jump =
+                        sample_standard_alpha_with_constants(&constants, alpha, &mut r).abs();
+                    if dir { jump } else { -jump }
                 })
                 .collect()
         }
@@ -412,30 +423,23 @@ where
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| r.random_bool(prob),
+                |r, _| {
+                    let jump = exponential::standard_rand_with_rng(r).abs();
+                    if r.random_bool(prob) { jump } else { -jump }
+                },
             )
-            .map(|x| {
-                if x {
-                    exponential::standard_rand().abs()
-                } else {
-                    -exponential::standard_rand().abs()
-                }
-            })
             .collect()
     } else {
+        let constants = StableConstants::new(alpha, X::one());
         (N::zero()..num_step)
             .into_par_iter()
             .map_init(
                 || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                |r, _| r.random_bool(prob),
+                |r, _| {
+                    let jump = sample_standard_alpha_with_constants(&constants, alpha, r).abs();
+                    if r.random_bool(prob) { jump } else { -jump }
+                },
             )
-            .map(|x| {
-                if x {
-                    stable::skew_rand(alpha).unwrap().abs()
-                } else {
-                    -stable::skew_rand(alpha).unwrap().abs()
-                }
-            })
             .collect()
     };
     let x = cumsum(start_position, &delta_x);
@@ -451,6 +455,22 @@ mod tests {
         let rw: LatticeRandomWalk<f64> = LatticeRandomWalk::default();
         let x = rw.simulate(1000).unwrap();
         assert_eq!(x.len(), 1001);
+    }
+
+    #[test]
+    fn test_lattice_random_walk_free_function_validates_parameters() {
+        assert!(simulate_lattice_random_walk(-1.0, 0.5, 0.0, 10).is_err());
+
+        let result = std::panic::catch_unwind(|| simulate_lattice_random_walk(1.0, 1.5, 0.0, 10));
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[test]
+    fn test_random_walk_free_function_validates_parameters() {
+        assert!(simulate_random_walk(0.5, 0.0, 0.0, 10).is_err());
+
+        let result = std::panic::catch_unwind(|| simulate_random_walk(1.5, 1.0, 0.0, 10));
+        assert!(matches!(result, Ok(Err(_))));
     }
 
     #[test]

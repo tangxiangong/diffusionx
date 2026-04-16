@@ -3,25 +3,31 @@ use crate::{
     simulation::prelude::{FirstPassageTime, Moment, OccupationTime},
 };
 
-/// Point process trait
+/// Common interface for point processes.
 ///
-/// `T`: The type of the position (default: f64)
-/// `V`: The type of the time (default: f64)
+/// `T` is the time type, and `X` is the state type. Point processes are sampled
+/// at random event times and can be truncated either by duration or by event count.
 pub trait PointProcess<T: FloatExt = f64, X: RealExt = T>: Send + Sync {
-    /// Get the starting position
+    /// Get the starting position.
     fn start(&self) -> X;
 
-    /// Get the ending position
+    /// Get the ending position at the requested duration.
     fn end(&self, duration: T) -> XResult<X> {
         Ok(self.start() + self.displacement(duration)?)
     }
 
-    /// Get the displacement of the point process
+    /// Get the displacement of the point process.
     ///
     /// # Arguments
     ///
     /// * `duration` - The duration of the simulation.
     fn displacement(&self, duration: T) -> XResult<X> {
+        if duration <= T::zero() {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {duration:?}"
+            ))
+            .into());
+        }
         let mut num_step = duration.ceil().to_usize().unwrap();
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;
@@ -44,7 +50,7 @@ pub trait PointProcess<T: FloatExt = f64, X: RealExt = T>: Send + Sync {
 
         Ok(delta_x)
     }
-    /// Simulate the point process with given duration
+    /// Simulate the point process up to a fixed duration.
     ///
     /// # Arguments
     ///
@@ -53,6 +59,12 @@ pub trait PointProcess<T: FloatExt = f64, X: RealExt = T>: Send + Sync {
     where
         Self: Sized,
     {
+        if duration <= T::zero() {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `duration` must be positive, got {duration:?}"
+            ))
+            .into());
+        }
         let mut num_step = duration.ceil().to_usize().unwrap();
         let (t, x) = loop {
             let (t, x) = self.simulate_with_step(num_step)?;
@@ -217,6 +229,11 @@ pub struct PointTrajectory<SP: PointProcess<T, X> + Clone, T: FloatExt = f64, X:
     _marker: std::marker::PhantomData<X>,
 }
 
+/// Extension trait for binding a point process to either a duration or step count.
+///
+/// This trait is implemented for every cloneable [`PointProcess`]. It provides
+/// the ergonomic `process.duration(t)` and `process.step(n)` constructors used by
+/// moment estimators.
 pub trait PointTrajectoryTrait<T: FloatExt = f64, X: RealExt = T>:
     PointProcess<T, X> + Clone
 {
@@ -282,7 +299,7 @@ impl<SP: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> PointTrajectory<SP
         })
     }
 
-    /// Create a `PointTrajectory` with num of steps.
+    /// Create a `PointTrajectory` with a fixed number of steps.
     ///
     /// # Arguments
     ///
@@ -302,7 +319,7 @@ impl<SP: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> PointTrajectory<SP
         })
     }
 
-    /// Simulate the trajectory with duration
+    /// Simulate the trajectory over its stored duration.
     pub fn simulate_with_duration(&self) -> XResult<(Vec<T>, Vec<X>)> {
         if self.duration.is_none() {
             return Err(SimulationError::InvalidParameters(
@@ -320,7 +337,7 @@ impl<SP: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> PointTrajectory<SP
         self.sp.simulate_with_duration(duration)
     }
 
-    /// Simulate with number of steps
+    /// Simulate the trajectory for its stored number of steps.
     pub fn simulate_with_step(&self) -> XResult<(Vec<T>, Vec<X>)> {
         if self.num_step.is_none() {
             return Err(SimulationError::InvalidParameters(
@@ -336,5 +353,39 @@ impl<SP: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> PointTrajectory<SP
             .into());
         }
         self.sp.simulate_with_step(num_step)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Clone)]
+    struct UnitPoint;
+
+    impl PointProcess<f64, f64> for UnitPoint {
+        fn start(&self) -> f64 {
+            0.0
+        }
+
+        fn simulate_with_step(&self, num_step: usize) -> XResult<(Vec<f64>, Vec<f64>)> {
+            let t = (0..=num_step).map(|i| i as f64).collect::<Vec<_>>();
+            let x = vec![0.0; num_step + 1];
+            Ok((t, x))
+        }
+    }
+
+    #[test]
+    fn test_displacement_rejects_nonpositive_duration() {
+        let process = UnitPoint;
+        let result = std::panic::catch_unwind(|| process.displacement(-1.0));
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[test]
+    fn test_simulate_with_duration_rejects_nonpositive_duration() {
+        let process = UnitPoint;
+        let result = process.simulate_with_duration(0.0);
+        assert!(result.is_err());
     }
 }

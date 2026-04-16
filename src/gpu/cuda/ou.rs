@@ -2,7 +2,6 @@ use crate::{
     FloatExt, XResult,
     gpu::{CUDA_CTX, GPUMoment, OU_PTX},
     simulation::continuous::OrnsteinUhlenbeck as OU,
-    subscribe_gpu_function,
 };
 use cudarc::{
     driver::{CudaFunction, CudaModule},

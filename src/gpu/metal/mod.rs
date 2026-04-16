@@ -53,7 +53,6 @@ pub(crate) fn thread_config(particles: usize) -> (MTLSize, MTLSize) {
 }
 
 /// Macro to generate Metal GPU-accelerated moment calculation functions
-#[macro_export]
 macro_rules! subscribe_metal_gpu_function {
     ($library:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?)) => {
         #[allow(clippy::too_many_arguments)]
@@ -67,8 +66,12 @@ macro_rules! subscribe_metal_gpu_function {
 
             let device = $crate::gpu::metal::METAL_DEVICE.as_ref()?;
             let queue = $crate::gpu::metal::METAL_QUEUE.as_ref()?;
-            let library = $library.as_ref()?;
-            let pipeline = $crate::gpu::metal::get_pipeline(library, $kernel_name)?;
+            static PIPELINE: std::sync::LazyLock<XResult<metal::ComputePipelineState>> =
+                std::sync::LazyLock::new(|| {
+                    let library = $library.as_ref()?;
+                    $crate::gpu::metal::get_pipeline(library, $kernel_name)
+                });
+            let pipeline = PIPELINE.as_ref()?;
 
             let (thread_groups, threads_per_group) = $crate::gpu::metal::thread_config(particles);
 
@@ -85,14 +88,14 @@ macro_rules! subscribe_metal_gpu_function {
             }
 
             let mut rng = rand::rng();
-            use rand::Rng;
+            use rand::RngExt;
             let seed: u64 = rng.random();
             let particles_u32 = particles as u32;
 
             let command_buffer = queue.new_command_buffer();
             let encoder = command_buffer.new_compute_command_encoder();
 
-            encoder.set_compute_pipeline_state(&pipeline);
+            encoder.set_compute_pipeline_state(pipeline);
 
             // Set buffers
             let mut buffer_index = 0u64;
@@ -142,7 +145,6 @@ macro_rules! subscribe_metal_gpu_function {
 }
 
 /// Macro to generate Metal GPU-accelerated central moment calculation functions
-#[macro_export]
 macro_rules! subscribe_metal_central_moment_gpu_function {
     ($library:expr, $func_name:ident, $kernel_name:expr, ($( $param_name:ident: $param_type:ty ),+ $(,)?), $order_type:ty) => {
         #[allow(clippy::too_many_arguments)]
@@ -157,8 +159,12 @@ macro_rules! subscribe_metal_central_moment_gpu_function {
 
             let device = $crate::gpu::metal::METAL_DEVICE.as_ref()?;
             let queue = $crate::gpu::metal::METAL_QUEUE.as_ref()?;
-            let library = $library.as_ref()?;
-            let pipeline = $crate::gpu::metal::get_pipeline(library, $kernel_name)?;
+            static PIPELINE: std::sync::LazyLock<XResult<metal::ComputePipelineState>> =
+                std::sync::LazyLock::new(|| {
+                    let library = $library.as_ref()?;
+                    $crate::gpu::metal::get_pipeline(library, $kernel_name)
+                });
+            let pipeline = PIPELINE.as_ref()?;
 
             let (thread_groups, threads_per_group) = $crate::gpu::metal::thread_config(particles);
 
@@ -178,14 +184,14 @@ macro_rules! subscribe_metal_central_moment_gpu_function {
             }
 
             let mut rng = rand::rng();
-            use rand::Rng;
+            use rand::RngExt;
             let seed: u64 = rng.random();
             let particles_u32 = particles as u32;
 
             let command_buffer = queue.new_command_buffer();
             let encoder = command_buffer.new_compute_command_encoder();
 
-            encoder.set_compute_pipeline_state(&pipeline);
+            encoder.set_compute_pipeline_state(pipeline);
 
             // Set buffers - order matches kernel signature: out, order, mean, params..., particles, seed
             let mut buffer_index = 0u64;
@@ -248,7 +254,11 @@ macro_rules! subscribe_metal_central_moment_gpu_function {
     };
 }
 
+/// Metal-accelerated Brownian motion estimators.
 pub mod bm;
+/// Metal-accelerated Lévy process estimators.
 pub mod levy;
+/// Metal-accelerated Ornstein-Uhlenbeck process estimators.
 pub mod ou;
+/// Metal-accelerated random number generators.
 pub mod random;

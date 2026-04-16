@@ -3,11 +3,11 @@
 use crate::{FloatExt, XResult, check_duration_time_step, random::normal, simulation::prelude::*};
 use rand_distr::{Distribution, StandardNormal};
 
-/// Langevin equation
+/// Langevin equation.
 ///
-/// $$dx(t) = f(x(t), t) dt + g(x(t), t) dW(t),\qquad x(0) = x_0$$
+/// $$dX(t) = f(X(t), t)\,dt + g(X(t), t)\,dW(t),\qquad X(0)=x_0.$$
 ///
-/// where $W(t)$ is the Weiner process or called Brownian motion.
+/// where \(W(t)\) is the Wiener process, also called Brownian motion.
 #[derive(Debug, Clone)]
 pub struct Langevin<D, G, T: FloatExt = f64>
 where

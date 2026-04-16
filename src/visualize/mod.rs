@@ -18,8 +18,10 @@
 //! sudo apt install pkg-config libfreetype6-dev libfontconfig1-dev
 //! ```
 
+/// Plot configuration types and builder support.
 pub mod config;
 pub use config::*;
 
+/// Plotting helpers and trajectory visualization traits.
 pub mod draw;
 pub use draw::*;

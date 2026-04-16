@@ -2,6 +2,144 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.5] - 2026-04-15
+
+### 🐛 Bug Fixes
+
+- Restore the MSRV to Rust 1.87.
+- Fix simulation estimator correctness bugs.
+
+### 📚 Documentation
+
+- Clarify documentation across simulation modules.
+
+## [0.11.4] - 2026-04-15
+
+### 🚀 Features
+
+- Add `standard_rand_with_rng` for sampling with a caller-provided RNG.
+
+### 🐛 Bug Fixes
+
+- Use `f32` in the normal distribution random benchmark.
+
+### 🚜 Refactor
+
+- Cache Metal pipeline states with static `LazyLock` subscriptions.
+- Optimize random sampling, displacement, TAMSD, first-passage time, and occupation-time calculations.
+- Update CUDA and Metal feature configuration in the build script.
+
+### 📚 Documentation
+
+- Add project steering and agent guidance documentation.
+
+## [0.11.3] - 2026-03-19
+
+### ⚙️ Miscellaneous Tasks
+
+- Update the MSRV to Rust 1.88.
+- Align `rand_xoshiro` with `rand` 0.9 compatibility.
+- Update dependencies.
+
+## [0.11.2] - 2026-01-28
+
+### 🚜 Refactor
+
+- Rename stable random sampling functions for consistency.
+- Remove unused CUDA and Metal GPU function subscriptions.
+
+### ⚙️ Miscellaneous Tasks
+
+- Add `.gitattributes` and update the README dedication.
+
+## [0.11.1] - 2025-12-18
+
+### 🚀 Features
+
+- Add `PAR_THRESHOLD` and `STABLE_PAR_THRESHOLD` for optimized random generation and simulation parallelism.
+
+### ⚙️ Miscellaneous Tasks
+
+- Ignore local VS Code configuration and update the README dedication.
+
+## [0.11.0] - 2025-12-15
+
+### 🚀 Features
+
+- Introduce `RealExt` and broaden generic type support across discrete processes, random walks, TAMSD, interpolation, simulation, and visualization APIs.
+
+### 🚜 Refactor
+
+- Update default features for modular builds.
+- Standardize simulation return types and module layout.
+- Integrate `FloatConst` into `FloatExt` and simplify `RealExt` bounds.
+
+## [0.10.0] - 2025-12-11
+
+### 🚀 Features
+
+- Add Metal backend support and compute kernels for stochastic process simulations.
+- Add Levy process and Metal benchmark coverage.
+
+### 🚜 Refactor
+
+- Refactor GPU feature gates and module structure for CUDA and Metal.
+- Generalize random, simulation, CSV, plotting, `FBm`, Poisson, and inverse-process code with shared numeric traits.
+- Simplify `CirculantEmbedding`, clean up unused examples/code, and optimize CUDA reductions.
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove unused `CODE_OF_CONDUCT.md` and `SECURITY.md`.
+
+## [0.9.3] - 2025-12-06
+
+### 🚜 Refactor
+
+- Remove default features from `Cargo.toml`.
+
+### 📚 Documentation
+
+- Improve GPU documentation and error-handling notes.
+
+## [0.9.2] - 2025-12-06
+
+### 🚜 Refactor
+
+- Include CUDA dependencies conditionally in the build script.
+
+## [0.9.1] - 2025-12-06
+
+### 🚜 Refactor
+
+- Add CUDA kernels for stochastic process simulations.
+
+## [0.9.0] - 2025-12-06
+
+### 🚀 Features
+
+- Add CUDA support for Brownian motion, Ornstein-Uhlenbeck, Levy, and stable-distribution workloads.
+- Add fractional-moment APIs and consolidate `Moment` MSD/mean implementations.
+- Add Ornstein-Uhlenbeck process support, defaults, and benchmark coverage.
+- Generalize `Levy` and `AsymmetricLevy` over numeric types.
+
+### 🐛 Bug Fixes
+
+- Improve moment-calculation stability and GPU build path handling.
+
+### 🚜 Refactor
+
+- Consolidate CUDA kernel loading, launch configuration, wrappers, and function subscriptions.
+- Generalize stable distributions, continuous processes, Brownian motion, and validators over `Float`.
+- Restructure kernel crates under the workspace and modernize RNG seeding.
+
+### 📚 Documentation
+
+- Add GPU acceleration documentation and update the package description.
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove the default feature for the 0.9.0 release.
+
 ## [0.8.2] - 2025-11-29
 
 ### 📚 Documentation

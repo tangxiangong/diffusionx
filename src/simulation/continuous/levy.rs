@@ -5,18 +5,19 @@
 use crate::{
     FloatExt, SimulationError, XResult, check_duration_time_step,
     random::{
-        STABLE_PAR_THRESHOLD,
+        normal,
         stable::{
-            self, sample_standard_alpha, sample_standard_alpha_one, sample_sys_standard_alpha_one,
-            sample_sys_standard_alpha_with_constants,
+            StableConstants, sample_standard_alpha, sample_standard_alpha_one,
+            sample_standard_alpha_with_constants, sample_sym_standard_alpha_one,
+            sample_sym_standard_alpha_with_constants,
+            sample_sym_standard_alpha_with_stable_constants,
         },
     },
     simulation::prelude::*,
 };
 use rand::prelude::*;
-use rand_distr::{Exp1, uniform::SampleUniform};
+use rand_distr::{Exp1, StandardNormal, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
-use rayon::prelude::*;
 
 /// Asymmetric Lévy process
 #[derive(Debug, Clone)]
@@ -84,6 +85,7 @@ impl<T: FloatExt> AsymmetricLevy<T> {
 impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for AsymmetricLevy<T>
 where
     Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
 {
     fn start(&self) -> T {
         self.start_position
@@ -102,36 +104,16 @@ where
     fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
-        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
         let power = T::one() / self.alpha;
-        let scale = time_step.powf(power);
-        let generator = if self.alpha == T::one() {
-            sample_standard_alpha_one
+        let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+        let sample = if (self.alpha - T::from(2).unwrap()).abs() < T::epsilon() {
+            T::from(2).unwrap().sqrt() * normal::standard_rand_with_rng::<T, _>(&mut rng)
+        } else if (self.alpha - T::one()).abs() < T::epsilon() {
+            sample_standard_alpha_one(self.alpha, self.beta, &mut rng)
         } else {
-            sample_standard_alpha
+            sample_standard_alpha(self.alpha, self.beta, &mut rng)
         };
-        let mut delta_x = if num_steps < STABLE_PAR_THRESHOLD {
-            let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
-            (0..num_steps - 1)
-                .map(|_| scale * generator(self.alpha, self.beta, &mut rng))
-                .sum()
-        } else {
-            (0..num_steps - 1)
-                .into_par_iter()
-                .map_init(
-                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| scale * generator(self.alpha, self.beta, r),
-                )
-                .sum()
-        };
-
-        let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
-        delta_x += generator(
-            self.alpha,
-            self.beta,
-            &mut Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-        ) * last_step.powf(power);
-        Ok(delta_x)
+        Ok(sample * duration.powf(power))
     }
 }
 
@@ -162,13 +144,13 @@ pub fn simulate_asymmetric_levy<T: FloatExt + SampleUniform>(
 ) -> XResult<(Vec<T>, Vec<T>)>
 where
     Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
 {
     check_duration_time_step(duration, time_step)?;
 
     let num_steps = (duration / time_step).ceil().to_usize().unwrap();
     let power = T::one() / alpha;
     let mut scale = time_step.powf(power);
-    let noise = stable::standard_rands(alpha, beta, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
@@ -178,15 +160,30 @@ where
 
     let mut current_x = start_position;
     let mut current_t = T::zero();
-    for xi in noise {
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    let constants = StableConstants::new(alpha, beta);
+    for _ in 0..num_steps - 1 {
+        let xi = if (alpha - T::from(2).unwrap()).abs() < T::epsilon() {
+            T::from(2).unwrap().sqrt() * normal::standard_rand_with_rng::<T, _>(&mut rng)
+        } else if (alpha - T::one()).abs() < T::epsilon() {
+            sample_standard_alpha_one(alpha, beta, &mut rng)
+        } else {
+            sample_standard_alpha_with_constants(&constants, alpha, &mut rng)
+        };
         current_x += xi * scale;
         x.push(current_x);
         current_t += time_step;
         t.push(current_t);
     }
     let last_step = duration - current_t;
-    let xi = stable::standard_rand(alpha, beta)?;
     scale = last_step.powf(power);
+    let xi = if (alpha - T::from(2).unwrap()).abs() < T::epsilon() {
+        T::from(2).unwrap().sqrt() * normal::standard_rand_with_rng::<T, _>(&mut rng)
+    } else if (alpha - T::one()).abs() < T::epsilon() {
+        sample_standard_alpha_one(alpha, beta, &mut rng)
+    } else {
+        sample_standard_alpha_with_constants(&constants, alpha, &mut rng)
+    };
     current_x += xi * scale;
     x.push(current_x);
     t.push(duration);
@@ -245,6 +242,7 @@ impl<T: FloatExt> Levy<T> {
 impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for Levy<T>
 where
     Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
 {
     fn start(&self) -> T {
         self.start_position
@@ -257,79 +255,28 @@ where
     fn displacement(&self, duration: T, time_step: T) -> XResult<T> {
         check_duration_time_step(duration, time_step)?;
 
-        let num_steps = (duration / time_step).ceil().to_usize().unwrap();
         let power = T::one() / self.alpha;
-        let mut scale = time_step.powf(power);
-
-        let (inv_alpha, one_minus_alpha_div_alpha) = if (T::one() - self.alpha).abs() < T::epsilon()
-        {
-            let _inv = T::one() / self.alpha;
-            (_inv, (T::one() - self.alpha) * _inv)
-        } else {
-            (T::one(), T::zero())
-        };
-
-        let mut delta_x = if num_steps <= STABLE_PAR_THRESHOLD {
-            if (self.alpha - T::one()).abs() < T::epsilon() {
-                let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
-                (0..num_steps - 1)
-                    .map(|_| scale * sample_sys_standard_alpha_one(&mut rng))
-                    .sum()
-            } else {
-                let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
-                (0..num_steps - 1)
-                    .map(|_| {
-                        scale
-                            * sample_sys_standard_alpha_with_constants(
-                                inv_alpha,
-                                one_minus_alpha_div_alpha,
-                                self.alpha,
-                                &mut rng,
-                            )
-                    })
-                    .sum()
-            }
-        } else if (self.alpha - T::one()).abs() < T::epsilon() {
-            (0..num_steps - 1)
-                .into_par_iter()
-                .map_init(
-                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| scale * sample_sys_standard_alpha_one(r),
-                )
-                .sum()
-        } else {
-            (0..num_steps - 1)
-                .into_par_iter()
-                .map_init(
-                    || Xoshiro256PlusPlus::from_rng(&mut rand::rng()),
-                    |r, _| {
-                        scale
-                            * sample_sys_standard_alpha_with_constants(
-                                inv_alpha,
-                                one_minus_alpha_div_alpha,
-                                self.alpha,
-                                r,
-                            )
-                    },
-                )
-                .sum()
-        };
-
-        let last_step = duration - T::from(num_steps - 1).unwrap() * time_step;
-        scale = last_step.powf(power);
         let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
-        let xi = if (self.alpha - T::one()).abs() < T::epsilon() {
-            sample_sys_standard_alpha_one(&mut rng)
-        } else {
-            sample_sys_standard_alpha_with_constants(
-                inv_alpha,
-                one_minus_alpha_div_alpha,
-                self.alpha,
-                &mut rng,
-            )
-        };
-        delta_x += xi * scale;
-        Ok(delta_x)
+        Ok(sample_symmetric_standard(self.alpha, &mut rng) * duration.powf(power))
+    }
+}
+
+#[inline]
+fn sample_symmetric_standard<T, R>(alpha: T, rng: &mut R) -> T
+where
+    T: FloatExt + SampleUniform,
+    R: Rng + ?Sized,
+    Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
+{
+    if (alpha - T::from(2).unwrap()).abs() < T::epsilon() {
+        T::from(2).unwrap().sqrt() * normal::standard_rand_with_rng::<T, _>(rng)
+    } else if (alpha - T::one()).abs() < T::epsilon() {
+        sample_sym_standard_alpha_one(rng)
+    } else {
+        let inv_alpha = T::one() / alpha;
+        let one_minus_alpha_div_alpha = (T::one() - alpha) * inv_alpha;
+        sample_sym_standard_alpha_with_constants(inv_alpha, one_minus_alpha_div_alpha, alpha, rng)
     }
 }
 
@@ -357,13 +304,13 @@ pub fn simulate_levy<T: FloatExt + SampleUniform>(
 ) -> XResult<(Vec<T>, Vec<T>)>
 where
     Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
 {
     check_duration_time_step(duration, time_step)?;
 
     let num_steps = (duration / time_step).ceil().to_usize().unwrap();
     let power = T::one() / alpha;
     let mut scale = time_step.powf(power);
-    let noise = stable::sym_standard_rands(alpha, num_steps - 1)?;
 
     let mut t = Vec::with_capacity(num_steps + 1);
     let mut x = Vec::with_capacity(num_steps + 1);
@@ -372,15 +319,30 @@ where
 
     let mut current_x = start_position;
     let mut current_t = T::zero();
-    for xi in noise {
+    let mut rng = Xoshiro256PlusPlus::from_rng(&mut rand::rng());
+    let sym_constants = StableConstants::new(alpha, T::zero());
+    for _ in 0..num_steps - 1 {
+        let xi = if (alpha - T::from(2).unwrap()).abs() < T::epsilon() {
+            T::from(2).unwrap().sqrt() * normal::standard_rand_with_rng::<T, _>(&mut rng)
+        } else if (alpha - T::one()).abs() < T::epsilon() {
+            sample_sym_standard_alpha_one(&mut rng)
+        } else {
+            sample_sym_standard_alpha_with_stable_constants(&sym_constants, alpha, &mut rng)
+        };
         current_x += xi * scale;
         x.push(current_x);
         current_t += time_step;
         t.push(current_t);
     }
     let last_step = duration - current_t;
-    let xi = stable::sym_standard_rand(alpha)? * scale;
     scale = last_step.powf(power);
+    let xi = if (alpha - T::from(2).unwrap()).abs() < T::epsilon() {
+        T::from(2).unwrap().sqrt() * normal::standard_rand_with_rng::<T, _>(&mut rng)
+    } else if (alpha - T::one()).abs() < T::epsilon() {
+        sample_sym_standard_alpha_one(&mut rng)
+    } else {
+        sample_sym_standard_alpha_with_stable_constants(&sym_constants, alpha, &mut rng)
+    };
     current_x += xi * scale;
     x.push(current_x);
     t.push(duration);

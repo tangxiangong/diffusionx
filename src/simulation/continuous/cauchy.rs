@@ -9,7 +9,7 @@ use crate::{
         prelude::*,
     },
 };
-use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
+use rand_distr::{Distribution, Exp1, StandardNormal, uniform::SampleUniform};
 
 /// Asymmetric Cauchy process
 #[derive(Debug, Clone)]
@@ -62,6 +62,7 @@ impl<T: FloatExt> AsymmetricCauchy<T> {
 impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for AsymmetricCauchy<T>
 where
     Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
 {
     fn start(&self) -> T {
         self.start_position
@@ -125,6 +126,7 @@ impl<T: FloatExt> Cauchy<T> {
 impl<T: FloatExt + SampleUniform> ContinuousProcess<T> for Cauchy<T>
 where
     Exp1: Distribution<T>,
+    StandardNormal: Distribution<T>,
 {
     fn start(&self) -> T {
         self.start_position

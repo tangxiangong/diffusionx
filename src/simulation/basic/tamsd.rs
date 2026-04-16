@@ -1,28 +1,36 @@
+use std::num::NonZeroUsize;
+
 use crate::{
     FloatExt, RealExt, SimulationError, XResult, simulation::prelude::*, utils::flatten_interpolate,
 };
 use gauss_quad::GaussLegendre;
 use rayon::prelude::*;
 
-/// TAMSD (time-averaged mean-squared displacement)
+/// Time-averaged mean-squared displacement estimator.
+///
+/// For a trajectory over duration \(T\) and lag \(\Delta\), TAMSD is
+///
+/// $$\overline{\delta^2(\Delta; T)}
+/// = \frac{1}{T-\Delta}\int_0^{T-\Delta}
+/// \left[X(t+\Delta)-X(t)\right]^2\,dt.$$
 #[derive(Debug, Clone)]
 pub struct TAMSD<'a, SP, T: FloatExt = f64> {
     /// The continuous process
     process: &'a SP,
     /// The duration
     duration: T,
-    /// The slag length
+    /// The lag length
     delta: T,
 }
 
 impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
-    /// Create a new TAMSD
+    /// Create a new TAMSD estimator.
     ///
     /// # Arguments
     ///
     /// * `process` - The continuous process to calculate the TAMSD of.
     /// * `duration` - The duration of the simulation.
-    /// * `delta` - The slag length.
+    /// * `delta` - The lag length.
     pub fn new(process: &'a SP, duration: T, delta: T) -> XResult<Self> {
         if duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
@@ -37,7 +45,7 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
             .into());
         }
 
-        if duration < delta {
+        if duration <= delta {
             return Err(SimulationError::InvalidParameters(format!(
                 "The `duration` must be greater than `delta`, got duration {duration:?} and delta {delta:?}"
             ))
@@ -50,37 +58,45 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
         })
     }
 
-    /// Get the process
+    /// Get the process being sampled.
     pub fn get_process(&self) -> &'a SP {
         self.process
     }
 
-    /// Get the duration
+    /// Get the trajectory duration.
     pub fn get_duration(&self) -> T {
         self.duration
     }
 
-    /// Get the slag length
+    /// Get the lag length.
     pub fn get_delta(&self) -> T {
         self.delta
     }
 }
 
 impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
-    /// Simulate the TAMSD
+    /// Estimate the TAMSD for one continuous-process trajectory.
     ///
     /// # Arguments
     ///
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     pub fn simulate(&self, time_step: T, quad_order: usize) -> XResult<T> {
-        let legendre_quad = GaussLegendre::new(quad_order)?;
-        let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
+        if time_step <= T::zero() {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step:?}`"
+            ))
+            .into());
+        }
+        let quad_order =
+            NonZeroUsize::new(quad_order).unwrap_or_else(|| NonZeroUsize::new(10).unwrap());
+        let legendre_quad = GaussLegendre::new(quad_order);
+        let nodes_weights_pairs = legendre_quad.into_node_weight_pairs().to_vec();
         let duration = self.duration;
         let slag = self.delta;
         let nodes_weights =
             nodes_weights_transform(T::zero(), duration - slag, nodes_weights_pairs);
-        let result = nodes_weights
+        let sum = nodes_weights
             .into_par_iter()
             .map(|(node, weight)| -> XResult<T> {
                 let slag_length = (slag / time_step).ceil().to_usize().unwrap();
@@ -96,14 +112,12 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
 
                 Ok((end_position - slag_position).powi(2) * weight)
             })
-            .collect::<XResult<Vec<T>>>()?
-            .into_par_iter()
-            .sum::<T>()
-            / (duration - slag);
+            .try_reduce(T::zero, |a, b| Ok::<T, crate::XError>(a + b))?;
+        let result = sum / (duration - slag);
         Ok(result)
     }
 
-    /// Get the ensemble average of the TAMSD
+    /// Estimate the ensemble average of the TAMSD for a continuous process.
     ///
     /// # Arguments
     ///
@@ -131,14 +145,14 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
             .into());
         }
 
-        Ok((0..particles)
+        let sum = (0..particles)
             .into_par_iter()
-            .map(|_| self.simulate(time_step, quad_order).unwrap())
-            .sum::<T>()
-            / T::from(particles).unwrap())
+            .map(|_| self.simulate(time_step, quad_order))
+            .try_reduce(T::zero, |a, b| Ok::<T, crate::XError>(a + b))?;
+        Ok(sum / T::from(particles).unwrap())
     }
 
-    /// Get the variance of the TAMSD
+    /// Estimate the ensemble variance of the TAMSD for a continuous process.
     ///
     /// # Arguments
     ///
@@ -165,20 +179,19 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
             .into());
         }
         let mean = self.mean(particles, time_step, quad_order)?;
-        Ok((0..particles)
+        let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
-                let value = self.simulate(time_step, quad_order).unwrap();
-                (value - mean).powi(2)
+                let value = self.simulate(time_step, quad_order)?;
+                Ok::<T, crate::XError>((value - mean).powi(2))
             })
-            .into_par_iter()
-            .sum::<T>()
-            / T::from(particles).unwrap())
+            .try_reduce(T::zero, |a, b| Ok::<T, crate::XError>(a + b))?;
+        Ok(sum / T::from(particles).unwrap())
     }
 }
 
 impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
-    /// Simulate the TAMSD
+    /// Estimate the TAMSD for one point-process trajectory.
     ///
     /// # Arguments
     ///
@@ -188,8 +201,16 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
     where
         SP: PointProcess<T, X> + Clone,
     {
-        let legendre_quad = GaussLegendre::new(quad_order)?;
-        let nodes_weights_pairs = legendre_quad.into_node_weight_pairs();
+        if time_step <= T::zero() {
+            return Err(SimulationError::InvalidParameters(format!(
+                "The `time_step` must be positive, got `{time_step:?}`"
+            ))
+            .into());
+        }
+        let quad_order =
+            NonZeroUsize::new(quad_order).unwrap_or_else(|| NonZeroUsize::new(10).unwrap());
+        let legendre_quad = GaussLegendre::new(quad_order);
+        let nodes_weights_pairs = legendre_quad.into_node_weight_pairs().to_vec();
         let duration = self.duration;
         let slag = self.delta;
         let nodes_weights = nodes_weights_transform(
@@ -197,7 +218,7 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
             (duration - slag).to_f64().unwrap(),
             nodes_weights_pairs,
         );
-        let result = nodes_weights
+        let sum = nodes_weights
             .into_par_iter()
             .map(|(node, weight)| -> XResult<f64> {
                 let slag_length = (slag / time_step).ceil().to_usize().unwrap();
@@ -216,14 +237,12 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
 
                 Ok((end_position - slag_position).powi(2) * weight)
             })
-            .collect::<XResult<Vec<_>>>()?
-            .into_par_iter()
-            .sum::<f64>()
-            / (duration - slag).to_f64().unwrap();
+            .try_reduce(|| 0.0, |a, b| Ok::<f64, crate::XError>(a + b))?;
+        let result = sum / (duration - slag).to_f64().unwrap();
         Ok(result)
     }
 
-    /// Get the ensemble average of the TAMSD
+    /// Estimate the ensemble average of the TAMSD for a point process.
     ///
     /// # Arguments
     ///
@@ -257,14 +276,14 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
             ))
             .into());
         }
-        Ok((0..particles)
+        let sum = (0..particles)
             .into_par_iter()
-            .map(|_| self.simulate_p(time_step, quad_order).unwrap())
-            .sum::<f64>()
-            / particles as f64)
+            .map(|_| self.simulate_p(time_step, quad_order))
+            .try_reduce(|| 0.0, |a, b| Ok::<f64, crate::XError>(a + b))?;
+        Ok(sum / particles as f64)
     }
 
-    /// Get the variance of the TAMSD
+    /// Estimate the ensemble variance of the TAMSD for a point process.
     ///
     /// # Arguments
     ///
@@ -299,14 +318,14 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
             .into());
         }
         let mean = self.mean_p(particles, time_step, quad_order)?;
-        Ok((0..particles)
+        let sum = (0..particles)
             .into_par_iter()
             .map(|_| {
-                let value = self.simulate_p(time_step, quad_order).unwrap();
-                (value - mean).powi(2)
+                let value = self.simulate_p(time_step, quad_order)?;
+                Ok::<f64, crate::XError>((value - mean).powi(2))
             })
-            .sum::<f64>()
-            / particles as f64)
+            .try_reduce(|| 0.0, |a, b| Ok::<f64, crate::XError>(a + b))?;
+        Ok(sum / particles as f64)
     }
 }
 
@@ -327,4 +346,40 @@ fn nodes_weights_transform<T: FloatExt>(a: T, b: T, pairs: Vec<(f64, f64)>) -> V
             (new_node, new_weight)
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::simulation::{continuous::Bm, point::Poisson};
+
+    #[test]
+    fn test_new_rejects_delta_equal_to_duration() {
+        let bm = Bm::<f64>::default();
+        let result = TAMSD::new(&bm, 1.0, 1.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_simulate_rejects_nonpositive_time_step() {
+        let bm = Bm::<f64>::default();
+        let tamsd = TAMSD::new(&bm, 2.0, 1.0).unwrap();
+        let result = std::panic::catch_unwind(|| tamsd.simulate(0.0, 10));
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[test]
+    fn test_simulate_p_rejects_nonpositive_time_step() {
+        let poisson = Poisson::<f64, f64>::new(1.0).unwrap();
+        let tamsd = TAMSD::new(&poisson, 2.0, 1.0).unwrap();
+        let result = std::panic::catch_unwind(|| tamsd.simulate_p(0.0, 10));
+        assert!(matches!(result, Ok(Err(_))));
+    }
+
+    #[test]
+    fn test_nodes_weights_transform() {
+        let pairs = vec![(0.0, 2.0)];
+        let result = nodes_weights_transform(0.0, 2.0, pairs);
+        assert_eq!(result, vec![(1.0, 2.0)]);
+    }
 }

@@ -1,7 +1,13 @@
 use crate::{FloatExt, RealExt, SimulationError, XResult, simulation::prelude::*};
 use rayon::prelude::*;
 
-/// Moment trait
+/// Estimators for ensemble moments of simulated terminal positions.
+///
+/// Implementations repeatedly simulate independent particles and average the
+/// requested statistic. For a terminal value \(X_T\) and particle count \(N\), the
+/// raw moment estimator is
+///
+/// $$\mathbb{E}\!\left(X_T^k\right) \approx \frac{1}{N}\sum_{i=1}^{N} X_T^{(i)k}.$$
 pub trait Moment<T: FloatExt = f64> {
     /// Get the raw moment of the simulation
     ///
@@ -26,10 +32,27 @@ pub trait Moment<T: FloatExt = f64> {
         self.raw_moment(1, particles, time_step)
     }
 
+    /// Get the mean square displacement of the simulation.
+    ///
+    /// The estimator averages squared displacements over independent particles:
+    ///
+    /// $$\operatorname{MSD}(T) \approx
+    /// \frac{1}{N}\sum_{i=1}^{N}\left(X_T^{(i)} - X_0^{(i)}\right)^2.$$
     fn msd(&self, particles: usize, time_step: T) -> XResult<T>;
 
+    /// Get the fractional raw absolute moment of the simulation.
+    ///
+    /// This estimates \(\mathbb{E}\!\left(|X_T|^q\right)\) for a real-valued order \(q\):
+    ///
+    /// $$\mathbb{E}\!\left(|X_T|^q\right) \approx \frac{1}{N}\sum_{i=1}^{N}|X_T^{(i)}|^q.$$
     fn frac_raw_moment(&self, order: T, particles: usize, time_step: T) -> XResult<T>;
 
+    /// Get the fractional central absolute moment of the simulation.
+    ///
+    /// This estimates \(\mathbb{E}\!\left(|X_T - \mathbb{E}(X_T)|^q\right)\) for a real-valued order \(q\):
+    ///
+    /// $$\mathbb{E}\!\left(|X_T-\mathbb{E}(X_T)|^q\right) \approx
+    /// \frac{1}{N}\sum_{i=1}^{N}|X_T^{(i)}-\bar{X}_T|^q.$$
     fn frac_central_moment(&self, order: T, particles: usize, time_step: T) -> XResult<T>;
 }
 

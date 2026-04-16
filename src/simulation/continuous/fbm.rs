@@ -28,9 +28,9 @@ impl<T: FloatExt> FBm<T> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::continuous::Fbm;
+    /// use diffusionx::simulation::continuous::FBm;
     ///
-    /// let fbm = Fbm::new(10.0, 0.5).unwrap();
+    /// let fbm = FBm::new(10.0, 0.5).unwrap();
     /// ```
     pub fn new(start_position: T, hurst_exponent: T) -> XResult<Self> {
         if hurst_exponent <= T::zero() || hurst_exponent >= T::one() {
