@@ -111,7 +111,11 @@ macro_rules! subscribe_central_moment_gpu_function {
     };
 }
 
+/// CUDA-accelerated Brownian motion estimators.
 pub mod bm;
+/// CUDA-accelerated Lévy process estimators.
 pub mod levy;
+/// CUDA-accelerated Ornstein-Uhlenbeck process estimators.
 pub mod ou;
+/// CUDA-accelerated random number generators.
 pub mod random;

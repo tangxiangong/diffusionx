@@ -15,9 +15,10 @@ use rayon::prelude::*;
 ///
 /// A Lévy walk is a random walk model where the walker moves with a constant velocity
 /// between turning points. At each turning point, the walker randomly chooses a new
-/// direction and a new flight time $\tau$ from a probability distribution $\psi(\tau) ∼ \tau^{-1-\alpha}$
-/// with 0 < $\alpha$ < 1. The flight length is proportional to the flight time: $l = v\tau$,
-/// where $v$ is the constant velocity.
+/// direction and a new flight time \(\tau\) from a heavy-tailed distribution
+/// \(\psi(\tau) \sim \tau^{-1-\alpha}\), with \(0 < \alpha \le 1\).
+/// The flight length is proportional to the flight time,
+/// \(l = v\tau\), where \(v\) is the constant velocity.
 #[derive(Clone, Debug)]
 pub struct LevyWalk<T: FloatExt = f64> {
     /// The waiting time distribution exponent

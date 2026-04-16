@@ -5,11 +5,11 @@ use rand::SeedableRng;
 use rand_distr::{Distribution, StandardNormal};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-/// Ornstein–Uhlenbeck process
+/// Ornstein-Uhlenbeck process.
 ///
-/// $$dx(t) = -\theta x(t) dt + \sigma dW(t),\qquad x(0) = x_0$$
+/// $$dX(t) = -\theta X(t)\,dt + \sigma\,dW(t),\qquad X(0)=x_0.$$
 ///
-/// where $W(t)$ is the Wiener process, also called Brownian motion.
+/// where \(W(t)\) is the Wiener process, also called Brownian motion.
 #[derive(Debug, Clone)]
 pub struct OrnsteinUhlenbeck<T: FloatExt = f64> {
     /// The parameter controlling the strength of mean reversion.
@@ -109,13 +109,13 @@ fn ou_step_params<T: FloatExt>(theta: T, sigma: T, dt: T) -> (T, T) {
     (decay, variance.max(T::zero()).sqrt())
 }
 
-/// Simulate the Ornstein-Uhlenbeck process
+/// Simulate the Ornstein-Uhlenbeck process.
 ///
 /// # Mathematical Formulation
 ///
-/// dx(t) = -theta x(t) dt + sigma dW(t), x(0) = x0
+/// $$dX(t) = -\theta X(t)\,dt + \sigma\,dW(t),\qquad X(0)=x_0.$$
 ///
-/// where W(t) is the Wiener process, also called Brownian motion.
+/// where \(W(t)\) is the Wiener process, also called Brownian motion.
 ///
 /// # Arguments
 ///

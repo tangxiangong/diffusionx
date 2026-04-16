@@ -1,4 +1,4 @@
-//! Continuous time random walk simulation
+//! Continuous-time random walk simulation.
 
 use crate::{
     SimulationError, XResult,
@@ -8,23 +8,24 @@ use crate::{
 };
 use rand_distr::{Distribution, Exp1, StandardNormal, uniform::SampleUniform};
 
-/// Continuous time random walk
+/// Continuous-time random walk.
 ///
 /// # Mathematical Formulation
-/// A continuous time random walk (CTRW) is a stochastic process that generalizes random walks by introducing
-/// random waiting times between jumps. Mathematically, it can be described as:
 ///
-/// X(t) = \sum_{i=1}^{N(t)} J_i
+/// A continuous-time random walk (CTRW) generalizes a random walk by introducing
+/// random waiting times between jumps. It can be written as
 ///
-/// where:
-/// - X(t) is the position at time t
-/// - J_i are random jump lengths (often from a symmetric distribution)
-/// - N(t) is a counting process representing the number of jumps by time t
+/// $$X(t) = X(0) + \sum_{i=1}^{N(t)} J_i,$$
+///
+/// where \(J_i\) are jump lengths and \(N(t)\) is the number of jumps completed
+/// by time \(t\).
 ///
 /// The waiting times between jumps typically follow a distribution with heavy tails, often
 /// characterized by a power-law. When the waiting time distribution has infinite mean,
 /// the resulting process exhibits subdiffusive behavior, with mean squared displacement
-/// growing sublinearly with time: <X²(t)> ~ t^α where 0 < α < 1.
+/// growing sublinearly with time:
+///
+/// $$\left\langle X^2(t)\right\rangle \sim t^\alpha,\qquad 0 < \alpha < 1.$$
 ///
 /// CTRWs are widely used to model anomalous diffusion in complex systems, including
 /// transport in disordered media, financial time series, and biological processes.
@@ -109,7 +110,7 @@ where
         self.start_position
     }
 
-    /// Simulate the continuous time random walk
+    /// Simulate the continuous-time random walk for a fixed number of jumps.
     ///
     /// # Arguments
     ///
@@ -129,7 +130,7 @@ where
     }
 }
 
-/// Simulate the continuous time random walk
+/// Simulate the continuous-time random walk for a fixed number of jumps.
 ///
 /// # Arguments
 ///
@@ -188,7 +189,7 @@ where
     Ok((t, x))
 }
 
-/// Simulate the continuous time random walk
+/// Simulate the continuous-time random walk up to a fixed duration.
 ///
 /// # Arguments
 ///

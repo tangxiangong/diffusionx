@@ -12,20 +12,17 @@ use rand_distr::{Distribution, Exp1, uniform::SampleUniform};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
-/// Lattice random walk
+/// Lattice random walk.
 ///
 /// # Mathematical Formulation
 ///
-/// A lattice random walk is a stochastic process that describes a path consisting of a succession of constant steps.
-/// Mathematically, it can be represented as:
+/// A lattice random walk is a stochastic process whose path consists of fixed-size
+/// steps on a one-dimensional lattice:
 ///
-/// $$X_n = X_0 + d_n^{(p)} \sum_{i=1}^{n} a$$
+/// $$X_n = X_0 + a\sum_{i=1}^{n}\xi_i,$$
 ///
-/// where:
-/// - $X_n$ is the position after $n$ steps
-/// - $X_0$ is the initial position
-/// - $a$ is the step size
-/// - $d_n^{(p)}$ is the direction of the step, which is either $+1$ or $-1$ with probability $p$ or $1-p$ respectively
+/// where \(a\) is the step size and each direction \(\xi_i\) is either \(+1\)
+/// with probability \(p\) or \(-1\) with probability \(1-p\).
 #[derive(Clone, Debug)]
 pub struct LatticeRandomWalk<T: RealExt = f64> {
     /// The step size
@@ -58,7 +55,7 @@ impl<T: RealExt> LatticeRandomWalk<T> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::LatticeRandomWalk;
+    /// use diffusionx::simulation::discrete::LatticeRandomWalk;
     ///
     /// let rw = LatticeRandomWalk::new(1.0, 0.5, 0.0).unwrap();
     /// ```
@@ -152,9 +149,9 @@ where
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::lattice_random_walk::simulate_lattice_random_walk;
+/// use diffusionx::simulation::discrete::random_walk::simulate_lattice_random_walk;
 ///
-/// let (t, x) = simulate_lattice_random_walk(0.5, 0.5, 0.0, 1000).unwrap();
+/// let x = simulate_lattice_random_walk(0.5, 0.5, 0.0, 1000).unwrap();
 /// ```
 pub fn simulate_lattice_random_walk<N: IntExt, X: RealExt + std::ops::Neg<Output = X>>(
     step_size: X,
@@ -189,19 +186,16 @@ where
     Ok(x)
 }
 
-/// Random walk
+/// Random walk with heavy-tailed jump lengths.
 ///
 /// # Mathematical Formulation
 ///
-/// A stable random walk is a stochastic process that describes a path consisting of a succession of steps.
-/// Mathematically, it can be represented as:
+/// The path is represented by
 ///
-/// $$X_n = X_0 + \sum_{i=1}^{n} a_i$$
+/// $$X_n = X_0 + \sum_{i=1}^{n} A_i,$$
 ///
-/// where:
-/// - $X_n$ is the position after $n$ steps
-/// - $X_0$ is the initial position
-/// - $a_i$ is the step size
+/// where the jump lengths \(A_i\) are sampled from an alpha-stable law and then
+/// assigned a sign according to `probability`.
 #[derive(Clone, Debug)]
 pub struct RandomWalk<T: FloatExt = f64> {
     /// The probability of the step in the positive direction
@@ -234,7 +228,7 @@ impl<T: FloatExt> RandomWalk<T> {
     /// # Example
     ///
     /// ```rust
-    /// use diffusionx::simulation::RandomWalk;
+    /// use diffusionx::simulation::discrete::RandomWalk;
     ///
     /// let rw = RandomWalk::new(0.5, 1.0, 0.0).unwrap();
     /// ```
@@ -359,9 +353,9 @@ where
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::random_walk::simulate_random_walk;
+/// use diffusionx::simulation::discrete::random_walk::simulate_random_walk;
 ///
-/// let (t, x) = simulate_random_walk(0.5, 1.0, 0.0, 1000).unwrap();
+/// let x = simulate_random_walk(0.5, 1.0, 0.0, 1000).unwrap();
 /// ```
 pub fn simulate_random_walk<N: IntExt, X: FloatExt + SampleUniform>(
     probability: X,

@@ -254,7 +254,11 @@ macro_rules! subscribe_metal_central_moment_gpu_function {
     };
 }
 
+/// Metal-accelerated Brownian motion estimators.
 pub mod bm;
+/// Metal-accelerated Lévy process estimators.
 pub mod levy;
+/// Metal-accelerated Ornstein-Uhlenbeck process estimators.
 pub mod ou;
+/// Metal-accelerated random number generators.
 pub mod random;

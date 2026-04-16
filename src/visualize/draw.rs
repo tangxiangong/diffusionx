@@ -89,6 +89,8 @@ impl<P: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> Visualize
 /// # Examples
 ///
 /// ```rust
+/// use diffusionx::visualize::{plot, PlotConfig};
+///
 /// let times = vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0];
 /// let positions = vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0];
 /// let config = PlotConfig::default();
@@ -121,7 +123,7 @@ pub fn plot<T: FloatExt>(times: &[T], positions: &[T], config: &PlotConfig) -> X
     }
 }
 
-/// Plot a loglog.
+/// Plot a trajectory on log-log axes.
 ///
 /// # Arguments
 ///
@@ -132,6 +134,8 @@ pub fn plot<T: FloatExt>(times: &[T], positions: &[T], config: &PlotConfig) -> X
 /// # Examples
 ///
 /// ```rust
+/// use diffusionx::visualize::{loglog, PlotConfig};
+///
 /// let times = vec![1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0];
 /// let positions = vec![2.0, 20.0, 200.0, 2000.0, 20000.0, 200000.0];
 /// let config = PlotConfig::default();
@@ -175,6 +179,8 @@ pub fn loglog<T: FloatExt>(times: &[T], positions: &[T], config: &PlotConfig) ->
 /// # Examples
 ///
 /// ```rust
+/// use diffusionx::visualize::{stair, PlotConfig};
+///
 /// let times = vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0];
 /// let positions = vec![0, 1, 2, 3, 4, 5];
 /// let config = PlotConfig::default();

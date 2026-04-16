@@ -4,7 +4,7 @@
 //! - Fractional Brownian motion [FBm]
 //! - Generalized Langevin equation [GeneralizedLangevin]
 //! - Langevin equation [Langevin]
-//! - Levy process [Levy] and [AsymmetricLevy]
+//! - Lévy process [Levy] and [AsymmetricLevy]
 //! - Cauchy process [Cauchy] and [AsymmetricCauchy]
 //! - Ornstein-Uhlenbeck process [OrnsteinUhlenbeck]
 //! - Subordinator [Subordinator]
@@ -56,6 +56,7 @@ pub use gamma::*;
 pub mod geometric_bm;
 pub use geometric_bm::*;
 
+/// Lévy walk process with coupled waiting times and jump lengths.
 pub mod levy_walk;
 pub use levy_walk::*;
 

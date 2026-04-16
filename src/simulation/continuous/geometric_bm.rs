@@ -8,7 +8,15 @@ use crate::{
 use rand_distr::{Distribution, StandardNormal};
 use rayon::prelude::*;
 
-/// Geometric Brownian motion
+/// Geometric Brownian motion.
+///
+/// The process solves
+///
+/// $$dX(t) = \mu X(t)\,dt + \sigma X(t)\,dW(t),$$
+///
+/// with explicit solution
+///
+/// $$X(t) = X(0)\exp\left((\mu-\tfrac{1}{2}\sigma^2)t+\sigma W(t)\right).$$
 #[derive(Debug, Clone)]
 pub struct GeometricBm<T: FloatExt = f64> {
     /// The starting position
@@ -104,7 +112,11 @@ where
     }
 }
 
-/// Simulate geometric Brownian motion
+/// Simulate geometric Brownian motion.
+///
+/// The generated path uses the exact representation
+///
+/// $$X(t) = X(0)\exp\left((\mu-\tfrac{1}{2}\sigma^2)t+\sigma W(t)\right).$$
 ///
 /// # Arguments
 ///

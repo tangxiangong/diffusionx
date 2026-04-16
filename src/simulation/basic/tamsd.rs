@@ -6,25 +6,31 @@ use crate::{
 use gauss_quad::GaussLegendre;
 use rayon::prelude::*;
 
-/// TAMSD (time-averaged mean-squared displacement)
+/// Time-averaged mean-squared displacement estimator.
+///
+/// For a trajectory over duration \(T\) and lag \(\Delta\), TAMSD is
+///
+/// $$\overline{\delta^2(\Delta; T)}
+/// = \frac{1}{T-\Delta}\int_0^{T-\Delta}
+/// \left[X(t+\Delta)-X(t)\right]^2\,dt.$$
 #[derive(Debug, Clone)]
 pub struct TAMSD<'a, SP, T: FloatExt = f64> {
     /// The continuous process
     process: &'a SP,
     /// The duration
     duration: T,
-    /// The slag length
+    /// The lag length
     delta: T,
 }
 
 impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
-    /// Create a new TAMSD
+    /// Create a new TAMSD estimator.
     ///
     /// # Arguments
     ///
     /// * `process` - The continuous process to calculate the TAMSD of.
     /// * `duration` - The duration of the simulation.
-    /// * `delta` - The slag length.
+    /// * `delta` - The lag length.
     pub fn new(process: &'a SP, duration: T, delta: T) -> XResult<Self> {
         if duration <= T::zero() {
             return Err(SimulationError::InvalidParameters(format!(
@@ -52,24 +58,24 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
         })
     }
 
-    /// Get the process
+    /// Get the process being sampled.
     pub fn get_process(&self) -> &'a SP {
         self.process
     }
 
-    /// Get the duration
+    /// Get the trajectory duration.
     pub fn get_duration(&self) -> T {
         self.duration
     }
 
-    /// Get the slag length
+    /// Get the lag length.
     pub fn get_delta(&self) -> T {
         self.delta
     }
 }
 
 impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
-    /// Simulate the TAMSD
+    /// Estimate the TAMSD for one continuous-process trajectory.
     ///
     /// # Arguments
     ///
@@ -105,7 +111,7 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
         Ok(result)
     }
 
-    /// Get the ensemble average of the TAMSD
+    /// Estimate the ensemble average of the TAMSD for a continuous process.
     ///
     /// # Arguments
     ///
@@ -140,7 +146,7 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
         Ok(sum / T::from(particles).unwrap())
     }
 
-    /// Get the variance of the TAMSD
+    /// Estimate the ensemble variance of the TAMSD for a continuous process.
     ///
     /// # Arguments
     ///
@@ -179,7 +185,7 @@ impl<'a, SP: ContinuousProcess<T>, T: FloatExt> TAMSD<'a, SP, T> {
 }
 
 impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
-    /// Simulate the TAMSD
+    /// Estimate the TAMSD for one point-process trajectory.
     ///
     /// # Arguments
     ///
@@ -224,7 +230,7 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
         Ok(result)
     }
 
-    /// Get the ensemble average of the TAMSD
+    /// Estimate the ensemble average of the TAMSD for a point process.
     ///
     /// # Arguments
     ///
@@ -265,7 +271,7 @@ impl<'a, SP, T: FloatExt> TAMSD<'a, SP, T> {
         Ok(sum / particles as f64)
     }
 
-    /// Get the variance of the TAMSD
+    /// Estimate the ensemble variance of the TAMSD for a point process.
     ///
     /// # Arguments
     ///

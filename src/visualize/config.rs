@@ -6,7 +6,7 @@ use std::{f64, ops::Range, path::PathBuf};
 
 pub use plotters::prelude::FontStyle;
 
-/// Line Style
+/// Line style used when drawing a trajectory.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum LineStyle {
     /// Solid
@@ -18,15 +18,17 @@ pub enum LineStyle {
     Dotted,
 }
 
-/// Plotters Backend
+/// Plotting backend used to write output files.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum PlotterBackend {
+    /// Bitmap image output, typically PNG.
     #[default]
     BitMap,
+    /// SVG vector output.
     SVG,
 }
 
-/// Color
+/// Color used for plot elements.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Color {
     /// Red
@@ -68,16 +70,26 @@ impl From<Color> for RGBColor {
 /// Legend Position
 #[derive(Debug, Clone, PartialEq, Eq, Default, Copy)]
 pub enum LegendPosition {
+    /// Place the legend at the upper-left corner.
     UpperLeft,
+    /// Place the legend at the middle-left edge.
     MiddleLeft,
+    /// Place the legend at the lower-left corner.
     LowerLeft,
+    /// Place the legend at the upper-middle edge.
     UpperMiddle,
+    /// Place the legend at the center of the plotting area.
     MiddleMiddle,
+    /// Place the legend at the lower-middle edge.
     LowerMiddle,
+    /// Place the legend at the upper-right corner.
     #[default]
     UpperRight,
+    /// Place the legend at the middle-right edge.
     MiddleRight,
+    /// Place the legend at the lower-right corner.
     LowerRight,
+    /// Place the legend at explicit backend coordinates.
     Coordinate(i32, i32),
 }
 

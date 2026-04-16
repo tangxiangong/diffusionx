@@ -6,10 +6,12 @@ mod cuda;
 pub use cuda::*;
 
 #[cfg(feature = "metal")]
+/// Metal GPU backend.
 pub mod metal;
 #[cfg(feature = "metal")]
 pub use metal::*;
 
+/// GPU-accelerated moment estimators for supported continuous processes.
 pub trait GPUMoment {
     /// Get the raw moment of the simulation (GPU version)
     ///
@@ -50,7 +52,7 @@ pub trait GPUMoment {
     /// * `time_step` - The time step of the simulation.
     fn mean_gpu(&self, duration: f32, particles: usize, time_step: f32) -> XResult<f32>;
 
-    /// Get the standard deviation of the simulation (GPU version)
+    /// Get the mean square displacement of the simulation (GPU version)
     ///
     /// # Arguments
     ///

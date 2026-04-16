@@ -3,7 +3,16 @@ use crate::{
     simulation::prelude::{FirstPassageTime, Moment, OccupationTime, TAMSD},
 };
 
-/// Continuous process trait
+/// Common interface for continuous-time stochastic processes.
+///
+/// A continuous process returns sampled values `(t, x)` over a requested duration.
+/// Implementors define the path sampler through [`ContinuousProcess::simulate`];
+/// the default methods derive common observables such as displacement, first
+/// passage time, occupation time, and ensemble moments from repeated simulations.
+///
+/// Conceptually, the displacement over a horizon \(T\) is
+///
+/// $$\Delta X(T) = X(T) - X(0).$$
 pub trait ContinuousProcess<T: FloatExt = f64>: Send + Sync {
     /// Simulate the continuous process
     ///
@@ -13,7 +22,9 @@ pub trait ContinuousProcess<T: FloatExt = f64>: Send + Sync {
     /// * `time_step` - The time step of the simulation.
     fn simulate(&self, duration: T, time_step: T) -> XResult<(Vec<T>, Vec<T>)>;
 
-    /// Get the displacement of the continuous process
+    /// Get the displacement of the continuous process.
+    ///
+    /// The default implementation simulates one path and returns `X(duration) - X(0)`.
     ///
     /// # Arguments
     ///
@@ -27,10 +38,10 @@ pub trait ContinuousProcess<T: FloatExt = f64>: Send + Sync {
         }
     }
 
-    /// Get the starting position
+    /// Get the starting position.
     fn start(&self) -> T;
 
-    /// Get the ending position
+    /// Get the ending position at the requested duration.
     fn end(&self, duration: T, time_step: T) -> XResult<T> {
         let delta_x = self.displacement(duration, time_step)?;
         Ok(self.start() + delta_x)
@@ -166,12 +177,18 @@ pub trait ContinuousProcess<T: FloatExt = f64>: Send + Sync {
         ot.simulate(time_step)
     }
 
-    /// Get the time-averaged mean square displacement of the continuous process
+    /// Get the time-averaged mean square displacement of the continuous process.
+    ///
+    /// This estimates
+    ///
+    /// $$\overline{\delta^2(\Delta; T)}
+    /// = \frac{1}{T-\Delta}\int_0^{T-\Delta}
+    /// \left[X(t+\Delta)-X(t)\right]^2\,dt.$$
     ///
     /// # Arguments
     ///
     /// * `duration` - The duration of the simulation.
-    /// * `delta` - The slag length.
+    /// * `delta` - The lag length.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
     fn tamsd(&self, duration: T, delta: T, time_step: T, quad_order: usize) -> XResult<T>
@@ -182,12 +199,12 @@ pub trait ContinuousProcess<T: FloatExt = f64>: Send + Sync {
         tamsd.simulate(time_step, quad_order)
     }
 
-    /// Get the ensemble average of the time-averaged mean square displacement of the continuous process
+    /// Get the ensemble average of the time-averaged mean square displacement of the continuous process.
     ///
     /// # Arguments
     ///
     /// * `duration` - The duration of the simulation.
-    /// * `delta` - The slag length.
+    /// * `delta` - The lag length.
     /// * `particles` - The number of particles.
     /// * `time_step` - The time step of the simulation.
     /// * `quad_order` - The order of the Gauss-Legendre quadrature.
@@ -219,7 +236,15 @@ where
     pub(crate) duration: T,
 }
 
+/// Extension trait for binding a continuous process to a fixed simulation duration.
+///
+/// This trait is implemented for every cloneable [`ContinuousProcess`]. It provides
+/// the ergonomic `process.duration(t)` constructor used by moment estimators.
 pub trait ContinuousTrajectoryTrait<T: FloatExt>: ContinuousProcess<T> + Clone {
+    /// Create a [`ContinuousTrajectory`] over `duration_arg`.
+    ///
+    /// The returned trajectory keeps a clone of the process and reuses the fixed
+    /// duration for subsequent simulations and ensemble statistics.
     fn duration(&self, duration_arg: T) -> XResult<ContinuousTrajectory<Self, T>> {
         let traj = ContinuousTrajectory::new(self.clone(), duration_arg)?;
         Ok(traj)

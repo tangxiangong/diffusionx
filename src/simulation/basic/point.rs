@@ -3,20 +3,20 @@ use crate::{
     simulation::prelude::{FirstPassageTime, Moment, OccupationTime},
 };
 
-/// Point process trait
+/// Common interface for point processes.
 ///
-/// `T`: The type of the position (default: f64)
-/// `V`: The type of the time (default: f64)
+/// `T` is the time type, and `X` is the state type. Point processes are sampled
+/// at random event times and can be truncated either by duration or by event count.
 pub trait PointProcess<T: FloatExt = f64, X: RealExt = T>: Send + Sync {
-    /// Get the starting position
+    /// Get the starting position.
     fn start(&self) -> X;
 
-    /// Get the ending position
+    /// Get the ending position at the requested duration.
     fn end(&self, duration: T) -> XResult<X> {
         Ok(self.start() + self.displacement(duration)?)
     }
 
-    /// Get the displacement of the point process
+    /// Get the displacement of the point process.
     ///
     /// # Arguments
     ///
@@ -44,7 +44,7 @@ pub trait PointProcess<T: FloatExt = f64, X: RealExt = T>: Send + Sync {
 
         Ok(delta_x)
     }
-    /// Simulate the point process with given duration
+    /// Simulate the point process up to a fixed duration.
     ///
     /// # Arguments
     ///
@@ -217,6 +217,11 @@ pub struct PointTrajectory<SP: PointProcess<T, X> + Clone, T: FloatExt = f64, X:
     _marker: std::marker::PhantomData<X>,
 }
 
+/// Extension trait for binding a point process to either a duration or step count.
+///
+/// This trait is implemented for every cloneable [`PointProcess`]. It provides
+/// the ergonomic `process.duration(t)` and `process.step(n)` constructors used by
+/// moment estimators.
 pub trait PointTrajectoryTrait<T: FloatExt = f64, X: RealExt = T>:
     PointProcess<T, X> + Clone
 {
@@ -282,7 +287,7 @@ impl<SP: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> PointTrajectory<SP
         })
     }
 
-    /// Create a `PointTrajectory` with num of steps.
+    /// Create a `PointTrajectory` with a fixed number of steps.
     ///
     /// # Arguments
     ///
@@ -302,7 +307,7 @@ impl<SP: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> PointTrajectory<SP
         })
     }
 
-    /// Simulate the trajectory with duration
+    /// Simulate the trajectory over its stored duration.
     pub fn simulate_with_duration(&self) -> XResult<(Vec<T>, Vec<X>)> {
         if self.duration.is_none() {
             return Err(SimulationError::InvalidParameters(
@@ -320,7 +325,7 @@ impl<SP: PointProcess<T, X> + Clone, T: FloatExt, X: RealExt> PointTrajectory<SP
         self.sp.simulate_with_duration(duration)
     }
 
-    /// Simulate with number of steps
+    /// Simulate the trajectory for its stored number of steps.
     pub fn simulate_with_step(&self) -> XResult<(Vec<T>, Vec<X>)> {
         if self.num_step.is_none() {
             return Err(SimulationError::InvalidParameters(

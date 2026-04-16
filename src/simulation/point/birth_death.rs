@@ -11,11 +11,12 @@ use rand_distr::{Distribution, Exp1};
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::prelude::*;
 
-/// Birth-death process
+/// Birth-death process.
 ///
 /// # Mathematical Formulation
 ///
-/// The Birth-death process is a process that describes the number of particles in a system that can either birth or die.
+/// A birth-death process tracks a population whose state increases by one at
+/// birth events and decreases by one at death events.
 #[derive(Debug, Clone)]
 pub struct BirthDeath<T: FloatExt = f64, X: RealExt = T> {
     /// The rate of birth
@@ -79,11 +80,11 @@ where
         X::zero()
     }
 
-    /// Simulate the Birth-death process with a given number of steps
+    /// Simulate the birth-death process with a given number of events.
     ///
     /// # Arguments
     ///
-    /// * `num_step` - The number of steps
+    /// * `num_step` - The number of birth or death events.
     ///
     /// # Example
     ///
@@ -98,18 +99,18 @@ where
     }
 }
 
-/// Simulate the Birth-death process with a given number of steps
+/// Simulate the birth-death process with a given number of events.
 ///
 /// # Arguments
 ///
 /// * `lambda` - The rate of birth.
 /// * `mu` - The rate of death.
-/// * `num_step` - The number of steps
+/// * `num_step` - The number of birth or death events.
 ///
 /// # Example
 ///
 /// ```rust
-/// use diffusionx::simulation::jump::birth_death::simulate_birth_death_with_step;
+/// use diffusionx::simulation::point::birth_death::simulate_birth_death_with_step;
 ///
 /// let (t, x) = simulate_birth_death_with_step(1.0, 1.0, 100).unwrap();
 /// ```
@@ -164,7 +165,7 @@ where
     Ok((t, x))
 }
 
-/// Simulate the Birth-death process with a given duration
+/// Simulate the birth-death process up to a fixed duration.
 ///
 /// # Arguments
 ///

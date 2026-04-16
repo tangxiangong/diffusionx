@@ -8,7 +8,13 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-/// Brownian motion
+/// Brownian motion with diffusion coefficient `D`.
+///
+/// The process is modeled as
+///
+/// $$X(t) = X(0) + \sqrt{2D}\,W(t).$$
+///
+/// where `W(t)` is standard Brownian motion.
 #[derive(Debug, Clone)]
 pub struct Bm<T: FloatExt = f64> {
     /// The starting position
@@ -82,7 +88,11 @@ where
     }
 }
 
-/// Simulate Brownian motion
+/// Simulate Brownian motion.
+///
+/// The generated path follows
+///
+/// $$X(t+\Delta t) = X(t) + \sqrt{2D\Delta t}\,Z,\qquad Z\sim\mathcal{N}(0,1).$$
 ///
 /// # Arguments
 ///
