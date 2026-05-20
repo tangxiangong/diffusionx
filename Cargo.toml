@@ -21,7 +21,7 @@ name = "diffusionx"
 
 [features]
 cuda = ["dep:cudarc"]
-default = ["metal", "mimalloc"]
+default = ["mimalloc"]
 io = ["dep:csv"]
 metal = ["dep:metal"]
 mimalloc = ["dep:mimalloc"]
