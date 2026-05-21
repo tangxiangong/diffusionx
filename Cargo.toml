@@ -44,7 +44,11 @@ mimalloc = { version = "0.1", optional = true }
 num-complex = "0.4"
 num-traits = "0.2"
 objc2 = { version = "0.6", optional = true }
-objc2-foundation = { version = "0.3", optional = true, features = ["NSError", "NSString"] }
+objc2-foundation = { version = "0.3", optional = true, features = [
+    "NSError",
+    "NSString",
+    "NSURL",
+] }
 objc2-metal = { version = "0.3", optional = true }
 plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }

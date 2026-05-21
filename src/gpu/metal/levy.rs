@@ -196,3 +196,25 @@ impl<T: FloatExt> GPUMoment for Levy<T> {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::gpu::GPUMoment;
+    use crate::simulation::continuous::Levy;
+
+    #[test]
+    fn test_gpu_moment() {
+        // A non-Gaussian alpha so the Levy metallib kernels are dispatched
+        // instead of routing through the Brownian-motion fallback.
+        let levy = Levy::<f32>::new(0.0, 1.5).unwrap();
+
+        let mean = levy.mean_gpu(1.0, 100, 0.1).unwrap();
+        assert!(mean.is_finite());
+
+        let frac_raw = levy.frac_raw_moment_gpu(1.0, 1.2, 100, 0.1).unwrap();
+        assert!(frac_raw.is_finite());
+
+        let frac_central = levy.frac_central_moment_gpu(1.0, 1.2, 100, 0.1).unwrap();
+        assert!(frac_central.is_finite());
+    }
+}

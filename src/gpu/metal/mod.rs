@@ -1,6 +1,6 @@
 use crate::{XError, XResult};
 use objc2::{rc::Retained, runtime::ProtocolObject};
-use objc2_foundation::NSString;
+use objc2_foundation::{NSString, NSURL};
 use objc2_metal::{
     MTLBuffer, MTLCommandBuffer, MTLCommandBufferStatus, MTLCommandEncoder, MTLCommandQueue,
     MTLComputeCommandEncoder, MTLComputePipelineState, MTLCreateSystemDefaultDevice, MTLDevice,
@@ -8,6 +8,9 @@ use objc2_metal::{
 };
 use std::{ffi::c_void, ptr::NonNull, sync::LazyLock};
 
+// `MTLCreateSystemDefaultDevice` returns `nil` unless CoreGraphics is linked into
+// the process. No symbol from CoreGraphics is referenced directly, so force the
+// link with an empty `extern` block; removing it breaks headless device creation.
 #[link(name = "CoreGraphics", kind = "framework")]
 unsafe extern "C" {}
 
@@ -38,13 +41,12 @@ pub(crate) const OU_METALLIB: &str = env!("OU_KERNEL_METALLIB");
 pub(crate) const RANDOM_METALLIB: &str = env!("RANDOM_KERNEL_METALLIB");
 
 /// Load a pre-compiled Metal library from path
-#[allow(deprecated)]
 pub(crate) fn load_library(path: &str) -> XResult<Retained<MetalLibrary>> {
     let device = METAL_DEVICE.as_ref().map_err(Clone::clone)?;
-    let filepath = NSString::from_str(path);
+    let url = NSURL::fileURLWithPath(&NSString::from_str(path));
 
     device
-        .newLibraryWithFile_error(&filepath)
+        .newLibraryWithURL_error(&url)
         .map_err(|e| XError::Other(format!("Failed to load metallib '{}': {}", path, e)))
 }
 
@@ -61,7 +63,11 @@ pub(crate) fn get_pipeline(
 
     device
         .newComputePipelineStateWithFunction_error(&function)
-        .map_err(|e| XError::Other(format!("Pipeline creation error: {}", e)))
+        .map_err(|e| {
+            XError::Other(format!(
+                "Pipeline creation error for '{function_name}': {e}"
+            ))
+        })
 }
 
 pub(crate) fn new_shared_buffer(bytes: usize) -> XResult<Retained<MetalBuffer>> {
@@ -99,7 +105,7 @@ pub(crate) fn set_buffer(encoder: &MetalComputeEncoder, index: usize, buffer: &M
     }
 }
 
-pub(crate) fn set_scalar<T>(encoder: &MetalComputeEncoder, index: usize, value: &T) {
+pub(crate) fn set_scalar<T: Copy>(encoder: &MetalComputeEncoder, index: usize, value: &T) {
     let ptr = NonNull::from(value).cast::<c_void>();
     // SAFETY: `value` is a valid pointer for `size_of::<T>()` bytes; Metal copies
     // scalar bytes into the encoder immediately for the requested binding index.
