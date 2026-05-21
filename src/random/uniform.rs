@@ -224,7 +224,7 @@ mod tests {
     fn test_unit_randoms() {
         let n = 1000000;
         let randoms = standard_rands(n);
-        assert_eq!(randoms.len() as usize, n);
+        assert_eq!(randoms.len(), n);
         assert!(randoms.iter().all(|x| (0.0..1.0).contains(x)));
     }
 

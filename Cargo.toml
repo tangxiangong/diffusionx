@@ -1,35 +1,40 @@
 [package]
-name = "diffusionx"
 authors = ["Xiangong Tang <tangxiangong@gmail.com>"]
-edition = "2024"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/tangxiangong/diffusionx"
-categories = ["science", "mathematics"]
-keywords = ["stochastic-process", "simulation", "Monte-Carlo", "gpu"]
-version = "0.11.5"
+categories = ["mathematics", "science"]
 description = "A multi-threaded crate for random number generation and stochastic process simulation, with optional GPU acceleration."
+edition = "2024"
+keywords = ["Monte-Carlo", "gpu", "simulation", "stochastic-process"]
+license = "MIT OR Apache-2.0"
+name = "diffusionx"
 readme = "README.md"
-rust-version = "1.87"
+repository = "https://github.com/tangxiangong/diffusionx"
+rust-version = "1.88"
+version = "0.12.0"
 
 [package.metadata.docs.rs]
-features = ["visualize", "io"]
-rustdoc-args = ["--cfg", "docsrs", "--html-in-header", "./docs-header.html"]
+features = ["io", "visualize"]
+rustdoc-args = ["--cfg", "--html-in-header", "./docs-header.html", "docsrs"]
 
 [lib]
-name = "diffusionx"
 doctest = false
+name = "diffusionx"
 
 [features]
-default = ["mimalloc"]
 cuda = ["dep:cudarc"]
-mimalloc = ["dep:mimalloc"]
-metal = ["dep:metal"]
+default = ["mimalloc"]
 io = ["dep:csv"]
+metal = [
+    "dep:dispatch2",
+    "dep:objc2",
+    "dep:objc2-foundation",
+    "dep:objc2-metal",
+]
+mimalloc = ["dep:mimalloc"]
 visualize = [
-    "dep:plotters",
     "dep:derive_builder",
-    "dep:plotters-backend",
     "dep:either",
+    "dep:plotters",
+    "dep:plotters-backend",
 ]
 
 [dependencies]
@@ -38,12 +43,18 @@ cudarc = { version = "0.19", optional = true, features = [
     "cuda-version-from-build-system",
 ] }
 derive_builder = { version = "0.20", optional = true }
+dispatch2 = { version = "0.3", optional = true }
 either = { version = "1", optional = true }
 gauss-quad = "0.3"
-metal = { version = "0.33", optional = true }
 mimalloc = { version = "0.1", optional = true }
 num-complex = "0.4"
 num-traits = "0.2"
+objc2 = { version = "0.6", optional = true }
+objc2-foundation = { version = "0.3", optional = true, features = [
+    "NSError",
+    "NSString",
+] }
+objc2-metal = { version = "0.3", optional = true }
 plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }
 rand = "0.10"
@@ -60,38 +71,38 @@ criterion = "0.8"
 # See: https://github.com/rust-lang/rust/issues/147399
 # Disable scrape-examples for all example targets
 [[example]]
+doc-scrape-examples = false
 name = "CIR"
-doc-scrape-examples = false
 
 [[example]]
+doc-scrape-examples = false
 name = "bm"
-doc-scrape-examples = false
 
 [[example]]
+doc-scrape-examples = false
 name = "langevin"
-doc-scrape-examples = false
 
 [[example]]
-name = "randoms"
 doc-scrape-examples = false
+name = "randoms"
 
 [profile.release]
-lto = true
 codegen-units = 1
+lto = true
 panic = "abort"
 
 [[bench]]
+harness = false
 name = "bm"
-harness = false
 
 [[bench]]
+harness = false
 name = "ou"
-harness = false
 
 [[bench]]
+harness = false
 name = "random"
-harness = false
 
 [[bench]]
-name = "levy"
 harness = false
+name = "levy"

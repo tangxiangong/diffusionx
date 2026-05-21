@@ -1,37 +1,39 @@
 use crate::{
     XResult,
     gpu::metal::{
-        METAL_DEVICE, METAL_QUEUE, RANDOM_METALLIB, get_pipeline, load_library, thread_config,
+        METAL_QUEUE, MetalLibrary, MetalPipeline, RANDOM_METALLIB, dispatch_threadgroups,
+        end_encoding, finish_command_buffer, get_pipeline, load_library, new_command_buffer,
+        new_compute_encoder, new_shared_buffer, read_buffer_vec_f32, set_buffer, set_pipeline,
+        set_scalar, thread_config,
     },
 };
-use metal::MTLResourceOptions;
+use objc2::rc::Retained;
 use rand::RngExt;
 use std::sync::LazyLock;
 
-static LIBRARY: LazyLock<XResult<metal::Library>> = LazyLock::new(|| load_library(RANDOM_METALLIB));
-static STANDARD_STABLE_PIPELINE: LazyLock<XResult<metal::ComputePipelineState>> =
-    LazyLock::new(|| {
-        let library = LIBRARY.as_ref()?;
-        get_pipeline(library, "standard_stable_rand")
-    });
-static UNIFORM_PIPELINE: LazyLock<XResult<metal::ComputePipelineState>> = LazyLock::new(|| {
-    let library = LIBRARY.as_ref()?;
+static LIBRARY: LazyLock<XResult<Retained<MetalLibrary>>> =
+    LazyLock::new(|| load_library(RANDOM_METALLIB));
+static STANDARD_STABLE_PIPELINE: LazyLock<XResult<Retained<MetalPipeline>>> = LazyLock::new(|| {
+    let library = LIBRARY.as_ref().map_err(Clone::clone)?;
+    get_pipeline(library, "standard_stable_rand")
+});
+static UNIFORM_PIPELINE: LazyLock<XResult<Retained<MetalPipeline>>> = LazyLock::new(|| {
+    let library = LIBRARY.as_ref().map_err(Clone::clone)?;
     get_pipeline(library, "randuniform")
 });
-static NORMAL_PIPELINE: LazyLock<XResult<metal::ComputePipelineState>> = LazyLock::new(|| {
-    let library = LIBRARY.as_ref()?;
+static NORMAL_PIPELINE: LazyLock<XResult<Retained<MetalPipeline>>> = LazyLock::new(|| {
+    let library = LIBRARY.as_ref().map_err(Clone::clone)?;
     get_pipeline(library, "randnormal")
 });
-static EXP_PIPELINE: LazyLock<XResult<metal::ComputePipelineState>> = LazyLock::new(|| {
-    let library = LIBRARY.as_ref()?;
+static EXP_PIPELINE: LazyLock<XResult<Retained<MetalPipeline>>> = LazyLock::new(|| {
+    let library = LIBRARY.as_ref().map_err(Clone::clone)?;
     get_pipeline(library, "randexp")
 });
 
 /// Generate standard stable random numbers on Metal GPU
 pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f32>> {
-    let device = METAL_DEVICE.as_ref()?;
-    let queue = METAL_QUEUE.as_ref()?;
-    let pipeline = STANDARD_STABLE_PIPELINE.as_ref()?;
+    let queue = METAL_QUEUE.as_ref().map_err(Clone::clone)?;
+    let pipeline = STANDARD_STABLE_PIPELINE.as_ref().map_err(Clone::clone)?;
 
     let (inv_alpha, one_minus_alpha_div_alpha, b, s) = if (alpha - 1.0).abs() < 1e-3 {
         (0.0f32, 0.0f32, 0.0f32, 0.0f32)
@@ -44,220 +46,152 @@ pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f
         (inv_alpha, one_minus_alpha_div_alpha, b, s)
     };
 
-    let out_buffer = device.new_buffer(
-        (len * std::mem::size_of::<f32>()) as u64,
-        MTLResourceOptions::StorageModeShared,
-    );
+    let out_buffer = new_shared_buffer(len * std::mem::size_of::<f32>())?;
 
     let seed: u64 = rand::rng().random();
     let len_u32 = len as u32;
 
     let (thread_groups, threads_per_group) = thread_config(len);
 
-    let command_buffer = queue.new_command_buffer();
-    let encoder = command_buffer.new_compute_command_encoder();
+    let command_buffer = new_command_buffer(queue)?;
+    let encoder = new_compute_encoder(&command_buffer)?;
 
-    encoder.set_compute_pipeline_state(pipeline);
-    encoder.set_buffer(0, Some(&out_buffer), 0);
-    encoder.set_bytes(
-        1,
-        std::mem::size_of::<f32>() as u64,
-        &alpha as *const f32 as *const _,
-    );
-    encoder.set_bytes(
-        2,
-        std::mem::size_of::<f32>() as u64,
-        &beta as *const f32 as *const _,
-    );
-    encoder.set_bytes(
-        3,
-        std::mem::size_of::<f32>() as u64,
-        &inv_alpha as *const f32 as *const _,
-    );
-    encoder.set_bytes(
-        4,
-        std::mem::size_of::<f32>() as u64,
-        &one_minus_alpha_div_alpha as *const f32 as *const _,
-    );
-    encoder.set_bytes(
-        5,
-        std::mem::size_of::<f32>() as u64,
-        &b as *const f32 as *const _,
-    );
-    encoder.set_bytes(
-        6,
-        std::mem::size_of::<f32>() as u64,
-        &s as *const f32 as *const _,
-    );
-    encoder.set_bytes(
-        7,
-        std::mem::size_of::<u32>() as u64,
-        &len_u32 as *const u32 as *const _,
-    );
-    encoder.set_bytes(
-        8,
-        std::mem::size_of::<u64>() as u64,
-        &seed as *const u64 as *const _,
-    );
+    set_pipeline(&encoder, pipeline);
+    set_buffer(&encoder, 0, &out_buffer);
+    set_scalar(&encoder, 1, &alpha);
+    set_scalar(&encoder, 2, &beta);
+    set_scalar(&encoder, 3, &inv_alpha);
+    set_scalar(&encoder, 4, &one_minus_alpha_div_alpha);
+    set_scalar(&encoder, 5, &b);
+    set_scalar(&encoder, 6, &s);
+    set_scalar(&encoder, 7, &len_u32);
+    set_scalar(&encoder, 8, &seed);
 
-    encoder.dispatch_thread_groups(thread_groups, threads_per_group);
-    encoder.end_encoding();
+    dispatch_threadgroups(&encoder, thread_groups, threads_per_group);
+    end_encoding(&encoder);
 
-    command_buffer.commit();
-    command_buffer.wait_until_completed();
+    finish_command_buffer(&command_buffer)?;
 
-    let result = unsafe {
-        let ptr = out_buffer.contents() as *const f32;
-        std::slice::from_raw_parts(ptr, len).to_vec()
-    };
-
-    Ok(result)
+    Ok(read_buffer_vec_f32(&out_buffer, len))
 }
 
 /// Generate uniform random numbers in (0, 1] on Metal GPU
-pub fn metalrands(n: usize) -> XResult<Vec<f32>> {
-    let device = METAL_DEVICE.as_ref()?;
-    let queue = METAL_QUEUE.as_ref()?;
-    let pipeline = UNIFORM_PIPELINE.as_ref()?;
+pub fn rand(n: usize) -> XResult<Vec<f32>> {
+    let queue = METAL_QUEUE.as_ref().map_err(Clone::clone)?;
+    let pipeline = UNIFORM_PIPELINE.as_ref().map_err(Clone::clone)?;
 
-    let out_buffer = device.new_buffer(
-        (n * std::mem::size_of::<f32>()) as u64,
-        MTLResourceOptions::StorageModeShared,
-    );
+    let out_buffer = new_shared_buffer(n * std::mem::size_of::<f32>())?;
 
     let seed: u64 = rand::rng().random();
     let len_u32 = n as u32;
 
     let (thread_groups, threads_per_group) = thread_config(n);
 
-    let command_buffer = queue.new_command_buffer();
-    let encoder = command_buffer.new_compute_command_encoder();
+    let command_buffer = new_command_buffer(queue)?;
+    let encoder = new_compute_encoder(&command_buffer)?;
 
-    encoder.set_compute_pipeline_state(pipeline);
-    encoder.set_buffer(0, Some(&out_buffer), 0);
-    encoder.set_bytes(
-        1,
-        std::mem::size_of::<u32>() as u64,
-        &len_u32 as *const u32 as *const _,
-    );
-    encoder.set_bytes(
-        2,
-        std::mem::size_of::<u64>() as u64,
-        &seed as *const u64 as *const _,
-    );
+    set_pipeline(&encoder, pipeline);
+    set_buffer(&encoder, 0, &out_buffer);
+    set_scalar(&encoder, 1, &len_u32);
+    set_scalar(&encoder, 2, &seed);
 
-    encoder.dispatch_thread_groups(thread_groups, threads_per_group);
-    encoder.end_encoding();
+    dispatch_threadgroups(&encoder, thread_groups, threads_per_group);
+    end_encoding(&encoder);
 
-    command_buffer.commit();
-    command_buffer.wait_until_completed();
+    finish_command_buffer(&command_buffer)?;
 
-    let result = unsafe {
-        let ptr = out_buffer.contents() as *const f32;
-        std::slice::from_raw_parts(ptr, n).to_vec()
-    };
-
-    Ok(result)
+    Ok(read_buffer_vec_f32(&out_buffer, n))
 }
 
 /// Generate normal random numbers on Metal GPU
-pub fn metalrandn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
-    let device = METAL_DEVICE.as_ref()?;
-    let queue = METAL_QUEUE.as_ref()?;
-    let pipeline = NORMAL_PIPELINE.as_ref()?;
+pub fn randn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
+    let queue = METAL_QUEUE.as_ref().map_err(Clone::clone)?;
+    let pipeline = NORMAL_PIPELINE.as_ref().map_err(Clone::clone)?;
 
-    let out_buffer = device.new_buffer(
-        (n * std::mem::size_of::<f32>()) as u64,
-        MTLResourceOptions::StorageModeShared,
-    );
+    let out_buffer = new_shared_buffer(n * std::mem::size_of::<f32>())?;
 
     let seed: u64 = rand::rng().random();
     let len_u32 = n as u32;
 
     let (thread_groups, threads_per_group) = thread_config(n);
 
-    let command_buffer = queue.new_command_buffer();
-    let encoder = command_buffer.new_compute_command_encoder();
+    let command_buffer = new_command_buffer(queue)?;
+    let encoder = new_compute_encoder(&command_buffer)?;
 
-    encoder.set_compute_pipeline_state(pipeline);
-    encoder.set_buffer(0, Some(&out_buffer), 0);
-    encoder.set_bytes(
-        1,
-        std::mem::size_of::<u32>() as u64,
-        &len_u32 as *const u32 as *const _,
-    );
-    encoder.set_bytes(
-        2,
-        std::mem::size_of::<f32>() as u64,
-        &mu as *const f32 as *const _,
-    );
-    encoder.set_bytes(
-        3,
-        std::mem::size_of::<f32>() as u64,
-        &sigma as *const f32 as *const _,
-    );
-    encoder.set_bytes(
-        4,
-        std::mem::size_of::<u64>() as u64,
-        &seed as *const u64 as *const _,
-    );
+    set_pipeline(&encoder, pipeline);
+    set_buffer(&encoder, 0, &out_buffer);
+    set_scalar(&encoder, 1, &len_u32);
+    set_scalar(&encoder, 2, &mu);
+    set_scalar(&encoder, 3, &sigma);
+    set_scalar(&encoder, 4, &seed);
 
-    encoder.dispatch_thread_groups(thread_groups, threads_per_group);
-    encoder.end_encoding();
+    dispatch_threadgroups(&encoder, thread_groups, threads_per_group);
+    end_encoding(&encoder);
 
-    command_buffer.commit();
-    command_buffer.wait_until_completed();
+    finish_command_buffer(&command_buffer)?;
 
-    let result = unsafe {
-        let ptr = out_buffer.contents() as *const f32;
-        std::slice::from_raw_parts(ptr, n).to_vec()
-    };
-
-    Ok(result)
+    Ok(read_buffer_vec_f32(&out_buffer, n))
 }
 
 /// Generate exponential random numbers on Metal GPU
-pub fn metalrandexp(n: usize) -> XResult<Vec<f32>> {
-    let device = METAL_DEVICE.as_ref()?;
-    let queue = METAL_QUEUE.as_ref()?;
-    let pipeline = EXP_PIPELINE.as_ref()?;
+pub fn randexp(n: usize) -> XResult<Vec<f32>> {
+    let queue = METAL_QUEUE.as_ref().map_err(Clone::clone)?;
+    let pipeline = EXP_PIPELINE.as_ref().map_err(Clone::clone)?;
 
-    let out_buffer = device.new_buffer(
-        (n * std::mem::size_of::<f32>()) as u64,
-        MTLResourceOptions::StorageModeShared,
-    );
+    let out_buffer = new_shared_buffer(n * std::mem::size_of::<f32>())?;
 
     let seed: u64 = rand::rng().random();
     let len_u32 = n as u32;
 
     let (thread_groups, threads_per_group) = thread_config(n);
 
-    let command_buffer = queue.new_command_buffer();
-    let encoder = command_buffer.new_compute_command_encoder();
+    let command_buffer = new_command_buffer(queue)?;
+    let encoder = new_compute_encoder(&command_buffer)?;
 
-    encoder.set_compute_pipeline_state(pipeline);
-    encoder.set_buffer(0, Some(&out_buffer), 0);
-    encoder.set_bytes(
-        1,
-        std::mem::size_of::<u32>() as u64,
-        &len_u32 as *const u32 as *const _,
-    );
-    encoder.set_bytes(
-        2,
-        std::mem::size_of::<u64>() as u64,
-        &seed as *const u64 as *const _,
-    );
+    set_pipeline(&encoder, pipeline);
+    set_buffer(&encoder, 0, &out_buffer);
+    set_scalar(&encoder, 1, &len_u32);
+    set_scalar(&encoder, 2, &seed);
 
-    encoder.dispatch_thread_groups(thread_groups, threads_per_group);
-    encoder.end_encoding();
+    dispatch_threadgroups(&encoder, thread_groups, threads_per_group);
+    end_encoding(&encoder);
 
-    command_buffer.commit();
-    command_buffer.wait_until_completed();
+    finish_command_buffer(&command_buffer)?;
 
-    let result = unsafe {
-        let ptr = out_buffer.contents() as *const f32;
-        std::slice::from_raw_parts(ptr, n).to_vec()
-    };
+    Ok(read_buffer_vec_f32(&out_buffer, n))
+}
 
-    Ok(result)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn metal_uniform_rng_returns_finite_values_in_range() {
+        let values = rand(128).unwrap();
+        assert_eq!(values.len(), 128);
+        assert!(values.iter().all(|value| value.is_finite()));
+        assert!(values.iter().all(|value| *value > 0.0 && *value <= 1.0));
+    }
+
+    #[test]
+    fn metal_normal_rng_returns_finite_values() {
+        let values = randn(128, 0.0, 1.0).unwrap();
+        assert_eq!(values.len(), 128);
+        assert!(values.iter().all(|value| value.is_finite()));
+    }
+
+    #[test]
+    fn metal_exp_rng_returns_finite_non_negative_values() {
+        let values = randexp(128).unwrap();
+        assert_eq!(values.len(), 128);
+        assert!(values.iter().all(|value| value.is_finite()));
+        assert!(values.iter().all(|value| *value >= 0.0));
+    }
+
+    #[test]
+    fn metal_standard_stable_rng_returns_finite_values() {
+        let values = standard_stable_rands(1.5, 0.0, 128).unwrap();
+        assert_eq!(values.len(), 128);
+        assert!(values.iter().all(|value| value.is_finite()));
+    }
 }

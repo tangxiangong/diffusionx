@@ -13,7 +13,7 @@ Guidance for coding agents working in `diffusionx`.
 
 - Language: Rust (edition `2024`).
 - Crate: `diffusionx`.
-- MSRV: `1.87` (`rust-version` in `Cargo.toml`).
+- MSRV: `1.88` (`rust-version` in `Cargo.toml`).
 - Library doctests: disabled (`[lib] doctest = false`).
 - Default feature: `mimalloc`.
 - Optional features: `cuda`, `metal`, `io`, `visualize`.
