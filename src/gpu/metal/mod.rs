@@ -1,6 +1,7 @@
 use crate::{XError, XResult};
+use dispatch2::DispatchData;
 use objc2::{rc::Retained, runtime::ProtocolObject};
-use objc2_foundation::{NSString, NSURL};
+use objc2_foundation::NSString;
 use objc2_metal::{
     MTLBuffer, MTLCommandBuffer, MTLCommandBufferStatus, MTLCommandEncoder, MTLCommandQueue,
     MTLComputeCommandEncoder, MTLComputePipelineState, MTLCreateSystemDefaultDevice, MTLDevice,
@@ -34,20 +35,23 @@ pub(crate) static METAL_QUEUE: LazyLock<XResult<Retained<MetalQueue>>> = LazyLoc
         .ok_or_else(|| XError::Other("Failed to create Metal command queue".into()))
 });
 
-// Pre-compiled Metal library paths (set by build.rs)
-pub(crate) const BM_METALLIB: &str = env!("BM_KERNEL_METALLIB");
-pub(crate) const LEVY_METALLIB: &str = env!("LEVY_KERNEL_METALLIB");
-pub(crate) const OU_METALLIB: &str = env!("OU_KERNEL_METALLIB");
-pub(crate) const RANDOM_METALLIB: &str = env!("RANDOM_KERNEL_METALLIB");
+// Pre-compiled Metal libraries, embedded into the binary at build time.
+// build.rs compiles each `.metal` source to a `.metallib` and exports its path;
+// `include_bytes!` then bakes the bytes in, so the binary is self-contained and
+// does not depend on the build directory existing at runtime.
+pub(crate) const BM_METALLIB: &[u8] = include_bytes!(env!("BM_KERNEL_METALLIB"));
+pub(crate) const LEVY_METALLIB: &[u8] = include_bytes!(env!("LEVY_KERNEL_METALLIB"));
+pub(crate) const OU_METALLIB: &[u8] = include_bytes!(env!("OU_KERNEL_METALLIB"));
+pub(crate) const RANDOM_METALLIB: &[u8] = include_bytes!(env!("RANDOM_KERNEL_METALLIB"));
 
-/// Load a pre-compiled Metal library from path
-pub(crate) fn load_library(path: &str) -> XResult<Retained<MetalLibrary>> {
+/// Load a pre-compiled Metal library from bytes embedded in the binary.
+pub(crate) fn load_library(metallib: &'static [u8]) -> XResult<Retained<MetalLibrary>> {
     let device = METAL_DEVICE.as_ref().map_err(Clone::clone)?;
-    let url = NSURL::fileURLWithPath(&NSString::from_str(path));
+    let data = DispatchData::from_static_bytes(metallib);
 
     device
-        .newLibraryWithURL_error(&url)
-        .map_err(|e| XError::Other(format!("Failed to load metallib '{}': {}", path, e)))
+        .newLibraryWithData_error(&data)
+        .map_err(|e| XError::Other(format!("Failed to load embedded metallib: {e}")))
 }
 
 /// Get compute pipeline state for a kernel function
