@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.0] - 2026-05-21
+
+### 🚜 Refactor
+
+- *(gpu)* Port the Metal backend to objc2 bindings and embed Metal libraries in the binary
+- *(gpu)* Unify random function names across the CUDA and Metal backends
+
+### ⚡ Performance
+
+- *(levy)* Hoist `StableConstants` out of the symmetric Lévy simulation loop
+
+### 🧪 Testing
+
+- *(gpu)* Add Metal random smoke tests and benchmarks
+
+### ⚙️ Miscellaneous Tasks
+
+- Remove `metal` from the default features
+- Bump the MSRV to Rust 1.88
+
+## [0.11.5] - 2026-04-16
+
+### 🐛 Bug Fixes
+
+- Downgrade rust-version to 1.87 in Cargo.toml
+
+### 📚 Documentation
+
+- Refactor documentation and improve clarity across simulation modules
+
+### ⚙️ Miscellaneous Tasks
+
+- Update CHANGELOG for version 0.11.5 with bug fixes and documentation improvements
+
 ## [0.11.5] - 2026-04-15
 
 ### 🐛 Bug Fixes
