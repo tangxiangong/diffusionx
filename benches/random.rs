@@ -24,6 +24,13 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    #[cfg(feature = "metal")]
+    c.bench_function("uniform distribution f32 (metal)", |b| {
+        b.iter(|| {
+            let _ = diffusionx::gpu::random::rand(black_box(N)).unwrap();
+        })
+    });
+
     c.bench_function("normal distribution f64", |b| {
         b.iter(|| {
             let _ = normal::standard_rands::<f64>(black_box(N));
@@ -38,6 +45,14 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     #[cfg(feature = "cuda")]
     c.bench_function("normal distribution f32 (cuda)", |b| {
+        b.iter(|| {
+            let _ = diffusionx::gpu::random::randn(black_box(N), black_box(0.0), black_box(1.0))
+                .unwrap();
+        })
+    });
+
+    #[cfg(feature = "metal")]
+    c.bench_function("normal distribution f32 (metal)", |b| {
         b.iter(|| {
             let _ = diffusionx::gpu::random::randn(black_box(N), black_box(0.0), black_box(1.0))
                 .unwrap();
@@ -63,6 +78,13 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
 
+    #[cfg(feature = "metal")]
+    c.bench_function("exponential distribution f32 (metal)", |b| {
+        b.iter(|| {
+            let _ = diffusionx::gpu::random::randexp(black_box(N)).unwrap();
+        })
+    });
+
     c.bench_function("stable distribution f64", |b| {
         b.iter(|| {
             let _ = stable::sym_standard_rands(black_box(0.7), black_box(N)).unwrap();
@@ -81,6 +103,18 @@ fn criterion_benchmark(c: &mut Criterion) {
             let _ = diffusionx::gpu::random::standard_stable_rands(
                 black_box(0.7),
                 black_box(0.0),
+                black_box(N),
+            )
+            .unwrap();
+        })
+    });
+
+    #[cfg(feature = "metal")]
+    c.bench_function("stable distribution f32 (metal)", |b| {
+        b.iter(|| {
+            let _ = diffusionx::gpu::random::standard_stable_rands(
+                black_box(0.7f32),
+                black_box(0.0f32),
                 black_box(N),
             )
             .unwrap();
