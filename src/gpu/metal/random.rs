@@ -160,3 +160,38 @@ pub fn metalrandexp(n: usize) -> XResult<Vec<f32>> {
 
     Ok(read_buffer_vec_f32(&out_buffer, n))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn metal_uniform_rng_returns_finite_values_in_range() {
+        let values = metalrands(128).unwrap();
+        assert_eq!(values.len(), 128);
+        assert!(values.iter().all(|value| value.is_finite()));
+        assert!(values.iter().all(|value| *value > 0.0 && *value <= 1.0));
+    }
+
+    #[test]
+    fn metal_normal_rng_returns_finite_values() {
+        let values = metalrandn(128, 0.0, 1.0).unwrap();
+        assert_eq!(values.len(), 128);
+        assert!(values.iter().all(|value| value.is_finite()));
+    }
+
+    #[test]
+    fn metal_exp_rng_returns_finite_non_negative_values() {
+        let values = metalrandexp(128).unwrap();
+        assert_eq!(values.len(), 128);
+        assert!(values.iter().all(|value| value.is_finite()));
+        assert!(values.iter().all(|value| *value >= 0.0));
+    }
+
+    #[test]
+    fn metal_standard_stable_rng_returns_finite_values() {
+        let values = standard_stable_rands(1.5, 0.0, 128).unwrap();
+        assert_eq!(values.len(), 128);
+        assert!(values.iter().all(|value| value.is_finite()));
+    }
+}
