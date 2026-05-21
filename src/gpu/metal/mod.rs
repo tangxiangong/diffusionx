@@ -1,14 +1,34 @@
-use crate::XResult;
-use metal::{Device, MTLSize};
-use std::sync::LazyLock;
+use crate::{XError, XResult};
+use objc2::{rc::Retained, runtime::ProtocolObject};
+use objc2_foundation::NSString;
+use objc2_metal::{
+    MTLBuffer, MTLCommandBuffer, MTLCommandBufferStatus, MTLCommandEncoder, MTLCommandQueue,
+    MTLComputeCommandEncoder, MTLComputePipelineState, MTLCreateSystemDefaultDevice, MTLDevice,
+    MTLFunction, MTLLibrary, MTLResourceOptions, MTLSize,
+};
+use std::{ffi::c_void, ptr::NonNull, sync::LazyLock};
 
-pub(crate) static METAL_DEVICE: LazyLock<XResult<Device>> = LazyLock::new(|| {
-    Device::system_default().ok_or_else(|| crate::XError::Other("No Metal device found".into()))
+#[link(name = "CoreGraphics", kind = "framework")]
+unsafe extern "C" {}
+
+pub(crate) type MetalDevice = ProtocolObject<dyn MTLDevice>;
+pub(crate) type MetalQueue = ProtocolObject<dyn MTLCommandQueue>;
+pub(crate) type MetalLibrary = ProtocolObject<dyn MTLLibrary>;
+pub(crate) type MetalFunction = ProtocolObject<dyn MTLFunction>;
+pub(crate) type MetalPipeline = ProtocolObject<dyn MTLComputePipelineState>;
+pub(crate) type MetalBuffer = ProtocolObject<dyn MTLBuffer>;
+pub(crate) type MetalCommandBuffer = ProtocolObject<dyn MTLCommandBuffer>;
+pub(crate) type MetalComputeEncoder = ProtocolObject<dyn MTLComputeCommandEncoder>;
+
+pub(crate) static METAL_DEVICE: LazyLock<XResult<Retained<MetalDevice>>> = LazyLock::new(|| {
+    MTLCreateSystemDefaultDevice().ok_or_else(|| XError::Other("No Metal device found".into()))
 });
 
-pub(crate) static METAL_QUEUE: LazyLock<XResult<metal::CommandQueue>> = LazyLock::new(|| {
-    let device = METAL_DEVICE.as_ref()?;
-    Ok(device.new_command_queue())
+pub(crate) static METAL_QUEUE: LazyLock<XResult<Retained<MetalQueue>>> = LazyLock::new(|| {
+    let device = METAL_DEVICE.as_ref().map_err(Clone::clone)?;
+    device
+        .newCommandQueue()
+        .ok_or_else(|| XError::Other("Failed to create Metal command queue".into()))
 });
 
 // Pre-compiled Metal library paths (set by build.rs)
@@ -18,26 +38,131 @@ pub(crate) const OU_METALLIB: &str = env!("OU_KERNEL_METALLIB");
 pub(crate) const RANDOM_METALLIB: &str = env!("RANDOM_KERNEL_METALLIB");
 
 /// Load a pre-compiled Metal library from path
-pub(crate) fn load_library(path: &str) -> XResult<metal::Library> {
-    let device = METAL_DEVICE.as_ref()?;
+#[allow(deprecated)]
+pub(crate) fn load_library(path: &str) -> XResult<Retained<MetalLibrary>> {
+    let device = METAL_DEVICE.as_ref().map_err(Clone::clone)?;
+    let filepath = NSString::from_str(path);
+
     device
-        .new_library_with_file(path)
-        .map_err(|e| crate::XError::Other(format!("Failed to load metallib '{}': {}", path, e)))
+        .newLibraryWithFile_error(&filepath)
+        .map_err(|e| XError::Other(format!("Failed to load metallib '{}': {}", path, e)))
 }
 
 /// Get compute pipeline state for a kernel function
 pub(crate) fn get_pipeline(
-    library: &metal::Library,
+    library: &MetalLibrary,
     function_name: &str,
-) -> XResult<metal::ComputePipelineState> {
-    let device = METAL_DEVICE.as_ref()?;
-    let function = library.get_function(function_name, None).map_err(|e| {
-        crate::XError::Other(format!("Function '{}' not found: {}", function_name, e))
-    })?;
+) -> XResult<Retained<MetalPipeline>> {
+    let device = METAL_DEVICE.as_ref().map_err(Clone::clone)?;
+    let function_name_ns = NSString::from_str(function_name);
+    let function: Retained<MetalFunction> = library
+        .newFunctionWithName(&function_name_ns)
+        .ok_or_else(|| XError::Other(format!("Function '{}' not found", function_name)))?;
 
     device
-        .new_compute_pipeline_state_with_function(&function)
-        .map_err(|e| crate::XError::Other(format!("Pipeline creation error: {}", e)))
+        .newComputePipelineStateWithFunction_error(&function)
+        .map_err(|e| XError::Other(format!("Pipeline creation error: {}", e)))
+}
+
+pub(crate) fn new_shared_buffer(bytes: usize) -> XResult<Retained<MetalBuffer>> {
+    let device = METAL_DEVICE.as_ref().map_err(Clone::clone)?;
+    device
+        .newBufferWithLength_options(bytes, MTLResourceOptions::StorageModeShared)
+        .ok_or_else(|| XError::Other(format!("Failed to allocate Metal buffer ({bytes} bytes)")))
+}
+
+pub(crate) fn zero_buffer_f32(buffer: &MetalBuffer) {
+    // SAFETY: `contents` is valid for a shared buffer allocated by this module, and
+    // the caller passes a buffer with space for at least one `f32`.
+    unsafe {
+        *buffer.contents().as_ptr().cast::<f32>() = 0.0;
+    }
+}
+
+pub(crate) fn read_buffer_f32(buffer: &MetalBuffer) -> f32 {
+    // SAFETY: command completion is checked before reads, and moment buffers hold
+    // at least one `f32` in shared storage.
+    unsafe { *buffer.contents().as_ptr().cast::<f32>() }
+}
+
+pub(crate) fn read_buffer_vec_f32(buffer: &MetalBuffer, len: usize) -> Vec<f32> {
+    // SAFETY: command completion is checked before reads, and callers provide the
+    // number of `f32` values used when the shared buffer was allocated.
+    unsafe { std::slice::from_raw_parts(buffer.contents().as_ptr().cast::<f32>(), len).to_vec() }
+}
+
+pub(crate) fn set_buffer(encoder: &MetalComputeEncoder, index: usize, buffer: &MetalBuffer) {
+    // SAFETY: the buffer is retained by the caller until command completion, offset
+    // is zero, and binding indices match the compiled Metal kernels.
+    unsafe {
+        encoder.setBuffer_offset_atIndex(Some(buffer), 0, index);
+    }
+}
+
+pub(crate) fn set_scalar<T>(encoder: &MetalComputeEncoder, index: usize, value: &T) {
+    let ptr = NonNull::from(value).cast::<c_void>();
+    // SAFETY: `value` is a valid pointer for `size_of::<T>()` bytes; Metal copies
+    // scalar bytes into the encoder immediately for the requested binding index.
+    unsafe {
+        encoder.setBytes_length_atIndex(ptr, std::mem::size_of::<T>(), index);
+    }
+}
+
+pub(crate) fn set_threadgroup_memory_length(
+    encoder: &MetalComputeEncoder,
+    index: usize,
+    bytes: usize,
+) {
+    // SAFETY: the binding index and byte length mirror the existing kernels'
+    // threadgroup scratch contract.
+    unsafe {
+        encoder.setThreadgroupMemoryLength_atIndex(bytes, index);
+    }
+}
+
+pub(crate) fn new_command_buffer(queue: &MetalQueue) -> XResult<Retained<MetalCommandBuffer>> {
+    queue
+        .commandBuffer()
+        .ok_or_else(|| XError::Other("Failed to create Metal command buffer".into()))
+}
+
+pub(crate) fn new_compute_encoder(
+    command_buffer: &MetalCommandBuffer,
+) -> XResult<Retained<MetalComputeEncoder>> {
+    command_buffer
+        .computeCommandEncoder()
+        .ok_or_else(|| XError::Other("Failed to create Metal compute encoder".into()))
+}
+
+pub(crate) fn set_pipeline(encoder: &MetalComputeEncoder, pipeline: &MetalPipeline) {
+    encoder.setComputePipelineState(pipeline);
+}
+
+pub(crate) fn dispatch_threadgroups(
+    encoder: &MetalComputeEncoder,
+    thread_groups: MTLSize,
+    threads_per_group: MTLSize,
+) {
+    encoder.dispatchThreadgroups_threadsPerThreadgroup(thread_groups, threads_per_group);
+}
+
+pub(crate) fn end_encoding(encoder: &MetalComputeEncoder) {
+    encoder.endEncoding();
+}
+
+pub(crate) fn finish_command_buffer(command_buffer: &MetalCommandBuffer) -> XResult<()> {
+    command_buffer.commit();
+    command_buffer.waitUntilCompleted();
+
+    if command_buffer.status() == MTLCommandBufferStatus::Error {
+        let message = command_buffer.error().map_or_else(
+            || "Metal command buffer failed".to_string(),
+            |error| error.localizedDescription().to_string(),
+        );
+        return Err(XError::Other(message));
+    }
+
+    Ok(())
 }
 
 /// Calculate thread group configuration for a given number of particles
@@ -47,8 +172,16 @@ pub(crate) fn thread_config(particles: usize) -> (MTLSize, MTLSize) {
     let thread_groups = particles.div_ceil(thread_group_size);
 
     (
-        MTLSize::new(thread_groups as u64, 1, 1),
-        MTLSize::new(thread_group_size as u64, 1, 1),
+        MTLSize {
+            width: thread_groups,
+            height: 1,
+            depth: 1,
+        },
+        MTLSize {
+            width: thread_group_size,
+            height: 1,
+            depth: 1,
+        },
     )
 }
 
@@ -62,82 +195,56 @@ macro_rules! subscribe_metal_gpu_function {
             )+
             particles: usize,
         ) -> XResult<f32> {
-            use metal::MTLResourceOptions;
-
-            let device = $crate::gpu::metal::METAL_DEVICE.as_ref()?;
-            let queue = $crate::gpu::metal::METAL_QUEUE.as_ref()?;
-            static PIPELINE: std::sync::LazyLock<XResult<metal::ComputePipelineState>> =
+            let queue = $crate::gpu::metal::METAL_QUEUE.as_ref().map_err(Clone::clone)?;
+            static PIPELINE: std::sync::LazyLock<XResult<objc2::rc::Retained<$crate::gpu::metal::MetalPipeline>>> =
                 std::sync::LazyLock::new(|| {
-                    let library = $library.as_ref()?;
+                    let library = $library.as_ref().map_err(Clone::clone)?;
                     $crate::gpu::metal::get_pipeline(library, $kernel_name)
                 });
-            let pipeline = PIPELINE.as_ref()?;
+            let pipeline = PIPELINE.as_ref().map_err(Clone::clone)?;
 
             let (thread_groups, threads_per_group) = $crate::gpu::metal::thread_config(particles);
 
-            // Create output buffer
-            let out_buffer = device.new_buffer(
-                std::mem::size_of::<f32>() as u64,
-                MTLResourceOptions::StorageModeShared,
-            );
-
-            // Zero initialize output
-            unsafe {
-                let ptr = out_buffer.contents() as *mut f32;
-                *ptr = 0.0f32;
-            }
+            let out_buffer =
+                $crate::gpu::metal::new_shared_buffer(std::mem::size_of::<f32>())?;
+            $crate::gpu::metal::zero_buffer_f32(&out_buffer);
 
             let mut rng = rand::rng();
             use rand::RngExt;
             let seed: u64 = rng.random();
             let particles_u32 = particles as u32;
 
-            let command_buffer = queue.new_command_buffer();
-            let encoder = command_buffer.new_compute_command_encoder();
+            let command_buffer = $crate::gpu::metal::new_command_buffer(queue)?;
+            let encoder = $crate::gpu::metal::new_compute_encoder(&command_buffer)?;
 
-            encoder.set_compute_pipeline_state(pipeline);
+            $crate::gpu::metal::set_pipeline(&encoder, pipeline);
 
-            // Set buffers
-            let mut buffer_index = 0u64;
-            encoder.set_buffer(buffer_index, Some(&out_buffer), 0);
+            let mut buffer_index = 0usize;
+            $crate::gpu::metal::set_buffer(&encoder, buffer_index, &out_buffer);
             buffer_index += 1;
 
             $(
-                encoder.set_bytes(
-                    buffer_index,
-                    std::mem::size_of::<$param_type>() as u64,
-                    &$param_name as *const $param_type as *const std::ffi::c_void,
-                );
+                $crate::gpu::metal::set_scalar(&encoder, buffer_index, &$param_name);
                 buffer_index += 1;
             )+
 
-            encoder.set_bytes(
-                buffer_index,
-                std::mem::size_of::<u32>() as u64,
-                &particles_u32 as *const u32 as *const std::ffi::c_void,
-            );
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &particles_u32);
             buffer_index += 1;
 
-            encoder.set_bytes(
-                buffer_index,
-                std::mem::size_of::<u64>() as u64,
-                &seed as *const u64 as *const std::ffi::c_void,
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &seed);
+
+            $crate::gpu::metal::set_threadgroup_memory_length(
+                &encoder,
+                0,
+                32 * std::mem::size_of::<f32>(),
             );
 
-            // Set threadgroup memory for SIMD sums (32 floats)
-            encoder.set_threadgroup_memory_length(0, 32 * std::mem::size_of::<f32>() as u64);
+            $crate::gpu::metal::dispatch_threadgroups(&encoder, thread_groups, threads_per_group);
+            $crate::gpu::metal::end_encoding(&encoder);
 
-            encoder.dispatch_thread_groups(thread_groups, threads_per_group);
-            encoder.end_encoding();
+            $crate::gpu::metal::finish_command_buffer(&command_buffer)?;
 
-            command_buffer.commit();
-            command_buffer.wait_until_completed();
-
-            // Read result
-            let sum = unsafe {
-                let ptr = out_buffer.contents() as *const f32;
-                *ptr
-            };
+            let sum = $crate::gpu::metal::read_buffer_f32(&out_buffer);
 
             Ok(sum / particles as f32)
         }
@@ -155,99 +262,153 @@ macro_rules! subscribe_metal_central_moment_gpu_function {
             order: $order_type,
             particles: usize,
         ) -> XResult<f32> {
-            use metal::MTLResourceOptions;
-
-            let device = $crate::gpu::metal::METAL_DEVICE.as_ref()?;
-            let queue = $crate::gpu::metal::METAL_QUEUE.as_ref()?;
-            static PIPELINE: std::sync::LazyLock<XResult<metal::ComputePipelineState>> =
+            let queue = $crate::gpu::metal::METAL_QUEUE.as_ref().map_err(Clone::clone)?;
+            static PIPELINE: std::sync::LazyLock<XResult<objc2::rc::Retained<$crate::gpu::metal::MetalPipeline>>> =
                 std::sync::LazyLock::new(|| {
-                    let library = $library.as_ref()?;
+                    let library = $library.as_ref().map_err(Clone::clone)?;
                     $crate::gpu::metal::get_pipeline(library, $kernel_name)
                 });
-            let pipeline = PIPELINE.as_ref()?;
+            let pipeline = PIPELINE.as_ref().map_err(Clone::clone)?;
 
             let (thread_groups, threads_per_group) = $crate::gpu::metal::thread_config(particles);
 
             // First compute mean
             let mean_val = mean($($param_name,)+ particles)?;
 
-            // Create output buffer
-            let out_buffer = device.new_buffer(
-                std::mem::size_of::<f32>() as u64,
-                MTLResourceOptions::StorageModeShared,
-            );
-
-            // Zero initialize output
-            unsafe {
-                let ptr = out_buffer.contents() as *mut f32;
-                *ptr = 0.0f32;
-            }
+            let out_buffer =
+                $crate::gpu::metal::new_shared_buffer(std::mem::size_of::<f32>())?;
+            $crate::gpu::metal::zero_buffer_f32(&out_buffer);
 
             let mut rng = rand::rng();
             use rand::RngExt;
             let seed: u64 = rng.random();
             let particles_u32 = particles as u32;
 
-            let command_buffer = queue.new_command_buffer();
-            let encoder = command_buffer.new_compute_command_encoder();
+            let command_buffer = $crate::gpu::metal::new_command_buffer(queue)?;
+            let encoder = $crate::gpu::metal::new_compute_encoder(&command_buffer)?;
 
-            encoder.set_compute_pipeline_state(pipeline);
+            $crate::gpu::metal::set_pipeline(&encoder, pipeline);
 
             // Set buffers - order matches kernel signature: out, order, mean, params..., particles, seed
-            let mut buffer_index = 0u64;
-            encoder.set_buffer(buffer_index, Some(&out_buffer), 0);
+            let mut buffer_index = 0usize;
+            $crate::gpu::metal::set_buffer(&encoder, buffer_index, &out_buffer);
             buffer_index += 1;
 
-            encoder.set_bytes(
-                buffer_index,
-                std::mem::size_of::<$order_type>() as u64,
-                &order as *const $order_type as *const std::ffi::c_void,
-            );
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &order);
             buffer_index += 1;
 
-            encoder.set_bytes(
-                buffer_index,
-                std::mem::size_of::<f32>() as u64,
-                &mean_val as *const f32 as *const std::ffi::c_void,
-            );
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &mean_val);
             buffer_index += 1;
 
             $(
-                encoder.set_bytes(
-                    buffer_index,
-                    std::mem::size_of::<$param_type>() as u64,
-                    &$param_name as *const $param_type as *const std::ffi::c_void,
-                );
+                $crate::gpu::metal::set_scalar(&encoder, buffer_index, &$param_name);
                 buffer_index += 1;
             )+
 
-            encoder.set_bytes(
-                buffer_index,
-                std::mem::size_of::<u32>() as u64,
-                &particles_u32 as *const u32 as *const std::ffi::c_void,
-            );
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &particles_u32);
             buffer_index += 1;
 
-            encoder.set_bytes(
-                buffer_index,
-                std::mem::size_of::<u64>() as u64,
-                &seed as *const u64 as *const std::ffi::c_void,
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &seed);
+
+            $crate::gpu::metal::set_threadgroup_memory_length(
+                &encoder,
+                0,
+                32 * std::mem::size_of::<f32>(),
             );
 
-            // Set threadgroup memory for SIMD sums (32 floats)
-            encoder.set_threadgroup_memory_length(0, 32 * std::mem::size_of::<f32>() as u64);
+            $crate::gpu::metal::dispatch_threadgroups(&encoder, thread_groups, threads_per_group);
+            $crate::gpu::metal::end_encoding(&encoder);
 
-            encoder.dispatch_thread_groups(thread_groups, threads_per_group);
-            encoder.end_encoding();
+            $crate::gpu::metal::finish_command_buffer(&command_buffer)?;
 
-            command_buffer.commit();
-            command_buffer.wait_until_completed();
+            let sum = $crate::gpu::metal::read_buffer_f32(&out_buffer);
 
-            // Read result
-            let sum = unsafe {
-                let ptr = out_buffer.contents() as *const f32;
-                *ptr
-            };
+            Ok(sum / particles as f32)
+        }
+    };
+}
+
+/// Macro to generate Metal GPU-accelerated fractional central moment functions.
+macro_rules! subscribe_metal_frac_central_moment_gpu_function {
+    (
+        $library:expr,
+        $func_name:ident,
+        $kernel_name:expr,
+        ($( $param_name:ident: $param_type:ty ),+ $(,)?),
+        before_order = ($( $before_order:ident ),* $(,)?),
+        after_order = ($( $after_order:ident ),* $(,)?)
+    ) => {
+        #[allow(clippy::too_many_arguments)]
+        fn $func_name(
+            $(
+                $param_name: $param_type,
+            )+
+            order: f32,
+            particles: usize,
+        ) -> XResult<f32> {
+            let queue = $crate::gpu::metal::METAL_QUEUE.as_ref().map_err(Clone::clone)?;
+            static PIPELINE: std::sync::LazyLock<XResult<objc2::rc::Retained<$crate::gpu::metal::MetalPipeline>>> =
+                std::sync::LazyLock::new(|| {
+                    let library = $library.as_ref().map_err(Clone::clone)?;
+                    $crate::gpu::metal::get_pipeline(library, $kernel_name)
+                });
+            let pipeline = PIPELINE.as_ref().map_err(Clone::clone)?;
+
+            let (thread_groups, threads_per_group) = $crate::gpu::metal::thread_config(particles);
+
+            let mean_val = mean($($param_name,)+ particles)?;
+
+            let out_buffer =
+                $crate::gpu::metal::new_shared_buffer(std::mem::size_of::<f32>())?;
+            $crate::gpu::metal::zero_buffer_f32(&out_buffer);
+
+            let mut rng = rand::rng();
+            use rand::RngExt;
+            let seed: u64 = rng.random();
+            let particles_u32 = particles as u32;
+
+            let command_buffer = $crate::gpu::metal::new_command_buffer(queue)?;
+            let encoder = $crate::gpu::metal::new_compute_encoder(&command_buffer)?;
+
+            $crate::gpu::metal::set_pipeline(&encoder, pipeline);
+
+            let mut buffer_index = 0usize;
+            $crate::gpu::metal::set_buffer(&encoder, buffer_index, &out_buffer);
+            buffer_index += 1;
+
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &mean_val);
+            buffer_index += 1;
+
+            $(
+                $crate::gpu::metal::set_scalar(&encoder, buffer_index, &$before_order);
+                buffer_index += 1;
+            )*
+
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &order);
+            buffer_index += 1;
+
+            $(
+                $crate::gpu::metal::set_scalar(&encoder, buffer_index, &$after_order);
+                buffer_index += 1;
+            )*
+
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &particles_u32);
+            buffer_index += 1;
+
+            $crate::gpu::metal::set_scalar(&encoder, buffer_index, &seed);
+
+            $crate::gpu::metal::set_threadgroup_memory_length(
+                &encoder,
+                0,
+                32 * std::mem::size_of::<f32>(),
+            );
+
+            $crate::gpu::metal::dispatch_threadgroups(&encoder, thread_groups, threads_per_group);
+            $crate::gpu::metal::end_encoding(&encoder);
+
+            $crate::gpu::metal::finish_command_buffer(&command_buffer)?;
+
+            let sum = $crate::gpu::metal::read_buffer_f32(&out_buffer);
 
             Ok(sum / particles as f32)
         }

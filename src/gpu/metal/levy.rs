@@ -2,13 +2,15 @@ use crate::{
     FloatExt, XError, XResult,
     gpu::{
         GPUMoment,
-        metal::{LEVY_METALLIB, load_library},
+        metal::{LEVY_METALLIB, MetalLibrary, load_library},
     },
     simulation::continuous::{Bm, Levy},
 };
+use objc2::rc::Retained;
 use std::sync::LazyLock;
 
-static LIBRARY: LazyLock<XResult<metal::Library>> = LazyLock::new(|| load_library(LEVY_METALLIB));
+static LIBRARY: LazyLock<XResult<Retained<MetalLibrary>>> =
+    LazyLock::new(|| load_library(LEVY_METALLIB));
 
 subscribe_metal_gpu_function!(LIBRARY, mean, "mean", (alpha: f32, start_position: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32));
 
@@ -16,7 +18,26 @@ subscribe_metal_gpu_function!(LIBRARY, raw_moment, "raw_moment", (alpha: f32, st
 
 subscribe_metal_gpu_function!(LIBRARY, frac_raw_moment, "frac_raw_moment", (alpha: f32, start_position: f32, order: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32));
 
-subscribe_metal_central_moment_gpu_function!(LIBRARY, frac_central_moment, "frac_central_moment", (alpha: f32, start_position: f32, duration: f32, time_step: f32, inv_alpha: f32, one_minus_alpha_div_alpha: f32), f32);
+subscribe_metal_frac_central_moment_gpu_function!(
+    LIBRARY,
+    frac_central_moment,
+    "frac_central_moment",
+    (
+        alpha: f32,
+        start_position: f32,
+        duration: f32,
+        time_step: f32,
+        inv_alpha: f32,
+        one_minus_alpha_div_alpha: f32
+    ),
+    before_order = (alpha, start_position),
+    after_order = (
+        duration,
+        time_step,
+        inv_alpha,
+        one_minus_alpha_div_alpha
+    )
+);
 
 impl<T: FloatExt> GPUMoment for Levy<T> {
     fn central_moment_gpu(

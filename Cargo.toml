@@ -23,7 +23,7 @@ name = "diffusionx"
 cuda = ["dep:cudarc"]
 default = ["mimalloc"]
 io = ["dep:csv"]
-metal = ["dep:metal", "dep:objc2", "dep:objc2-foundation", "dep:objc2-metal"]
+metal = ["dep:objc2", "dep:objc2-foundation", "dep:objc2-metal"]
 mimalloc = ["dep:mimalloc"]
 visualize = [
     "dep:derive_builder",
@@ -40,12 +40,11 @@ cudarc = { version = "0.19", optional = true, features = [
 derive_builder = { version = "0.20", optional = true }
 either = { version = "1", optional = true }
 gauss-quad = "0.3"
-metal = { version = "0.33", optional = true }
 mimalloc = { version = "0.1", optional = true }
 num-complex = "0.4"
 num-traits = "0.2"
 objc2 = { version = "0.6", optional = true }
-objc2-foundation = { version = "0.3", optional = true, features = ["NSString"] }
+objc2-foundation = { version = "0.3", optional = true, features = ["NSError", "NSString"] }
 objc2-metal = { version = "0.3", optional = true }
 plotters = { version = "0.3", optional = true }
 plotters-backend = { version = "0.3", optional = true }
