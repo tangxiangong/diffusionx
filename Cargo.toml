@@ -9,7 +9,7 @@ name = "diffusionx"
 readme = "README.md"
 repository = "https://github.com/tangxiangong/diffusionx"
 rust-version = "1.88"
-version = "0.11.5"
+version = "0.12.0"
 
 [package.metadata.docs.rs]
 features = ["io", "visualize"]
@@ -23,7 +23,12 @@ name = "diffusionx"
 cuda = ["dep:cudarc"]
 default = ["mimalloc"]
 io = ["dep:csv"]
-metal = ["dep:objc2", "dep:objc2-foundation", "dep:objc2-metal", "dep:dispatch2"]
+metal = [
+    "dep:dispatch2",
+    "dep:objc2",
+    "dep:objc2-foundation",
+    "dep:objc2-metal",
+]
 mimalloc = ["dep:mimalloc"]
 visualize = [
     "dep:derive_builder",
