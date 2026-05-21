@@ -76,7 +76,7 @@ pub fn standard_stable_rands(alpha: f32, beta: f32, len: usize) -> XResult<Vec<f
 }
 
 /// Generate uniform random numbers in (0, 1] on Metal GPU
-pub fn metalrands(n: usize) -> XResult<Vec<f32>> {
+pub fn rand(n: usize) -> XResult<Vec<f32>> {
     let queue = METAL_QUEUE.as_ref().map_err(Clone::clone)?;
     let pipeline = UNIFORM_PIPELINE.as_ref().map_err(Clone::clone)?;
 
@@ -104,7 +104,7 @@ pub fn metalrands(n: usize) -> XResult<Vec<f32>> {
 }
 
 /// Generate normal random numbers on Metal GPU
-pub fn metalrandn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
+pub fn randn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
     let queue = METAL_QUEUE.as_ref().map_err(Clone::clone)?;
     let pipeline = NORMAL_PIPELINE.as_ref().map_err(Clone::clone)?;
 
@@ -134,7 +134,7 @@ pub fn metalrandn(n: usize, mu: f32, sigma: f32) -> XResult<Vec<f32>> {
 }
 
 /// Generate exponential random numbers on Metal GPU
-pub fn metalrandexp(n: usize) -> XResult<Vec<f32>> {
+pub fn randexp(n: usize) -> XResult<Vec<f32>> {
     let queue = METAL_QUEUE.as_ref().map_err(Clone::clone)?;
     let pipeline = EXP_PIPELINE.as_ref().map_err(Clone::clone)?;
 
@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn metal_uniform_rng_returns_finite_values_in_range() {
-        let values = metalrands(128).unwrap();
+        let values = rand(128).unwrap();
         assert_eq!(values.len(), 128);
         assert!(values.iter().all(|value| value.is_finite()));
         assert!(values.iter().all(|value| *value > 0.0 && *value <= 1.0));
@@ -175,14 +175,14 @@ mod tests {
 
     #[test]
     fn metal_normal_rng_returns_finite_values() {
-        let values = metalrandn(128, 0.0, 1.0).unwrap();
+        let values = randn(128, 0.0, 1.0).unwrap();
         assert_eq!(values.len(), 128);
         assert!(values.iter().all(|value| value.is_finite()));
     }
 
     #[test]
     fn metal_exp_rng_returns_finite_non_negative_values() {
-        let values = metalrandexp(128).unwrap();
+        let values = randexp(128).unwrap();
         assert_eq!(values.len(), 128);
         assert!(values.iter().all(|value| value.is_finite()));
         assert!(values.iter().all(|value| *value >= 0.0));

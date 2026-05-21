@@ -20,7 +20,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     #[cfg(feature = "cuda")]
     c.bench_function("uniform distribution f32 (CUDA)", |b| {
         b.iter(|| {
-            let _ = diffusionx::gpu::random::curands(black_box(N)).unwrap();
+            let _ = diffusionx::gpu::random::rand(black_box(N)).unwrap();
         })
     });
 
@@ -39,7 +39,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     #[cfg(feature = "cuda")]
     c.bench_function("normal distribution f32 (cuda)", |b| {
         b.iter(|| {
-            let _ = diffusionx::gpu::random::curandn(black_box(N), black_box(0.0), black_box(1.0))
+            let _ = diffusionx::gpu::random::randn(black_box(N), black_box(0.0), black_box(1.0))
                 .unwrap();
         })
     });
@@ -59,7 +59,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     #[cfg(feature = "cuda")]
     c.bench_function("exponential distribution f32 (cuda)", |b| {
         b.iter(|| {
-            let _ = diffusionx::gpu::random::curandexp(black_box(N)).unwrap();
+            let _ = diffusionx::gpu::random::randexp(black_box(N)).unwrap();
         })
     });
 
